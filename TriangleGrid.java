@@ -35,6 +35,7 @@ public class TriangleGrid {
 	}
 	public void setUpGrid(){
 		this.triangles=new ArrayList<ArrayList<Triangle>>();
+		this.clicked=new ArrayList<Triangle>();
 		for (int yt = 0; yt < sideLength; yt++) {
 			this.triangles.add(new ArrayList<Triangle>());
 			for (int xt = 0; xt <= 2*sideLength-2*yt-2; xt++) {
@@ -142,9 +143,11 @@ public class TriangleGrid {
 		ArrayList<Triangle> group=getGroup(tri);
 		return liberties(group);
 	}
-	public void removeGroup(ArrayList<Triangle> group){
+	public void removeGroup(ArrayList<Triangle> group,Triangle capturer){
 		for (int n=0;n<group.size();n++){
+			group.get(n).prevPlayer=group.get(n).player;
 			group.get(n).player=0;
+			capturer.captured.add(group.get(n));
 		}
 	}
 	public static void main(String[] args) {
