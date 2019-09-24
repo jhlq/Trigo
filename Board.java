@@ -15,22 +15,75 @@ import javax.swing.JLabel;
 import javax.swing.event.MouseInputListener;
 
 import java.util.ArrayList;
-//import javax.swing.JButton;
+import javax.swing.JButton;
+import java.awt.event.*;  
+import javax.swing.*; 
 
 public class Board {
   private JLabel label;
 
   private Point clickPoint, cursorPoint;
+  TriangleGrid tg;
   
   int player;
+  
+  public int otherPlayer(){
+	  if (player==1){
+		  return 2;
+	  } else {
+		  return 1;
+	  }
+  }
+  public void switchPlayer(){
+	  this.player=otherPlayer();
+  }
 
   private void buildUI(Container container) {
 	 container.setLayout(new BoxLayout(container, BoxLayout.PAGE_AXIS));
 	 
-	 //JButton buttonPass = new JButton("Pass");
+	 JButton buttonPass = new JButton("Pass");
+	 container.add(buttonPass);
+	 JButton buttonUndo = new JButton("Undo");
+	 container.add(buttonUndo);
+	 JButton buttonReset = new JButton("Reset");
+	 container.add(buttonReset);
 
-	 CoordinateArea coordinateArea = new CoordinateArea(this);
-	 container.add(coordinateArea);
+	CoordinateArea coordinateArea = new CoordinateArea(this);
+	this.tg=coordinateArea.tg;
+	container.add(coordinateArea);
+	 
+	buttonPass.addActionListener(new ActionListener(){  
+		public void actionPerformed(ActionEvent e){  
+			if (coordinateArea.controller.player==1){
+				coordinateArea.controller.player=2;
+			} else { 
+				coordinateArea.controller.player=1;
+			}
+		}  
+	});
+	buttonUndo.addActionListener(new ActionListener(){  
+		public void actionPerformed(ActionEvent e){
+			int last=coordinateArea.tg.clicked.size()-1;
+			Triangle tri=coordinateArea.tg.clicked.get(last);
+			System.out.println("ncap "+tri.captured.size());
+			for (int i=0;i<tri.captured.size();i++){
+				Triangle ttri=tri.captured.get(i);
+				ttri.player=ttri.prevPlayer;
+				ttri.prevPlayer=0;
+			}
+			tri.player=0;
+			tri.captured=new ArrayList<Triangle>();
+			coordinateArea.tg.clicked.remove(last);
+			coordinateArea.controller.switchPlayer();
+			coordinateArea.repaint();
+		}  
+	});
+	buttonReset.addActionListener(new ActionListener(){  
+		public void actionPerformed(ActionEvent e){  
+			coordinateArea.tg.setUpGrid();
+			coordinateArea.repaint();
+		}  
+	});
 
 	 label = new JLabel();
 	 resetLabel();
@@ -40,7 +93,8 @@ public class Board {
 	 label.setAlignmentX(Component.LEFT_ALIGNMENT); // redundant
   }
 
-  public void updateCursorLocation(int x, int y) {
+ public void updateCursorLocation(int x, int y) {
+	 /*
 	 if (x < 0 || y < 0) {
 		cursorPoint = null;
 		updateLabel();
@@ -54,6 +108,7 @@ public class Board {
 	 cursorPoint.x = x;
 	 cursorPoint.y = y;
 	 updateLabel();
+	 */
   }
 
   public void updateClickPoint(Point p) {
@@ -70,16 +125,18 @@ public class Board {
 	 String text = "";
 
 	 if ((clickPoint == null) && (cursorPoint == null)) {
-		text = "Click or move the cursor within the framed area.";
+		text = "Click the cursor within the framed area.";
 	 } else {
 
-		if (clickPoint != null) {
-		  text += "The last click was at (" + clickPoint.x + ", " + clickPoint.y + "). ";
+		if (this.tg.clicked.size()>0) {
+			Triangle tri=this.tg.clicked.get(this.tg.clicked.size()-1);
+			text += "The last click was at (" + tri.x + ", " + tri.y + "). ";
 		}
-
+/*
 		if (cursorPoint != null) {
 		  text += "The cursor is at (" + cursorPoint.x + ", " + cursorPoint.y + "). ";
 		}
+		*/
 	 }
 
 	 label.setText(text);
@@ -111,10 +168,6 @@ public class Board {
 		this.controller.player=1;
 		this.tg=new TriangleGrid();
 
-		// Add a border of 5 pixels at the left and bottom,
-		// and 1 pixel at the top and right.
-		//setBorder(BorderFactory.createMatteBorder(1, 5, 5, 1, Color.RED));
-
 		addMouseListener(this);
 		addMouseMotionListener(this);
 		setBackground(Color.WHITE);
@@ -134,16 +187,7 @@ public class Board {
 
 		g.setColor(Color.GRAY);
 		drawGrid(g);
-		/*
-		// If user has chosen a point, paint a small dot on top.
-		if (point != null) {
-		  g.setColor(getForeground());
-		  //g.fillRect(point.x - 3, point.y - 3, 7, 7);
-		  g.setColor(Color.RED);
-		  double ovalSize=tg.gridSpace/2;
-		  g.fillOval((int)(point.x-ovalSize/2),(int)(point.y-ovalSize/2), (int)ovalSize, (int)ovalSize);
-		}
-		*/
+
 		int nclicked=this.tg.clicked.size();
 		double ovalSize=tg.gridSpace/2;
 		for (int n=0;n<nclicked;n++){
@@ -159,7 +203,7 @@ public class Board {
 		}
 		if (nclicked>0 && this.tg.clicked.get(nclicked-1).player>0){
 			Triangle tri=this.tg.clicked.get(nclicked-1);
-			g.setColor(Color.BLACK);
+			g.setColor(Color.WHITE);
 			double ovalSize2=ovalSize/3;
 			g.fillOval((int)(tri.pixX-ovalSize2/2),(int)(tri.pixY-ovalSize2/2), (int)ovalSize2, (int)ovalSize2);
 		}
@@ -192,7 +236,6 @@ public class Board {
 		  point.x = x;
 		  point.y = y;
 		}
-		controller.updateClickPoint(point);
 		int leny=this.tg.triangles.size();
 		boolean breakLoop=false;
 		for (int yt=0;yt<leny;yt++){
@@ -212,12 +255,12 @@ public class Board {
 					for (int a=0;a<adj.size();a++){
 						ArrayList<Triangle> g=tg.getGroup(adj.get(a));
 						if (tg.liberties(g)==0){
-							tg.removeGroup(g);
+							tg.removeGroup(g,tri);
 						}
 					}
 					ArrayList<Triangle> group=tg.getGroup(tri);
 					if (tg.liberties(group)==0){
-						tg.removeGroup(group);
+						tg.removeGroup(group,tri);
 					}
 					breakLoop=true;
 					break;
@@ -227,6 +270,7 @@ public class Board {
 				break;
 			}
 		}
+		controller.updateClickPoint(point);
 		repaint();
 	 }
 
