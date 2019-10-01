@@ -6,26 +6,37 @@ import java.awt.Graphics;
 import java.awt.Insets;
 import java.awt.Point;
 import java.awt.event.MouseEvent;
-
+/*
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+*/
 import javax.swing.event.MouseInputListener;
+
 
 import java.util.ArrayList;
 import javax.swing.JButton;
 import java.awt.event.*;  
 import javax.swing.*; 
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.awt.GridBagLayout;
 
 public class Board {
-  private JLabel label;
+	private JLabel label;
 
-  private Point clickPoint, cursorPoint;
-  TriangleGrid tg;
+	private Point clickPoint, cursorPoint;
+	TriangleGrid tg;
   
-  int player;
+	int player;
+	ArrayList<Triangle> capturesGreen=new ArrayList<Triangle>();
+	ArrayList<Triangle> capturesBlue=new ArrayList<Triangle>();
+	JLabel scoreGreen;
+	JLabel scoreBlue;
+	int greenCaptures;
+	int blueCaptures;
   
   public int otherPlayer(){
 	  if (player==1){
@@ -39,18 +50,41 @@ public class Board {
   }
 
   private void buildUI(Container container) {
-	 container.setLayout(new BoxLayout(container, BoxLayout.PAGE_AXIS));
-	 
-	 JButton buttonPass = new JButton("Pass");
-	 container.add(buttonPass);
-	 JButton buttonUndo = new JButton("Undo");
-	 container.add(buttonUndo);
-	 JButton buttonReset = new JButton("Reset");
-	 container.add(buttonReset);
-
+	//container.setLayout(new BoxLayout(container, BoxLayout.PAGE_AXIS));
+	container.setLayout(new BorderLayout(2, 2));
+	JButton buttonPass = new JButton("Pass");
+	JButton buttonUndo = new JButton("Undo");
+	JButton buttonReset = new JButton("Reset");
+	//container.add(buttonPass);
+	//container.add(buttonUndo);
+	//container.add(buttonReset);
+	JPanel panel = new JPanel();//new GridBagLayout());
+	panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
+	panel.add(buttonPass);
+	panel.add(buttonUndo);
+	panel.add(buttonReset);
+	scoreGreen=new JLabel();
+	scoreBlue=new JLabel();
+	panel.add(scoreGreen);
+	panel.add(scoreBlue);
+	container.add(panel,BorderLayout.EAST);
+	/*JToolBar toolBar = new JToolBar();
+	toolBar.add(buttonPass);
+	toolBar.add(buttonUndo);
+	toolBar.add(buttonReset);
+	container.add(toolBar);*/
+	
+	/*JPanel buttonPane = new JPanel();
+	buttonPane.setLayout(new BoxLayout(buttonPane, BoxLayout.LINE_AXIS));
+	buttonPane.add(buttonPass);
+	buttonPane.add(buttonUndo);
+	buttonPane.add(buttonReset);
+	container.add(buttonPane,BorderLayout.CENTER);*/
+	
 	CoordinateArea coordinateArea = new CoordinateArea(this);
 	this.tg=coordinateArea.tg;
-	container.add(coordinateArea);
+	container.add(coordinateArea,BorderLayout.WEST);
+	updateScore();
 	 
 	buttonPass.addActionListener(new ActionListener(){  
 		public void actionPerformed(ActionEvent e){  
@@ -65,8 +99,13 @@ public class Board {
 		public void actionPerformed(ActionEvent e){
 			int last=coordinateArea.tg.clicked.size()-1;
 			Triangle tri=coordinateArea.tg.clicked.get(last);
-			System.out.println("ncap "+tri.captured.size());
-			for (int i=0;i<tri.captured.size();i++){
+			int ncaptured=tri.captured.size();
+			if (tri.player==1){
+				greenCaptures-=ncaptured;
+			} else if (tri.player==2){
+				blueCaptures-=ncaptured;
+			}
+			for (int i=0;i<ncaptured;i++){
 				Triangle ttri=tri.captured.get(i);
 				ttri.player=ttri.prevPlayer;
 				ttri.prevPlayer=0;
@@ -80,6 +119,8 @@ public class Board {
 	});
 	buttonReset.addActionListener(new ActionListener(){  
 		public void actionPerformed(ActionEvent e){  
+			greenCaptures=0;
+			blueCaptures=0;
 			coordinateArea.tg.setUpGrid();
 			coordinateArea.repaint();
 		}  
@@ -87,28 +128,26 @@ public class Board {
 
 	 label = new JLabel();
 	 resetLabel();
-	 container.add(label);
+	 container.add(label,BorderLayout.SOUTH);
 
 	 coordinateArea.setAlignmentX(Component.LEFT_ALIGNMENT);
 	 label.setAlignmentX(Component.LEFT_ALIGNMENT); // redundant
   }
-
- public void updateCursorLocation(int x, int y) {
-	 /*
-	 if (x < 0 || y < 0) {
-		cursorPoint = null;
-		updateLabel();
-		return;
-	 }
-
-	 if (cursorPoint == null) {
-		cursorPoint = new Point();
-	 }
-
-	 cursorPoint.x = x;
-	 cursorPoint.y = y;
-	 updateLabel();
-	 */
+  void updateScore(){
+	  int gstones=0;
+	  int bstones=0;
+	  for (int y=0;y<tg.triangles.size();y++){
+		  for (int x=0;x<tg.triangles.get(y).size();x++){
+			  Triangle t=tg.triangles.get(y).get(x);
+			  if (t.player==1){
+				  gstones++;
+			} else if (t.player==2){
+				bstones++;
+			}
+		}
+	}
+	scoreGreen.setText("<html>Green:<br/>Stones "+gstones+"<br/>Captures "+greenCaptures+"</html>");
+	scoreBlue.setText("<html>Blue:<br/>Stones "+bstones+"<br/>Captures "+blueCaptures+"</html>");
   }
 
   public void updateClickPoint(Point p) {
@@ -179,6 +218,7 @@ public class Board {
 	 }
 
 	 protected void paintComponent(Graphics g) {
+		 controller.updateScore();
 		// Paint background if we're opaque.
 		if (isOpaque()) {
 		  g.setColor(getBackground());
@@ -225,9 +265,19 @@ public class Board {
 			}
 		}
 	 }
+	public void updateCaptures(ArrayList<Triangle> group,int capturingPlayer){
+		if (!group.isEmpty()){
+			int p=capturingPlayer;
+			if (p==1){
+				controller.greenCaptures+=group.size();
+			} else if (p==2){
+				controller.blueCaptures+=group.size();
+			}
+		}
+	}
 
 	 // Methods required by the MouseInputListener interface.
-	 public void mouseClicked(MouseEvent e) {
+	public void mouseClicked(MouseEvent e) {
 		int x = e.getX();
 		int y = e.getY();
 		if (point == null) {
@@ -256,11 +306,13 @@ public class Board {
 						ArrayList<Triangle> g=tg.getGroup(adj.get(a));
 						if (tg.liberties(g)==0){
 							tg.removeGroup(g,tri);
+							updateCaptures(g,tri.player);
 						}
 					}
 					ArrayList<Triangle> group=tg.getGroup(tri);
 					if (tg.liberties(group)==0){
 						tg.removeGroup(group,tri);
+						updateCaptures(group,tri.player);
 					}
 					breakLoop=true;
 					break;
@@ -275,7 +327,6 @@ public class Board {
 	 }
 
 	 public void mouseMoved(MouseEvent e) {
-		controller.updateCursorLocation(e.getX(), e.getY());
 	 }
 
 	 public void mouseExited(MouseEvent e) {
