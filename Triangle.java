@@ -8,6 +8,7 @@ public class Triangle{
 	int player;
 	int prevPlayer;
 	ArrayList<Triangle> captured=new ArrayList<Triangle>();
+	boolean markedDead=false;
 	public Triangle(int x,int y,int pixX,int pixY){
 		this.x=x;
 		this.y=y;

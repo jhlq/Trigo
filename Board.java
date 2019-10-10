@@ -29,6 +29,7 @@ public class Board {
 
 	private Point clickPoint, cursorPoint;
 	TriangleGrid tg;
+	CoordinateArea coordinateArea;
   
 	int player;
 	ArrayList<Triangle> capturesGreen=new ArrayList<Triangle>();
@@ -37,6 +38,8 @@ public class Board {
 	JLabel scoreBlue;
 	int greenCaptures;
 	int blueCaptures;
+	int greenTerritory;
+	int blueTerritory;
   
   public int otherPlayer(){
 	  if (player==1){
@@ -48,6 +51,61 @@ public class Board {
   public void switchPlayer(){
 	  this.player=otherPlayer();
   }
+  public void score(){
+	  System.out.println("Total Territory: "+Math.pow(this.tg.sideLength,2));
+	  ArrayList<Triangle> checked=new ArrayList<Triangle>();
+	  int[] scores={0,0};
+	  for (int y=0;y<this.tg.triangles.size();y++){
+		  for (int x=0;x<this.tg.triangles.get(y).size();x++){
+			  Triangle tri=this.tg.triangles.get(y).get(x);
+			  if (tri.player==0 && !checked.contains(tri)){
+				  ArrayList<Triangle> c=this.tg.getConnected(tri);
+				  for (int ci=0;ci<c.size();ci++){
+					  checked.add(c.get(ci));
+				  }
+				  ArrayList<Triangle> adj=this.tg.adjacent(c);
+				  if (!adj.isEmpty()){
+					  boolean oneplayer=true;
+					  int p=adj.get(0).player;
+					  for (int adji=0;adji<adj.size();adji++){
+						  if (adj.get(adji).player!=p){
+							  oneplayer=false;
+							  break;
+						  }
+					  }
+					  if (oneplayer){
+						  scores[p-1]+=c.size();
+					  }
+						  
+				  }
+			  }
+			  
+		  }
+	  }
+	  greenTerritory=scores[0];
+	  blueTerritory=scores[1];
+	  updateScore();
+  }
+  public void undo(){
+		int last=this.coordinateArea.tg.clicked.size()-1;
+		Triangle tri=this.coordinateArea.tg.clicked.get(last);
+		int ncaptured=tri.captured.size();
+		if (tri.player==1){
+			greenCaptures-=ncaptured;
+		} else if (tri.player==2){
+			blueCaptures-=ncaptured;
+		}
+		for (int i=0;i<ncaptured;i++){
+			Triangle ttri=tri.captured.get(i);
+			ttri.player=ttri.prevPlayer;
+			ttri.prevPlayer=0;
+		}
+		tri.player=0;
+		tri.captured=new ArrayList<Triangle>();
+		this.coordinateArea.tg.clicked.remove(last);
+		this.coordinateArea.controller.switchPlayer();
+		this.coordinateArea.repaint();
+	}
 
   private void buildUI(Container container) {
 	//container.setLayout(new BoxLayout(container, BoxLayout.PAGE_AXIS));
@@ -55,6 +113,7 @@ public class Board {
 	JButton buttonPass = new JButton("Pass");
 	JButton buttonUndo = new JButton("Undo");
 	JButton buttonReset = new JButton("Reset");
+	JButton buttonScore = new JButton("Score");
 	//container.add(buttonPass);
 	//container.add(buttonUndo);
 	//container.add(buttonReset);
@@ -63,6 +122,7 @@ public class Board {
 	panel.add(buttonPass);
 	panel.add(buttonUndo);
 	panel.add(buttonReset);
+	panel.add(buttonScore);
 	scoreGreen=new JLabel();
 	scoreBlue=new JLabel();
 	panel.add(scoreGreen);
@@ -82,47 +142,39 @@ public class Board {
 	container.add(buttonPane,BorderLayout.CENTER);*/
 	
 	CoordinateArea coordinateArea = new CoordinateArea(this);
+	this.coordinateArea=coordinateArea;
 	this.tg=coordinateArea.tg;
 	container.add(coordinateArea,BorderLayout.WEST);
 	updateScore();
 	 
 	buttonPass.addActionListener(new ActionListener(){  
 		public void actionPerformed(ActionEvent e){  
-			if (coordinateArea.controller.player==1){
+			/*if (coordinateArea.controller.player==1){
 				coordinateArea.controller.player=2;
 			} else { 
 				coordinateArea.controller.player=1;
-			}
+			}*/
+			coordinateArea.controller.switchPlayer();
 		}  
 	});
 	buttonUndo.addActionListener(new ActionListener(){  
 		public void actionPerformed(ActionEvent e){
-			int last=coordinateArea.tg.clicked.size()-1;
-			Triangle tri=coordinateArea.tg.clicked.get(last);
-			int ncaptured=tri.captured.size();
-			if (tri.player==1){
-				greenCaptures-=ncaptured;
-			} else if (tri.player==2){
-				blueCaptures-=ncaptured;
-			}
-			for (int i=0;i<ncaptured;i++){
-				Triangle ttri=tri.captured.get(i);
-				ttri.player=ttri.prevPlayer;
-				ttri.prevPlayer=0;
-			}
-			tri.player=0;
-			tri.captured=new ArrayList<Triangle>();
-			coordinateArea.tg.clicked.remove(last);
-			coordinateArea.controller.switchPlayer();
-			coordinateArea.repaint();
+			undo();
 		}  
 	});
 	buttonReset.addActionListener(new ActionListener(){  
 		public void actionPerformed(ActionEvent e){  
 			greenCaptures=0;
 			blueCaptures=0;
+			greenTerritory=0;
+			blueTerritory=0;
 			coordinateArea.tg.setUpGrid();
 			coordinateArea.repaint();
+		}  
+	});
+	buttonScore.addActionListener(new ActionListener(){  
+		public void actionPerformed(ActionEvent e){  
+			score();
 		}  
 	});
 
@@ -146,8 +198,8 @@ public class Board {
 			}
 		}
 	}
-	scoreGreen.setText("<html>Green:<br/>Stones "+gstones+"<br/>Captures "+greenCaptures+"</html>");
-	scoreBlue.setText("<html>Blue:<br/>Stones "+bstones+"<br/>Captures "+blueCaptures+"</html>");
+	scoreGreen.setText("<html>Green:<br/>Stones "+gstones+"<br/>Captures "+greenCaptures+"<br/>Territory "+greenTerritory+"</html>");
+	scoreBlue.setText("<html>Blue:<br/>Stones "+bstones+"<br/>Captures "+blueCaptures+"<br/>Territory "+blueTerritory+"</html>");
   }
 
   public void updateClickPoint(Point p) {
@@ -293,29 +345,34 @@ public class Board {
 			for (int xt=0;xt<lenx;xt++){
 				Triangle tri=this.tg.triangles.get(yt).get(xt);
 				double distance=Math.sqrt(Math.pow(tri.pixX-x,2)+Math.pow(tri.pixY-y,2));
-				if (distance<this.tg.gridSpace/3 && tri.player==0){
-					tri.player=this.controller.player;
-					if (this.controller.player==1){
-						this.controller.player=2;
-					} else {
-						this.controller.player=1;
-					}
-					this.tg.clicked.add(tri);
-					ArrayList<Triangle> adj=tg.adjacent(tri);
-					for (int a=0;a<adj.size();a++){
-						ArrayList<Triangle> g=tg.getGroup(adj.get(a));
-						if (tg.liberties(g)==0){
-							tg.removeGroup(g,tri);
-							updateCaptures(g,tri.player);
+				if (distance<this.tg.gridSpace/3){
+					if (tri.player==0){
+						tri.player=this.controller.player;
+						if (this.controller.player==1){
+							this.controller.player=2;
+						} else {
+							this.controller.player=1;
 						}
+						this.tg.clicked.add(tri);
+						ArrayList<Triangle> adj=tg.adjacent(tri);
+						for (int a=0;a<adj.size();a++){
+							ArrayList<Triangle> g=tg.getGroup(adj.get(a));
+							if (tg.liberties(g)==0){
+								tg.removeGroup(g,tri);
+								updateCaptures(g,tri.player);
+							}
+						}
+						ArrayList<Triangle> group=tg.getGroup(tri);
+						if (tg.liberties(group)==0){
+							//tg.removeGroup(group,tri);
+							//updateCaptures(group,tri.player);
+							this.controller.undo();
+						}
+						breakLoop=true;
+						break;
+					} else {
+						System.out.println(this.tg.getGroup(tri).size()); //add mark dead functionality
 					}
-					ArrayList<Triangle> group=tg.getGroup(tri);
-					if (tg.liberties(group)==0){
-						tg.removeGroup(group,tri);
-						updateCaptures(group,tri.player);
-					}
-					breakLoop=true;
-					break;
 				}
 			}
 			if (breakLoop){

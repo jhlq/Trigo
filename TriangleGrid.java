@@ -111,11 +111,8 @@ public class TriangleGrid {
 		}
 		return adjp;
 	}
-	public ArrayList<Triangle> getGroup(Triangle tri){
+	public ArrayList<Triangle> getConnected(Triangle tri){
 		ArrayList<Triangle> group=new ArrayList<Triangle>();
-		if (tri.player==0){
-			return group;
-		}
 		group.add(tri);
 		ArrayList<Triangle> recentlyAdded=adjacentPieces(tri);
 		while (!recentlyAdded.isEmpty()){
@@ -128,6 +125,12 @@ public class TriangleGrid {
 			recentlyAdded=adjacentPieces(group);
 		}
 		return group;
+	}
+	public ArrayList<Triangle> getGroup(Triangle tri){
+		if (tri.player==0){
+			return new ArrayList<Triangle>();
+		}
+		return getConnected(tri);
 	}
 	public int liberties(ArrayList<Triangle> group){
 		ArrayList<Triangle> adj=adjacent(group);
