@@ -11,8 +11,8 @@ public class TriangleGrid {
 		this.clicked=new ArrayList<Triangle>();
 		this.offsetX=50;
 		this.offsetY=50;
-		this.gridSpace=50;
 		this.sideLength=12;
+		this.gridSpace=600/this.sideLength;
 		this.setUpGrid();
 	}
 	public Triangle makeTriangle(int x,int y){
@@ -79,7 +79,7 @@ public class TriangleGrid {
 			int ladj=adj.size();
 			for (int i=0;i<ladj;i++){
 				Triangle ttri=adj.get(i);
-				if (!group.contains(ttri)){
+				if (!group.contains(ttri) && !adjg.contains(ttri)){
 					adjg.add(ttri);
 				}
 			}
@@ -92,7 +92,7 @@ public class TriangleGrid {
 		int ladj=adj.size();
 		for (int i=0;i<ladj;i++){
 			Triangle ttri=adj.get(i);
-			if (ttri.player==tri.player){
+			if (ttri.sameAs(tri)){
 				adjp.add(ttri);
 			}
 		}
@@ -101,11 +101,12 @@ public class TriangleGrid {
 	public ArrayList<Triangle> adjacentPieces(ArrayList<Triangle> group){
 		ArrayList<Triangle> adj=adjacent(group);
 		ArrayList<Triangle> adjp=new ArrayList<Triangle>();
-		int groupplayer=group.get(0).player;
+		//int groupplayer=group.get(0).player;
+		Triangle g0=group.get(0);
 		int ladj=adj.size();
 		for (int i=0;i<ladj;i++){
 			Triangle ttri=adj.get(i);
-			if (ttri.player==groupplayer){
+			if (ttri.sameAs(g0)){
 				adjp.add(ttri);
 			}
 		}
@@ -131,6 +132,65 @@ public class TriangleGrid {
 			return new ArrayList<Triangle>();
 		}
 		return getConnected(tri);
+	}
+	public ArrayList<Triangle> getCluster(ArrayList<Triangle> group){
+		ArrayList<Triangle> cluster=new ArrayList<Triangle>();
+		if (group.isEmpty()){
+			return cluster;
+		}
+		ArrayList<Triangle> checked=new ArrayList<Triangle>();
+		int player=group.get(0).player;
+		for (int gi=0;gi<group.size();gi++){
+			cluster.add(group.get(gi));
+			checked.add(group.get(gi));
+		}
+		ArrayList<Triangle> adj=adjacent(group);
+		ArrayList<Triangle> adjempty=new ArrayList<Triangle>();
+		for (int ai=0;ai<adj.size();ai++){
+			//checked.add(adj.get(ai));
+			if (adj.get(ai).player==0){
+				adjempty.add(adj.get(ai));
+			}
+		}
+		while (!adjempty.isEmpty()){
+			for (int aei=0;aei<adjempty.size();aei++){
+				if (!checked.contains(adjempty.get(aei))){
+					checked.add(adjempty.get(aei));
+					ArrayList<Triangle> c=getConnected(adjempty.get(aei));
+					for (int ci=0;ci<c.size();ci++){
+						if (!checked.contains(c.get(ci))){
+							checked.add(c.get(ci));
+						}
+					}
+					ArrayList<Triangle> adjc=adjacent(c);
+					for (int adjci=0;adjci<adjc.size();adjci++){
+						Triangle tri=adjc.get(adjci);
+						ArrayList<Triangle> trig=getGroup(tri);
+						for (int ti=0;ti<trig.size();ti++){
+							Triangle ttri=trig.get(ti);
+							if (!checked.contains(ttri)){
+								checked.add(ttri);
+								if (ttri.player==player){
+									cluster.add(ttri);
+								}
+							}
+						}
+					}
+				}
+			}
+			ArrayList<Triangle> adjcluster=adjacent(cluster);
+			adjempty=new ArrayList<Triangle>();
+			for (int i=0;i<adjcluster.size();i++){
+				Triangle t=adjcluster.get(i);
+				if (!checked.contains(t) && t.player==0){
+					adjempty.add(t);
+				}
+			}
+		}
+		return cluster;
+	}
+	public ArrayList<Triangle> getCluster(Triangle tri){
+		return getCluster(getGroup(tri));
 	}
 	public int liberties(ArrayList<Triangle> group){
 		ArrayList<Triangle> adj=adjacent(group);
