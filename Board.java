@@ -32,8 +32,9 @@ public class Board {
 	CoordinateArea coordinateArea;
 	
 	int player;
-	ArrayList<Triangle> capturesGreen=new ArrayList<Triangle>();
-	ArrayList<Triangle> capturesBlue=new ArrayList<Triangle>();
+	//ArrayList<Triangle> capturesGreen=new ArrayList<Triangle>();
+	//ArrayList<Triangle> capturesBlue=new ArrayList<Triangle>();
+	ArrayList<String> history=new ArrayList<String>();
 	JLabel markInfo;
 	JLabel scoreGreen;
 	JLabel scoreBlue;
@@ -111,25 +112,51 @@ public class Board {
 		blueTerritory=scores[1];
 		updateScore();
 	}
+	public String historyString(){
+		String h="";
+		for (int y=0;y<this.tg.triangles.size();y++){
+			for (int x=0;x<this.tg.triangles.get(y).size();x++){
+				Triangle tri=this.tg.triangles.get(y).get(x);
+				h=h+tri.x+","+tri.y+":"+tri.player+";";
+			}
+		}
+		return h;
+	}
+	public boolean placeMove(Triangle tri){
+		tri.player=this.player;
+		this.switchPlayer();
+		this.tg.clicked.add(tri);
+		String h=historyString();
+		if (this.history.contains(h)){
+			this.history.add(h);
+			return false;
+		} else {
+			this.history.add(h);
+			return true;
+		}
+	}
 	public void undo(){
 		int last=this.coordinateArea.tg.clicked.size()-1;
-		Triangle tri=this.coordinateArea.tg.clicked.get(last);
-		int ncaptured=tri.captured.size();
-		if (tri.player==1){
-			greenCaptures-=ncaptured;
-		} else if (tri.player==2){
-			blueCaptures-=ncaptured;
+		if (last>=0){
+			Triangle tri=this.coordinateArea.tg.clicked.get(last);
+			int ncaptured=tri.captured.size();
+			if (tri.player==1){
+				greenCaptures-=ncaptured;
+			} else if (tri.player==2){
+				blueCaptures-=ncaptured;
+			}
+			for (int i=0;i<ncaptured;i++){
+				Triangle ttri=tri.captured.get(i);
+				ttri.player=ttri.prevPlayer;
+				ttri.prevPlayer=0;
+			}
+			tri.player=0;
+			tri.captured=new ArrayList<Triangle>();
+			this.coordinateArea.tg.clicked.remove(last);
+			this.history.remove(this.history.size()-1);
+			this.coordinateArea.controller.switchPlayer();
+			this.coordinateArea.repaint();
 		}
-		for (int i=0;i<ncaptured;i++){
-			Triangle ttri=tri.captured.get(i);
-			ttri.player=ttri.prevPlayer;
-			ttri.prevPlayer=0;
-		}
-		tri.player=0;
-		tri.captured=new ArrayList<Triangle>();
-		this.coordinateArea.tg.clicked.remove(last);
-		this.coordinateArea.controller.switchPlayer();
-		this.coordinateArea.repaint();
 	}
 
 	private void buildUI(Container container) {
@@ -196,6 +223,7 @@ public class Board {
 			blueCaptures=0;
 			greenTerritory=0;
 			blueTerritory=0;
+			player=1;
 			coordinateArea.tg.setUpGrid();
 			coordinateArea.repaint();
 		}	
@@ -381,27 +409,31 @@ public class Board {
 				if (distance<this.tg.gridSpace/3){
 					if (tri.player==0){
 						controller.unmarkDeadStones();
-						tri.player=this.controller.player;
+/*						tri.player=this.controller.player;
 						if (this.controller.player==1){
 							this.controller.player=2;
 						} else {
 							this.controller.player=1;
 						}
 						this.tg.clicked.add(tri);
+						*/
+						boolean legalMove=controller.placeMove(tri);
 						//System.out.println("clicked size: "+this.tg.clicked.size());
-						ArrayList<Triangle> adj=tg.adjacent(tri);
-						for (int a=0;a<adj.size();a++){
-								if (adj.get(a).alive()){
-								ArrayList<Triangle> g=tg.getGroup(adj.get(a));
-								if (tg.liberties(g)==0){
-									tg.removeGroup(g,tri);
-									updateCaptures(g,tri.player);
+						if (legalMove){
+							ArrayList<Triangle> adj=tg.adjacent(tri);
+							for (int a=0;a<adj.size();a++){
+									if (adj.get(a).alive()){
+									ArrayList<Triangle> g=tg.getGroup(adj.get(a));
+									if (tg.liberties(g)==0){
+										tg.removeGroup(g,tri);
+										updateCaptures(g,tri.player);
+									}
 								}
 							}
 						}
 						ArrayList<Triangle> group=tg.getGroup(tri);
 						//System.out.println("tri player: "+tri.player+" group size: "+group.size());
-						if (tg.liberties(group)==0){
+						if (tg.liberties(group)==0 || !legalMove){
 							//tg.removeGroup(group,tri);
 							//updateCaptures(group,tri.player);
 							this.controller.undo();
