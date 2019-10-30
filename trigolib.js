@@ -315,3 +315,282 @@ TriangleGrid.prototype.historyString=function(){
 	}
 	return h;
 };
+
+//Board
+
+function Board(sideLength){
+	this.tg=TriangleGrid(sideLength);
+	this.player=1;
+	this.stones=[0,0];
+	this.captures=[0,0];
+	this.territory[0,0];
+};
+Board.prototype.reset=function(){
+	this.history=[];
+	this.moves=[];
+	this.tg=TriangleGrid(sideLength);
+	this.player=1;
+	this.stones=[0,0];
+	this.captures=[0,0];
+	this.territory[0,0];
+};
+Board.prototype.removeCapturedBy=function(tri){
+	//Triangle tri=tg.get(x,y);
+	var adj=this.tg.adjacent(tri);
+	for (let a=0;a<adj.length;a++){
+		var ap=adj[a].player;
+		if (adj[a].alive()&&ap!=tri.player){
+			var g=this.tg.getGroup(adj[a]);
+			if (this.tg.liberties(g)==0){
+				this.tg.removeGroup(g);
+				this.stones[ap-1]-=g.length;
+				this.captures[tri.player-1]+=g.length;
+			}
+		}
+	}
+};
+Board.prototype.invalidMoveType=function(x,y,player){
+	var t=Triangle(x,y,player);
+	return invalidMoveType(t);
+};
+Board.prototype.invalidMoveType=function(t){
+	if (!this.tg.has(t.x,t.y)){
+		return 4;
+	}
+	if (this.tg.get(t.x,t.y).player!=0){
+		return 1;
+	}
+	//Board bc=Board(*this);
+	var bc=JSON.parse(JSON.stringify(this));
+	bc.tg.set(t.x,t.y,t.player);
+	var tri=bc.tg.get(t.x,t.y);
+	//bc.removeCapturedBy(tri);
+	var adj=bc.tg.adjacent(tri);
+	for (let a=0;a<adj.length;a++){
+			if (adj[a].alive()&&adj[a].player!=tri.player){
+			var g=bc.tg.getGroup(adj[a]);
+			if (bc.tg.liberties(g)==0){
+				bc.tg.removeGroup(g);
+			}
+		}
+	}
+	var group=bc.tg.getGroup(tri);
+	if (bc.tg.liberties(group)==0){
+		return 2;
+	}
+	var h=bc.tg.historyString();
+	if (this.history.includes(h)){
+		return 3;
+	}
+	return 0;
+};
+Board.prototype.isValidMove=function(x,y,player){
+	var t=Triangle(x,y,player);
+	return this.isValidMove(t);
+};
+Board.prototype.isValidMove=function(t){
+	if (this.invalidMoveType(t)>0){
+		return false;
+	}
+	return true;
+};
+Board.prototype.otherPlayer=function(){
+	if (this.player==1){
+		return 2;
+	} else {
+		return 1;
+	}
+};
+Board.prototype.otherPlayer=function(p){
+	if (p==1){
+		return 2;
+	} else {
+		return 1;
+	}
+};
+Board.prototype.switchPlayer=function(){
+	this.player=otherPlayer();
+};
+Board.prototype.placeMove=function(x,y){
+	var b=placeMove(x,y,player);
+	if (b) {
+		this.switchPlayer();
+	}
+	return b;
+};
+Board.prototype.placeMove=function(x,y,p){
+	if (x<0){ //pass
+		this.moves.push(Triangle(x,y,p));
+		return true;
+	}
+	if (!isValidMove(x,y,p)){
+		return false;
+	}
+	this.tg.set(x,y,p);
+	var tri=this.tg.get(x,y);
+	this.removeCapturedBy(tri);
+	this.history.push(tg.historyString());
+	this.moves.push(tri);
+	this.stones[p-1]+=1;
+	return true;
+};
+Board.prototype.state=function(){
+	var s=this.tg.sideLength+";";
+	for (let movei=0;move<this.moves.length;move++){
+		move=this.moves[movei];
+		s+=move.x+","+move.y+","+move.player+";";
+	}
+	return s;
+};
+Board.prototype.placeMoves=function(){
+	var m=this.moves;
+	var p=this.player;
+	this.reset();
+	for (let movei=0;move<m.length;move++){
+		move=m[movei];
+		this.placeMove(move.x,move.y,move.player);
+	}
+	this.player=p;
+};
+Board.prototype.undo=function(){
+	if (!this.moves.length==0){
+		if (!this.moves[this.moves.length-1].isPass()){
+			this.history.pop();
+		}
+		this.moves.pop();
+		this.switchPlayer();
+		this.placeMoves();
+	}
+};
+Board.prototype.pass=function(){
+	this.moves.push(Triangle(-1,-1,this.player));
+	this.switchPlayer();
+};
+
+Board.prototype.score=function(){
+	var checked=[];
+	var scores=[0,0];
+	for (let y=0;y<this.tg.triangles.length;y++){
+		for (let x=0;x<this.tg.triangles[y].length;x++){
+			var tri=this.tg.triangles[y][x];
+			if ((tri.player==0||tri.markedDead) && !checked.includes(tri)){
+				var c=this.tg.getConnected(tri);
+				for (let ci=0;ci<c.length;ci++){
+					checked.push(c[ci]);
+				}
+				var adj=tg.adjacent(c);
+				var p=adj[0].player;
+				if (!adj.length==0 && p>0){
+					var oneplayer=true;
+					for (let adji=0;adji<adj.length;adji++){
+						if (adj[adji].player!=p){
+							oneplayer=false;
+							break;
+						}
+					}
+					if (oneplayer){
+						scores[p-1]+=c.length;
+					}
+
+				}
+			}
+
+		}
+	}
+	this.territory[0]=scores[0];
+	this.territory[1]=scores[1];
+};
+Board.prototype.markDeadStones=function(x,y){
+	this.markDeadStones(this.tg.get(x,y));
+};
+Board.prototype.markDeadStones=function(tri){
+	var c=this.tg.getCluster(tri);
+	this.markDeadStones(c);
+};
+Board.prototype.markDeadStones=function(c){
+	var tri=c[0];
+	if (c.length==0) return;
+	var flipto=!(tri.markedDead);
+	var a=-1;
+	if (flipto){
+		a=1;
+	}
+	for (let i=0;i<c.length;i++){
+		var t=c[i];
+		if (t.player==tri.player && t.markedDead!=flipto){
+			this.this.tg.triangles[t.y][t.x].markedDead=flipto;
+			this.stones[t.player-1]-=a;
+			this.captures[otherPlayer(t.player)-1]+=a;
+		}
+	}
+};
+Board.prototype.tryCaptureCluster=function(cluster,maxit){
+	var space=this.tg.getConnectedSpace(cluster);
+	if (space.length>this.tg.sideLength*this.tg.sideLength/5) return false;
+	var c0=cluster[0];
+	var totalstones=this.stones[c0.player-1];
+	var clusterstones=cluster.length;
+	var stonelimit=totalstones-clusterstones*0.7;
+	//srand(time(NULL));
+	var nwin=0;
+	for (let i=0;i<maxit;i++){
+		var bc=JSON.parse(JSON.stringify(this));
+		var cc=bc.tg.getCluster(c0.x,c0.y);
+		space=this.tg.getConnectedSpace(cc);
+		var ss=space.length;
+		for (let si=0;si<ss*3;si++){
+			//var r=rand() % space.length;
+			var r=Math.floor(Math.random()*space.length);
+			var rt=space[r];
+			var placedmove;
+			var adjrt=bc.tg.adjacent(rt);
+			var adjacentallsame=true;
+			for (let ai=0;a<adjrt.length;a++){
+				a=adjrt[ai];
+				if (a.player!=bc.player){
+					adjacentallsame=false;
+				}
+			}
+			if (adjacentallsame){
+				placedmove=false;
+			} else {
+				placedmove=bc.placeMove(rt.x,rt.y);
+			}
+			if (placedmove){
+				if (bc.stones[c0.player-1]<stonelimit){
+					nwin++;
+					break;
+				}
+				space.splice(r,r);
+				if (space.length==0) break;
+			} else {
+				bc.switchPlayer();
+			}
+		}
+	}
+	if (nwin/maxit>0.5) return true;
+	return false;
+};
+Board.prototype.autoMarkDeadStones=function(){
+	var tried=[];
+	var tobemarked=[];
+	for (let mi=0;m<this.moves.length;m++){
+		m=this.moves[mi];
+		if (!tried.includes(m)){
+			var c=this.tg.getCluster(m);
+			var success=this.tryCaptureCluster(c);
+			if (success){
+				//markDeadStones(c);
+				tobemarked.push(c);
+			}
+			for (let cti=0;ct<c.length;ct++){
+				ct=c[cti];
+				tried.push(ct);
+			}
+		}
+	}
+	for (let clusteri=0;cluster<tobemarked.length;cluster++){
+		cluster=tobemarked[clusteri];
+		this.markDeadStones(cluster);
+	}
+};
