@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+	<meta charset="utf-8"/>
+
+<script type="text/javascript" src="hexago_core.js"></script>
+<script type="text/javascript" src="hexago_board.js"></script>
+
+  	<input type="number" id="x" onchange="line('y')" value=0>
+	<input type="number" id="y" onchange="line('x')" value=0>
+	<button onclick="submit()">Submit!</button>
+	<button onclick="board.letAIplay()">Let AI play!</button>
+	<button onclick="document.getElementById('x').value=0;document.getElementById('y').value=0;submit()">Pass.</button>
+	<button onclick="undo()">Undo.</button>
+	<br>
+	<canvas id="TriCanvas" width=600 height="540"></canvas>
+	<p id="scores">Current score is #f00: 0, #0f0: 0, #00f: 0</p>
+	<label for="shortcuts">Enable keyboard shortcuts (a w e d x z and s to submit): </label>
+	<input type="checkbox" id="shortcuts" checked="true">
+	<br>
+	<label for="supersolidity">Supersolidity: </label>
+	<input type="checkbox" id="supersolidity" checked="true" onchange="board.common.supersolidity=document.getElementById('supersolidity').checked;board.common.drawAll();">
+	<br>
+	<label for="clicksubmit">Click to submit: </label>
+	<input type="checkbox" id="clicksubmit">
+	
+	<p>Canvas width: 
+	<input type="number" id="size" step="100" value=600>
+	<button onclick="changesize()">Change</button>
+	</p>
+	
+    Colors: <input type="text" id="board_cols" value='#f00,#0f0'>
+    <input type="hidden" id="col" value="#f00">
+    Game record: <input type="text" id="board_moves" value='#909:0,0'>
+  <button class="btn btn-primary" onclick="board.common.drawAll()">Load game record without saving</button>
+<script>
+var l=6;
+//var grid = new Grid("TriCanvas", l);
+//grid.drawGrid();
+
+var board = new Board("TriCanvas",l,6,true);
+board.common.drawAll();
+
+//var board = new Board(l);
+
+//document.removeEventListener("keydown", keyDown);
+/*var element=document.body;
+var clone = element.cloneNode();
+while (element.firstChild) {
+  clone.appendChild(element.lastChild);
+}
+element.parentNode.replaceChild(clone, element);
+*/
+document.body.addEventListener("keydown", keyDown, false);
+function keyDown(e) {
+	if (document.getElementById("shortcuts")==null || typeof(document.getElementById("shortcuts"))=="undefined"){
+		document.removeEventListener("keydown", keyDown);
+	} else if (document.getElementById("shortcuts").checked){
+		
+		
+		var k = e.keyCode;
+		//alert(k)
+		if(k==83) {
+			submit();
+		} else if (k==65){
+			document.getElementById("x").value=parseInt(document.getElementById("x").value)-1;
+		} else if (k==68){
+			document.getElementById("x").value=parseInt(document.getElementById("x").value)+1;
+		} else if (k==69){
+			document.getElementById("y").value=parseInt(document.getElementById("y").value)+1;
+		} else if (k==87){
+			document.getElementById("y").value=parseInt(document.getElementById("y").value)+1;
+			document.getElementById("x").value=parseInt(document.getElementById("x").value)-1;
+		} else if (k==88){
+			document.getElementById("y").value=parseInt(document.getElementById("y").value)-1;
+			document.getElementById("x").value=parseInt(document.getElementById("x").value)+1;
+		} else if (k==90){
+			document.getElementById("y").value=parseInt(document.getElementById("y").value)-1;
+		} else {
+			return 0;
+		}
+		board.common.drawAll();
+	}
+}
+function undo(){
+	var plays=document.getElementById("board_moves").value.split("+");
+	var newstr="";
+	for (var i = 0; i < plays.length-1; i++) {
+		newstr+=plays[i];
+		if (i<plays.length-2){
+			newstr+='+';
+		}
+	}
+	//newstr+=plays[plays.length-2] || "";
+	document.getElementById("board_moves").value=newstr || "#909:0,0";
+	var cols=document.getElementById("board_cols").value.split(",");
+	var ncols=cols[cols.length-1];
+	document.getElementById("col").value=ncols;
+	for (var i = 0; i < cols.length-1; i++) {
+		ncols+=","+cols[i];
+	}
+	document.getElementById("board_cols").value=ncols;
+	board.common.drawAll();
+}
+
+function submit(){
+	board.submit();
+/*	var x = document.getElementById("y").value;
+	var y = document.getElementById("x").value;
+	if (grid.map[[x,y]]){
+		alert(x+", "+y+" is already occupied by "+grid.map[[x,y]]);
+		return 0;
+	}
+	if (typeof(grid.map[[x,y]])==='undefined'){
+    return 0;	
+  }
+	grid.map[[x,y]]=grid.col();
+	var cols=document.getElementById("cols").value.split(',');
+	var c=cols.shift();
+	//document.getElementById("col").value=c;
+	cols.push(c);
+	document.getElementById("cols").value=cols.join();
+	grid.drawGrid();
+*/
+	
+}
+
+function changesize(){
+  var s=document.getElementById("size").value;
+  board.common.drawer.canvas.width=s;
+  board.common.drawer.canvas.height=s*0.9;
+  board.common.drawer.updateParams();
+  board.common.drawAll();
+}
+function line(ax){
+	var o=document.getElementById(ax).value;
+	board.common.drawer.gridLine(o,3,ax,"#909",o,true);
+	//board.common.drawAll();
+	
+}
+
+</script>
+
+</html>
