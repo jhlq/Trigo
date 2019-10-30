@@ -1,7 +1,7 @@
 
 //Triangle
 
-function Triangle(x,y,player){
+function new Triangle(x,y,player){
     this.x=x;
     this.y=y;
     if (player===undefined){
@@ -37,7 +37,7 @@ TriangleGrid.prototype.setUpGrid=function(){
 	for (let yt = 0; yt < this.sideLength; yt++) {
 		var v=[];
 		for (let xt = 0; xt <= 2*this.sideLength-2*yt-2; xt++) {
-			v.push(Triangle(xt,yt));
+			v.push(new Triangle(xt,yt));
 		}
 		this.triangles.push(v);
 	}
@@ -68,7 +68,7 @@ TriangleGrid.prototype.nTriangles=function(){ //this should be sideLength^2
 	return n;
 };
 TriangleGrid.prototype.adjacent=function(x,y){
-	return adjacent(Triangle(x,y));
+	return this.adjacent(new Triangle(x,y));
 };
 TriangleGrid.prototype.adjacent=function(triangle){
 	var adj=[];
@@ -100,13 +100,13 @@ TriangleGrid.prototype.adjacent=function(triangle){
 TriangleGrid.prototype.adjacentInds=function(triangle){
 	var adji=[];
 	if (Math.abs(triangle.x%2)==1){
-		adji.push(Triangle(triangle.x+1,triangle.y));
-		adji.push(Triangle(triangle.x-1,triangle.y+1));
-		adji.push(Triangle(triangle.x-1,triangle.y));
+		adji.push(new Triangle(triangle.x+1,triangle.y));
+		adji.push(new Triangle(triangle.x-1,triangle.y+1));
+		adji.push(new Triangle(triangle.x-1,triangle.y));
 	} else {
-		adji.push(Triangle(triangle.x+1,triangle.y));
-		adji.push(Triangle(triangle.x-1,triangle.y));
-		adji.push(Triangle(triangle.x+1,triangle.y-1));
+		adji.push(new Triangle(triangle.x+1,triangle.y));
+		adji.push(new Triangle(triangle.x-1,triangle.y));
+		adji.push(new Triangle(triangle.x+1,triangle.y-1));
 	}
 	return adji;
 };
@@ -115,7 +115,7 @@ TriangleGrid.prototype.adjacentInds=function(group){
 	var ng=group.length;
 	for (let n=0;n<ng;n++){
 		var tri=group[n];
-		var adj=adjacentInds(tri);
+		var adj=this.adjacentInds(tri);
 		var ladj=adj.length;
 		for (let i=0;i<ladj;i++){
 			var ttri=adj[i];
@@ -130,7 +130,7 @@ TriangleGrid.prototype.adjacentInds=function(group){
 };
 TriangleGrid.prototype.adjacentIndsSpread=function(triangle,spread){
 	var adjis=[];
-	var adji=adjacentInds(triangle);
+	var adji=this.adjacentInds(triangle);
 	for (let sp=0;sp<spread;sp++){
 		for (let ai=0;ai<adji.length;ai++){
 			var a=adji[ai]
@@ -139,7 +139,7 @@ TriangleGrid.prototype.adjacentIndsSpread=function(triangle,spread){
 			}
 		}
 		if (sp<spread-1){
-			adji=adjacentInds(adjis);
+			adji=this.adjacentInds(adjis);
 		}
 	}
 	return adjis;
@@ -149,7 +149,7 @@ TriangleGrid.prototype.adjacent=function(group){
 	var ng=group.length;
 	for (let n=0;n<ng;n++){
 		var tri=group[n];
-		var adj=adjacent(tri);
+		var adj=this.adjacent(tri);
 		var ladj=adj.length;
 		for (let i=0;i<ladj;i++){
 			var ttri=adj[i];
@@ -163,7 +163,7 @@ TriangleGrid.prototype.adjacent=function(group){
 	return adjg;
 };
 TriangleGrid.prototype.adjacentPieces=function(tri){
-	var adj=adjacent(tri);
+	var adj=this.adjacent(tri);
 	var adjp=[];
 	var ladj=adj.length;
 	for (let i=0;i<ladj;i++){
@@ -175,7 +175,7 @@ TriangleGrid.prototype.adjacentPieces=function(tri){
 	return adjp;
 };
 TriangleGrid.prototype.adjacentPieces=function(group){
-	var adj=adjacent(group);
+	var adj=this.adjacent(group);
 	var adjp=[];
 	var g0=group[0];
 	var ladj=adj.length;
@@ -190,7 +190,7 @@ TriangleGrid.prototype.adjacentPieces=function(group){
 TriangleGrid.prototype.getConnected=function(tri){
 	var group=[];
 	group.push(tri);
-	var recentlyAdded=adjacentPieces(tri);
+	var recentlyAdded=this.adjacentPieces(tri);
 	while (!recentlyAdded.length==0){
 		var rai=recentlyAdded.length;
 		for (let i=0;i<rai;i++){
@@ -198,17 +198,17 @@ TriangleGrid.prototype.getConnected=function(tri){
 				group.push(recentlyAdded[i]); //better to make Triangle var to avoid multiple indexing?
 			}
 		}
-		recentlyAdded=adjacentPieces(group);
+		recentlyAdded=this.adjacentPieces(group);
 	}
 	return group;
 };
 TriangleGrid.prototype.getConnectedSpace=function(cluster){
 	var space=[];
-	var adj=adjacent(cluster);
+	var adj=this.adjacent(cluster);
 	for (let ai=0;ai<adj.length;ai++){
 		var a=adj[ai];
 		if (a.player==0 && !space.includes(a)){
-			var ls=getConnected(a);
+			var ls=this.getConnected(a);
 			for (let li=0;li<ls.length;li++){
 				space.push(ls[li]);
 			}
@@ -221,7 +221,7 @@ TriangleGrid.prototype.getGroup=function(tri){
 		var v=[];
 		return v;
 	}
-	return getConnected(tri);
+	return this.getConnected(tri);
 };
 TriangleGrid.prototype.getCluster=function(group){
 	var cluster=[];
@@ -234,7 +234,7 @@ TriangleGrid.prototype.getCluster=function(group){
 		cluster.push(group[gi]);
 		checked.push(group[gi]);
 	}
-	var adj=adjacent(group);
+	var adj=this.adjacent(group);
 	var adjempty=[];
 	for (let ai=0;ai<adj.length;ai++){
 		if (adj[ai].player==0){
@@ -251,10 +251,10 @@ TriangleGrid.prototype.getCluster=function(group){
 						checked.push(c[ci]);
 					}
 				}
-				var adjc=adjacent(c);
+				var adjc=this.adjacent(c);
 				for (let adjci=0;adjci<adjc.length;adjci++){
 					var tri=adjc[adjci];
-					var trig=getGroup(tri);
+					var trig=this.getGroup(tri);
 					for (let ti=0;ti<trig.length;ti++){
 						var ttri=trig[ti];
 						if (!checked.includes(ttri)){
@@ -267,8 +267,8 @@ TriangleGrid.prototype.getCluster=function(group){
 				}
 			}
 		}
-		var adjcluster=adjacent(cluster);
-		adjempty.clear();
+		var adjcluster=this.adjacent(cluster);
+		adjempty=[];
 		for (let i=0;i<adjcluster.length;i++){
 			var t=adjcluster[i];
 			if (!checked.includes(t) && t.player==0){
@@ -279,14 +279,14 @@ TriangleGrid.prototype.getCluster=function(group){
 	return cluster;
 };
 TriangleGrid.prototype.getCluster=function(x,y){
-	return getCluster(get(x,y));
+	return this.getCluster(get(x,y));
 };
 TriangleGrid.prototype.getCluster=function(tri){
-	var g=getGroup(tri);
-	return getCluster(g);
+	var g=this.getGroup(tri);
+	return this.getCluster(g);
 };
 TriangleGrid.prototype.liberties=function(group){
-	var adj=adjacent(group);
+	var adj=this.adjacent(group);
 	var lib=0;
 	for (let i=0;i<adj.length;i++){
 		if (!adj[i].alive()){
@@ -296,20 +296,20 @@ TriangleGrid.prototype.liberties=function(group){
 	return lib;
 };
 TriangleGrid.prototype.liberties=function(tri){
-	var group=getGroup(tri);
-	return liberties(group);
+	var group=this.getGroup(tri);
+	return this.liberties(group);
 };
 TriangleGrid.prototype.removeGroup=function(group){
 	for (let n=0;n<group.length;n++){
 		var gt=group[n];
-		set(gt.x,gt.y,0);
+		this.set(gt.x,gt.y,0);
 	}
 };
 TriangleGrid.prototype.historyString=function(){
 	var h="";
-	for (let y=0;y<triangles.length;y++){
-		for (let x=0;x<triangles[y].length;x++){
-			var tri=triangles[y][x];
+	for (let y=0;y<this.triangles.length;y++){
+		for (let x=0;x<this.triangles[y].length;x++){
+			var tri=this.triangles[y][x];
 			h=h+tri.x+","+tri.y+":"+tri.player+";";
 		}
 	}
@@ -319,7 +319,7 @@ TriangleGrid.prototype.historyString=function(){
 //Board
 
 function Board(sideLength){
-	this.tg=TriangleGrid(sideLength);
+	this.tg=new TriangleGrid(sideLength);
 	this.player=1;
 	this.stones=[0,0];
 	this.captures=[0,0];
@@ -328,7 +328,7 @@ function Board(sideLength){
 Board.prototype.reset=function(){
 	this.history=[];
 	this.moves=[];
-	this.tg=TriangleGrid(sideLength);
+	this.tg=new TriangleGrid(sideLength);
 	this.player=1;
 	this.stones=[0,0];
 	this.captures=[0,0];
@@ -350,7 +350,7 @@ Board.prototype.removeCapturedBy=function(tri){
 	}
 };
 Board.prototype.invalidMoveType=function(x,y,player){
-	var t=Triangle(x,y,player);
+	var t=new Triangle(x,y,player);
 	return invalidMoveType(t);
 };
 Board.prototype.invalidMoveType=function(t){
@@ -385,7 +385,7 @@ Board.prototype.invalidMoveType=function(t){
 	return 0;
 };
 Board.prototype.isValidMove=function(x,y,player){
-	var t=Triangle(x,y,player);
+	var t=new Triangle(x,y,player);
 	return this.isValidMove(t);
 };
 Board.prototype.isValidMove=function(t){
@@ -420,7 +420,7 @@ Board.prototype.placeMove=function(x,y){
 };
 Board.prototype.placeMove=function(x,y,p){
 	if (x<0){ //pass
-		this.moves.push(Triangle(x,y,p));
+		this.moves.push(new Triangle(x,y,p));
 		return true;
 	}
 	if (!isValidMove(x,y,p)){
@@ -463,7 +463,7 @@ Board.prototype.undo=function(){
 	}
 };
 Board.prototype.pass=function(){
-	this.moves.push(Triangle(-1,-1,this.player));
+	this.moves.push(new Triangle(-1,-1,this.player));
 	this.switchPlayer();
 };
 
@@ -561,7 +561,7 @@ Board.prototype.tryCaptureCluster=function(cluster,maxit){
 					nwin++;
 					break;
 				}
-				space.splice(r,r);
+				space.splice(r,1);
 				if (space.length==0) break;
 			} else {
 				bc.switchPlayer();
