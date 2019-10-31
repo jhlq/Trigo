@@ -1,7 +1,11 @@
+var Trigo = {}
+//}
 
+//Trigo.prototype=(function(){
+	
 //Triangle
 
-function new Triangle(x,y,player){
+Trigo.Triangle=function(x,y,player){
     this.x=x;
     this.y=y;
     if (player===undefined){
@@ -10,54 +14,54 @@ function new Triangle(x,y,player){
     this.player=player;
     this.markedDead=false;
 };
-Triangle.prototype.isPass=function(){
+Trigo.Triangle.prototype.isPass=function(){
     if (x<0){
         return true;
     }
     return false;
 };
-Triangle.prototype.alive=function(){
+Trigo.Triangle.prototype.alive=function(){
     return player>0 && !markedDead;
 };
-Triangle.prototype.sameTenantAs=function(t){
+Trigo.Triangle.prototype.sameTenantAs=function(t){
     return this.player==t.player || ((this.markedDead||this.player==0)&&(t.markedDead||t.player==0));
 };
-Triangle.prototype.equals=function(t){
+Trigo.Triangle.prototype.equals=function(t){
     return this.x == t.x && this.y == t.y;
 };
 
 //TriangleGrid
 
-function TriangleGrid(sideLength){
+Trigo.TriangleGrid=function(sideLength){
 	this.sideLength=sideLength;
 	this.triangles=[];
 	this.setUpGrid();
 };
-TriangleGrid.prototype.setUpGrid=function(){
+Trigo.TriangleGrid.prototype.setUpGrid=function(){
 	for (let yt = 0; yt < this.sideLength; yt++) {
 		var v=[];
 		for (let xt = 0; xt <= 2*this.sideLength-2*yt-2; xt++) {
-			v.push(new Triangle(xt,yt));
+			v.push(new Trigo.Triangle(xt,yt));
 		}
 		this.triangles.push(v);
 	}
 };
-TriangleGrid.prototype.get=function(x, y){
+Trigo.TriangleGrid.prototype.get=function(x, y){
 	return triangles[y][x];
 };
-TriangleGrid.prototype.set=function(x, y, player){
+Trigo.TriangleGrid.prototype.set=function(x, y, player){
 	triangles[y][x].player=player;
 };
-TriangleGrid.prototype.has=function(x, y){
+Trigo.TriangleGrid.prototype.has=function(x, y){
 	if (x<0 || y<0 || y>=triangles.length || x>=triangles[y].length){
 		return false;
 	}
 	return true;
 };
-TriangleGrid.prototype.has=function(t){
+Trigo.TriangleGrid.prototype.has=function(t){
 	return has(t.x,t.y);
 };
-TriangleGrid.prototype.nTriangles=function(){ //this should be sideLength^2
+Trigo.TriangleGrid.prototype.nTriangles=function(){ //this should be sideLength^2
 	var n=0;
 	for(let yi=0; yi<this.triangles.length; yi++) {
 		var yv=this.triangles[yi];
@@ -67,10 +71,10 @@ TriangleGrid.prototype.nTriangles=function(){ //this should be sideLength^2
 	}
 	return n;
 };
-TriangleGrid.prototype.adjacent=function(x,y){
+Trigo.TriangleGrid.prototype.adjacent=function(x,y){
 	return this.adjacent(new Triangle(x,y));
 };
-TriangleGrid.prototype.adjacent=function(triangle){
+Trigo.TriangleGrid.prototype.adjacent=function(triangle){
 	var adj=[];
 	var leny=this.triangles.length;//this.sideLength;
 	var lenx=this.triangles[triangle.y].length;
@@ -97,7 +101,7 @@ TriangleGrid.prototype.adjacent=function(triangle){
 	}
 	return adj;
 };
-TriangleGrid.prototype.adjacentInds=function(triangle){
+Trigo.TriangleGrid.prototype.adjacentInds=function(triangle){
 	var adji=[];
 	if (Math.abs(triangle.x%2)==1){
 		adji.push(new Triangle(triangle.x+1,triangle.y));
@@ -110,7 +114,7 @@ TriangleGrid.prototype.adjacentInds=function(triangle){
 	}
 	return adji;
 };
-TriangleGrid.prototype.adjacentInds=function(group){
+Trigo.TriangleGrid.prototype.adjacentInds=function(group){
 	var adjg=[];
 	var ng=group.length;
 	for (let n=0;n<ng;n++){
@@ -128,7 +132,7 @@ TriangleGrid.prototype.adjacentInds=function(group){
 	}
 	return adjg;
 };
-TriangleGrid.prototype.adjacentIndsSpread=function(triangle,spread){
+Trigo.TriangleGrid.prototype.adjacentIndsSpread=function(triangle,spread){
 	var adjis=[];
 	var adji=this.adjacentInds(triangle);
 	for (let sp=0;sp<spread;sp++){
@@ -144,7 +148,7 @@ TriangleGrid.prototype.adjacentIndsSpread=function(triangle,spread){
 	}
 	return adjis;
 };
-TriangleGrid.prototype.adjacent=function(group){
+Trigo.TriangleGrid.prototype.adjacent=function(group){
 	var adjg=[];
 	var ng=group.length;
 	for (let n=0;n<ng;n++){
@@ -162,7 +166,7 @@ TriangleGrid.prototype.adjacent=function(group){
 	}
 	return adjg;
 };
-TriangleGrid.prototype.adjacentPieces=function(tri){
+Trigo.TriangleGrid.prototype.adjacentPieces=function(tri){
 	var adj=this.adjacent(tri);
 	var adjp=[];
 	var ladj=adj.length;
@@ -174,7 +178,7 @@ TriangleGrid.prototype.adjacentPieces=function(tri){
 	}
 	return adjp;
 };
-TriangleGrid.prototype.adjacentPieces=function(group){
+Trigo.TriangleGrid.prototype.adjacentPieces=function(group){
 	var adj=this.adjacent(group);
 	var adjp=[];
 	var g0=group[0];
@@ -187,7 +191,7 @@ TriangleGrid.prototype.adjacentPieces=function(group){
 	}
 	return adjp;
 };
-TriangleGrid.prototype.getConnected=function(tri){
+Trigo.TriangleGrid.prototype.getConnected=function(tri){
 	var group=[];
 	group.push(tri);
 	var recentlyAdded=this.adjacentPieces(tri);
@@ -202,7 +206,7 @@ TriangleGrid.prototype.getConnected=function(tri){
 	}
 	return group;
 };
-TriangleGrid.prototype.getConnectedSpace=function(cluster){
+Trigo.TriangleGrid.prototype.getConnectedSpace=function(cluster){
 	var space=[];
 	var adj=this.adjacent(cluster);
 	for (let ai=0;ai<adj.length;ai++){
@@ -216,14 +220,14 @@ TriangleGrid.prototype.getConnectedSpace=function(cluster){
 	}
 	return space;
 };
-TriangleGrid.prototype.getGroup=function(tri){
+Trigo.TriangleGrid.prototype.getGroup=function(tri){
 	if (tri.player==0){
 		var v=[];
 		return v;
 	}
 	return this.getConnected(tri);
 };
-TriangleGrid.prototype.getCluster=function(group){
+Trigo.TriangleGrid.prototype.getCluster=function(group){
 	var cluster=[];
 	if (group.length==0){
 		return cluster;
@@ -278,14 +282,14 @@ TriangleGrid.prototype.getCluster=function(group){
 	}
 	return cluster;
 };
-TriangleGrid.prototype.getCluster=function(x,y){
+Trigo.TriangleGrid.prototype.getCluster=function(x,y){
 	return this.getCluster(get(x,y));
 };
-TriangleGrid.prototype.getCluster=function(tri){
+Trigo.TriangleGrid.prototype.getCluster=function(tri){
 	var g=this.getGroup(tri);
 	return this.getCluster(g);
 };
-TriangleGrid.prototype.liberties=function(group){
+Trigo.TriangleGrid.prototype.liberties=function(group){
 	var adj=this.adjacent(group);
 	var lib=0;
 	for (let i=0;i<adj.length;i++){
@@ -295,17 +299,17 @@ TriangleGrid.prototype.liberties=function(group){
 	}
 	return lib;
 };
-TriangleGrid.prototype.liberties=function(tri){
+Trigo.TriangleGrid.prototype.liberties=function(tri){
 	var group=this.getGroup(tri);
 	return this.liberties(group);
 };
-TriangleGrid.prototype.removeGroup=function(group){
+Trigo.TriangleGrid.prototype.removeGroup=function(group){
 	for (let n=0;n<group.length;n++){
 		var gt=group[n];
 		this.set(gt.x,gt.y,0);
 	}
 };
-TriangleGrid.prototype.historyString=function(){
+Trigo.TriangleGrid.prototype.historyString=function(){
 	var h="";
 	for (let y=0;y<this.triangles.length;y++){
 		for (let x=0;x<this.triangles[y].length;x++){
@@ -318,23 +322,23 @@ TriangleGrid.prototype.historyString=function(){
 
 //Board
 
-function Board(sideLength){
-	this.tg=new TriangleGrid(sideLength);
+Trigo.Board=function(sideLength){
+	this.tg=new Trigo.TriangleGrid(sideLength);
 	this.player=1;
 	this.stones=[0,0];
 	this.captures=[0,0];
-	this.territory[0,0];
+	this.territory=[0,0];
 };
-Board.prototype.reset=function(){
+Trigo.Board.prototype.reset=function(){
 	this.history=[];
 	this.moves=[];
-	this.tg=new TriangleGrid(sideLength);
+	this.tg=new Trigo.TriangleGrid(sideLength);
 	this.player=1;
 	this.stones=[0,0];
 	this.captures=[0,0];
-	this.territory[0,0];
+	this.territory=[0,0];
 };
-Board.prototype.removeCapturedBy=function(tri){
+Trigo.Board.prototype.removeCapturedBy=function(tri){
 	//Triangle tri=tg.get(x,y);
 	var adj=this.tg.adjacent(tri);
 	for (let a=0;a<adj.length;a++){
@@ -349,11 +353,11 @@ Board.prototype.removeCapturedBy=function(tri){
 		}
 	}
 };
-Board.prototype.invalidMoveType=function(x,y,player){
+Trigo.Board.prototype.invalidMoveType=function(x,y,player){
 	var t=new Triangle(x,y,player);
 	return invalidMoveType(t);
 };
-Board.prototype.invalidMoveType=function(t){
+Trigo.Board.prototype.invalidMoveType=function(t){
 	if (!this.tg.has(t.x,t.y)){
 		return 4;
 	}
@@ -384,41 +388,41 @@ Board.prototype.invalidMoveType=function(t){
 	}
 	return 0;
 };
-Board.prototype.isValidMove=function(x,y,player){
+Trigo.Board.prototype.isValidMove=function(x,y,player){
 	var t=new Triangle(x,y,player);
 	return this.isValidMove(t);
 };
-Board.prototype.isValidMove=function(t){
+Trigo.Board.prototype.isValidMove=function(t){
 	if (this.invalidMoveType(t)>0){
 		return false;
 	}
 	return true;
 };
-Board.prototype.otherPlayer=function(){
+Trigo.Board.prototype.otherPlayer=function(){
 	if (this.player==1){
 		return 2;
 	} else {
 		return 1;
 	}
 };
-Board.prototype.otherPlayer=function(p){
+Trigo.Board.prototype.otherPlayer=function(p){
 	if (p==1){
 		return 2;
 	} else {
 		return 1;
 	}
 };
-Board.prototype.switchPlayer=function(){
+Trigo.Board.prototype.switchPlayer=function(){
 	this.player=otherPlayer();
 };
-Board.prototype.placeMove=function(x,y){
+Trigo.Board.prototype.placeMove=function(x,y){
 	var b=placeMove(x,y,player);
 	if (b) {
 		this.switchPlayer();
 	}
 	return b;
 };
-Board.prototype.placeMove=function(x,y,p){
+Trigo.Board.prototype.placeMove=function(x,y,p){
 	if (x<0){ //pass
 		this.moves.push(new Triangle(x,y,p));
 		return true;
@@ -434,7 +438,7 @@ Board.prototype.placeMove=function(x,y,p){
 	this.stones[p-1]+=1;
 	return true;
 };
-Board.prototype.state=function(){
+Trigo.Board.prototype.state=function(){
 	var s=this.tg.sideLength+";";
 	for (let movei=0;move<this.moves.length;move++){
 		move=this.moves[movei];
@@ -442,7 +446,7 @@ Board.prototype.state=function(){
 	}
 	return s;
 };
-Board.prototype.placeMoves=function(){
+Trigo.Board.prototype.placeMoves=function(){
 	var m=this.moves;
 	var p=this.player;
 	this.reset();
@@ -452,7 +456,7 @@ Board.prototype.placeMoves=function(){
 	}
 	this.player=p;
 };
-Board.prototype.undo=function(){
+Trigo.Board.prototype.undo=function(){
 	if (!this.moves.length==0){
 		if (!this.moves[this.moves.length-1].isPass()){
 			this.history.pop();
@@ -462,12 +466,12 @@ Board.prototype.undo=function(){
 		this.placeMoves();
 	}
 };
-Board.prototype.pass=function(){
+Trigo.Board.prototype.pass=function(){
 	this.moves.push(new Triangle(-1,-1,this.player));
 	this.switchPlayer();
 };
 
-Board.prototype.score=function(){
+Trigo.Board.prototype.score=function(){
 	var checked=[];
 	var scores=[0,0];
 	for (let y=0;y<this.tg.triangles.length;y++){
@@ -500,14 +504,14 @@ Board.prototype.score=function(){
 	this.territory[0]=scores[0];
 	this.territory[1]=scores[1];
 };
-Board.prototype.markDeadStones=function(x,y){
+Trigo.Board.prototype.markDeadStones=function(x,y){
 	this.markDeadStones(this.tg.get(x,y));
 };
-Board.prototype.markDeadStones=function(tri){
+Trigo.Board.prototype.markDeadStones=function(tri){
 	var c=this.tg.getCluster(tri);
 	this.markDeadStones(c);
 };
-Board.prototype.markDeadStones=function(c){
+Trigo.Board.prototype.markDeadStones=function(c){
 	var tri=c[0];
 	if (c.length==0) return;
 	var flipto=!(tri.markedDead);
@@ -524,7 +528,7 @@ Board.prototype.markDeadStones=function(c){
 		}
 	}
 };
-Board.prototype.tryCaptureCluster=function(cluster,maxit){
+Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
 	var space=this.tg.getConnectedSpace(cluster);
 	if (space.length>this.tg.sideLength*this.tg.sideLength/5) return false;
 	var c0=cluster[0];
@@ -571,7 +575,7 @@ Board.prototype.tryCaptureCluster=function(cluster,maxit){
 	if (nwin/maxit>0.5) return true;
 	return false;
 };
-Board.prototype.autoMarkDeadStones=function(){
+Trigo.Board.prototype.autoMarkDeadStones=function(){
 	var tried=[];
 	var tobemarked=[];
 	for (let mi=0;m<this.moves.length;m++){
@@ -594,3 +598,4 @@ Board.prototype.autoMarkDeadStones=function(){
 		this.markDeadStones(cluster);
 	}
 };
+
