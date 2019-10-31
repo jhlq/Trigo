@@ -157,11 +157,11 @@ Trigo.CanvasDrawer=function(drawAreaID,l){
 	*/
 }
 Trigo.CanvasDrawer.prototype.updateParams = function(){
-	var rect = this.canvas.getBoundingClientRect();
+/*	var rect = this.canvas.getBoundingClientRect();
 	var paddingY=(document.documentElement || document.body.parentNode || document.body).scrollTop;
 	this.canvasOriginX = rect.left;
 	this.canvasOriginY = rect.top+paddingY;
-/*
+
 	this.d=this.canvas.width/(2*this.l+1);
 	this.l=this.l;
 	this.yvec=[this.d/2,this.d*Math.sin(Math.PI/3)];
@@ -174,8 +174,13 @@ Trigo.CanvasDrawer.prototype.updateParams = function(){
 	this.csl=Math.cos(Math.PI/3)*this.sl;
 	*/
 };
-Trigo.CanvasDrawer.prototype.line = function(x0, y0, x1, y1, col, text) {
+Trigo.CanvasDrawer.prototype.line = function(x0, y0, x1, y1, col, lw, text) {
 	if (typeof(col)==='undefined') col = "#000";
+	if (lw===undefined){
+		this.context.lineWidth=1;
+	} else {
+		this.context.lineWidth=lw;
+	}
 	if (typeof(text)==='undefined') text = "";
 	this.context.strokeStyle = col;
 	this.context.beginPath();
@@ -197,4 +202,26 @@ Trigo.CanvasDrawer.prototype.circle=function(x,y,col,r){
 	this.context.beginPath();
 	this.context.arc(x,y,r,0,2*Math.PI);
 	this.context.fill();
+};
+
+//New functions
+
+Trigo.ScreenBoard.prototype.plotinfluence=function(player,range,tunneling){
+	this.board.resetinfluence();
+	this.board.spreadinfluence(range,tunneling);
+	for (let y=0;y<this.board.influence.length;y++){
+		for (let x=0;x<this.board.influence[y].length;x++){
+			var it=this.board.influence[y][x];
+			var st=this.triangles[y][x];
+			if (player==1){
+				this.drawer.circle(st.pixX,st.pixY,"#0f0",this.unitSize*it.green/2);
+			} else if (player==2){
+				this.drawer.circle(st.pixX,st.pixY,"#00f",this.unitSize*it.blue/2);
+			}
+		}
+	}
+};
+
+Trigo.ScreenBoard.prototype.placeMove=function(x,y){
+	if (this.board.placeMove(x,y)) this.placeMoves();
 };

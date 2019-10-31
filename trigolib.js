@@ -260,7 +260,7 @@ Trigo.TriangleGrid.prototype.getCluster_arr=function(group){
 		for (let aei=0;aei<adjempty.length;aei++){
 			if (!checked.includes(adjempty[aei])){
 				checked.push(adjempty[aei]);
-				var c=getConnected(adjempty[aei]);
+				var c=this.getConnected(adjempty[aei]);
 				for (let ci=0;ci<c.length;ci++){
 					if (!checked.includes(c[ci])){
 						checked.push(c[ci]);
@@ -297,7 +297,7 @@ Trigo.TriangleGrid.prototype.getCluster=function(x,y){
 	if (Array.isArray(x)){
 		return this.getCluster_arr(x)
 	}
-	if (y===undefined) return getCluster_tri(x);
+	if (y===undefined) return this.getCluster_tri(x);
 	return this.getCluster(get(x,y));
 };
 Trigo.TriangleGrid.prototype.getCluster_tri=function(tri){
@@ -348,6 +348,9 @@ Trigo.Board=function(sideLength){
 	this.stones=[0,0];
 	this.captures=[0,0];
 	this.territory=[0,0]; //call score() to update
+	
+	this.influence=[];													//new
+	this.initinfluence();
 };
 Trigo.Board.prototype.copy=function(){
 	var bc=new Trigo.Board(this.tg.sideLength);
@@ -540,7 +543,7 @@ Trigo.Board.prototype.markDeadStones=function(x,y){
 	if (Array.isArray(x)){
 		return this.markDeadStones_arr(x)
 	}
-	if (y===undefined) return markDeadStones_tri(x);
+	if (y===undefined) return this.markDeadStones_tri(x);
 	this.markDeadStones(this.tg.get(x,y));
 };
 Trigo.Board.prototype.markDeadStones_tri=function(tri){	
@@ -558,9 +561,9 @@ Trigo.Board.prototype.markDeadStones_arr=function(c){
 	for (let i=0;i<c.length;i++){
 		var t=c[i];
 		if (t.player==tri.player && t.markedDead!=flipto){
-			this.this.tg.triangles[t.y][t.x].markedDead=flipto;
+			this.tg.triangles[t.y][t.x].markedDead=flipto;
 			this.stones[t.player-1]-=a;
-			this.captures[otherPlayer(t.player)-1]+=a;
+			this.captures[this.otherPlayer(t.player)-1]+=a;
 		}
 	}
 };
@@ -632,5 +635,71 @@ Trigo.Board.prototype.autoMarkDeadStones=function(){
 	for (let clusteri=0;cluster<tobemarked.length;cluster++){
 		cluster=tobemarked[clusteri];
 		this.markDeadStones(cluster);
+	}
+};
+
+//New functions
+
+Trigo.InfluenceTriangle=function(x,y){
+	this.x=x;	//remove indices?
+	this.y=y;
+	//this.border=0;
+	this.green=0;
+	this.blue=0;
+};
+Trigo.Board.prototype.initinfluence=function(){
+	for (let y=0;y<this.tg.triangles.length;y++){
+		var v=[];
+		for (let x=0;x<this.tg.triangles[y].length;x++){
+			var tri=this.tg.triangles[y][x];
+			v.push(new Trigo.InfluenceTriangle(tri.x,tri.y));
+		}
+		this.influence.push(v);
+	}
+};
+Trigo.Board.prototype.resetinfluence=function(){
+	for (let y=0;y<this.influence.length;y++){
+		for (let x=0;x<this.influence[y].length;x++){
+			this.influence[y][x].green=0;
+			this.influence[y][x].blue=0;
+		}
+	}
+};
+Trigo.Board.prototype.spreadinfluence_tri=function(tri,range,tunneling){
+	var visited=[];
+	var fringe=[[tri,false]]; //bool: tunnelled
+	var player=tri.player
+	for (let r=0;r<=range;r++){
+		var newfringe=[];
+		for (let fi=0;fi<fringe.length;fi++){
+			var t=fringe[fi][0];
+			if (player==1){
+				this.influence[t.y][t.x].green+=1/(r+1);
+			} else if (player==2){
+				this.influence[t.y][t.x].blue+=1/(r+1);
+			}
+			var adj=this.tg.adjacent(t);
+			for (let adji=0;adji<adj.length;adji++){
+				var at=adj[adji];
+				if (!visited.includes(at)){
+					var tunnelled=fringe[fi][1];
+					if (at.alive() && at.player!=player){
+						if (tunneling && !tunnelled){
+							tunnelled=true;
+							newfringe.push([at,tunnelled]);
+						}
+					} else {
+						newfringe.push([at,tunnelled]);
+					}
+				}
+			}
+			visited.push(t);
+		}
+		fringe=newfringe;
+	}
+};
+Trigo.Board.prototype.spreadinfluence=function(range,tunneling){
+	for (let mi=0;mi<this.moves.length;mi++){
+		this.spreadinfluence_tri(this.moves[mi],range,tunneling);
 	}
 };
