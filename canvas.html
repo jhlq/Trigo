@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html>
+	<head>
+    <title>Trigo</title>
 	<meta charset="utf-8"/>
-
-<script type="text/javascript" src="trigolib.js"></script>
-<script type="text/javascript" src="hexago/hexago_core.js"></script>
-<script type="text/javascript" src="hexago/hexago_board.js"></script>
-
+	</head>
+  <body>
+	  <h1>Trigo!</h1>
+	  
   	<input type="number" id="x" onchange="line('y')" value=0>
 	<input type="number" id="y" onchange="line('x')" value=0>
 	<button onclick="submit()">Submit!</button>
@@ -33,17 +34,25 @@
     <input type="hidden" id="col" value="#f00">
     Game record: <input type="text" id="board_moves" value='#909:0,0'>
   <button class="btn btn-primary" onclick="board.common.drawAll()">Load game record without saving</button>
+  
+  <script type="text/javascript" src="trigolib.js"></script>
+<script type="text/javascript" src="screenboard.js"></script>
+<script type="text/javascript" src="hexago/hexago_core.js"></script>
+<script type="text/javascript" src="hexago/hexago_board.js"></script>
+
 <script>
 var l=6;
 //var grid = new Grid("TriCanvas", l);
 //grid.drawGrid();
 
 var t=new Trigo.Triangle(0,0);
-var tg=new Trigo.TriangleGrid(9);
-var b=new Trigo.Board(9);
+var tg=new Trigo.TriangleGrid(3);
+var b=new Trigo.Board(3);
+var sb=new Trigo.ScreenBoard("TriCanvas",3,30,50,50);
+sb.drawGrid();
 
-var board = new Board("TriCanvas",l,6,true);
-board.common.drawAll();
+//var board = new Board("TriCanvas",l,6,true);
+//board.common.drawAll();
 
 //var board = new Board(l);
 
@@ -145,4 +154,18 @@ function line(ax){
 
 </script>
 
+<footer class="footer">
+  <small>
+    Go is fun!
+  </small>
+  <nav>
+    <ul>
+      <li><a href="/about">About</a></li>
+      <li><a href="/contact">Contact</a></li>
+    </ul>
+  </nav>
+</footer>
+      
+    </div>
+  </body>
 </html>

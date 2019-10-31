@@ -1,7 +1,4 @@
 var Trigo = {}
-//}
-
-//Trigo.prototype=(function(){
 	
 //Triangle
 
@@ -47,19 +44,20 @@ Trigo.TriangleGrid.prototype.setUpGrid=function(){
 	}
 };
 Trigo.TriangleGrid.prototype.get=function(x, y){
-	return triangles[y][x];
+	return this.triangles[y][x];
 };
-Trigo.TriangleGrid.prototype.set=function(x, y, player){
-	triangles[y][x].player=player;
+Trigo.TriangleGrid.prototype.set=function(x,y,player){
+	this.triangles[y][x].player=player;
 };
-Trigo.TriangleGrid.prototype.has=function(x, y){
-	if (x<0 || y<0 || y>=triangles.length || x>=triangles[y].length){
+Trigo.TriangleGrid.prototype.has=function(x,y){
+	if (y===undefined) return this.has_tri(x);
+	if (x<0 || y<0 || y>=this.triangles.length || x>=this.triangles[y].length){
 		return false;
 	}
 	return true;
 };
-Trigo.TriangleGrid.prototype.has=function(t){
-	return has(t.x,t.y);
+Trigo.TriangleGrid.prototype.has_tri=function(t){
+	return this.has(t.x,t.y);
 };
 Trigo.TriangleGrid.prototype.nTriangles=function(){ //this should be sideLength^2
 	var n=0;
@@ -72,9 +70,13 @@ Trigo.TriangleGrid.prototype.nTriangles=function(){ //this should be sideLength^
 	return n;
 };
 Trigo.TriangleGrid.prototype.adjacent=function(x,y){
-	return this.adjacent(new Triangle(x,y));
+	if (y===undefined) return this.adjacent_tri(x);
+	return this.adjacent(new Trigo.Triangle(x,y));
 };
-Trigo.TriangleGrid.prototype.adjacent=function(triangle){
+Trigo.TriangleGrid.prototype.adjacent_tri=function(triangle){
+	if (Array.isArray(triangle)){
+		return adjacent_arr(triangle)
+	}
 	var adj=[];
 	var leny=this.triangles.length;//this.sideLength;
 	var lenx=this.triangles[triangle.y].length;
@@ -148,7 +150,7 @@ Trigo.TriangleGrid.prototype.adjacentIndsSpread=function(triangle,spread){
 	}
 	return adjis;
 };
-Trigo.TriangleGrid.prototype.adjacent=function(group){
+Trigo.TriangleGrid.prototype.adjacent_arr=function(group){
 	var adjg=[];
 	var ng=group.length;
 	for (let n=0;n<ng;n++){
@@ -427,13 +429,13 @@ Trigo.Board.prototype.placeMove=function(x,y,p){
 		this.moves.push(new Triangle(x,y,p));
 		return true;
 	}
-	if (!isValidMove(x,y,p)){
+	if (!this.isValidMove(x,y,p)){
 		return false;
 	}
 	this.tg.set(x,y,p);
 	var tri=this.tg.get(x,y);
 	this.removeCapturedBy(tri);
-	this.history.push(tg.historyString());
+	this.history.push(this.tg.historyString());
 	this.moves.push(tri);
 	this.stones[p-1]+=1;
 	return true;
@@ -598,4 +600,3 @@ Trigo.Board.prototype.autoMarkDeadStones=function(){
 		this.markDeadStones(cluster);
 	}
 };
-
