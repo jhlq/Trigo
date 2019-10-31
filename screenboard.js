@@ -208,7 +208,7 @@ Trigo.CanvasDrawer.prototype.circle=function(x,y,col,r){
 
 Trigo.ScreenBoard.prototype.plotinfluence=function(player,range,tunneling){
 	if (player==undefined) player=0;
-	if (range==undefined) range=3;
+	if (range==undefined) range=4;
 	if (tunneling==undefined) tunneling=true;
 	this.board.resetinfluence();
 	this.board.spreadinfluence(range,tunneling);
@@ -234,4 +234,17 @@ Trigo.ScreenBoard.prototype.plotinfluence=function(player,range,tunneling){
 
 Trigo.ScreenBoard.prototype.placeMove=function(x,y){
 	if (this.board.placeMove(x,y)) this.placeMoves();
+};
+Trigo.ScreenBoard.prototype.updatescore=function(){
+	this.board.score();
+	var ss="<b>Current score</b><br>";
+	ss+="Green: "+this.board.stones[0]+" stones, "+this.board.captures[0]+" captures and "+this.board.territory[0]+" territory.<br>";
+	ss+="Blue: "+this.board.stones[1]+" stones, "+this.board.captures[1]+" captures and "+this.board.territory[1]+" territory.<br>";
+	ss+="Suggested komi for blue is 7.";
+	var ssa="Current score\n";
+	ssa+="Green: "+this.board.stones[0]+" stones, "+this.board.captures[0]+" captures and "+this.board.territory[0]+" territory.\n";
+	ssa+="Blue: "+this.board.stones[1]+" stones, "+this.board.captures[1]+" captures and "+this.board.territory[1]+" territory.\n";
+	ssa+="Suggested komi for blue is 7.";
+	alert(ssa);
+	document.getElementById("scores").innerHTML=ss;
 };

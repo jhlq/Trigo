@@ -7,13 +7,16 @@
   <body>
 	  <h1>Trigo!</h1>
 	  
-  	<input type="number" id="x" onchange="crosshair()" value=0>
-	<input type="number" id="y" onchange="crosshair()" value=0>
-	<button onclick="submit()">Submit!</button>
+  	<input type="number" id="x" onchange="crosshair()" value=1>
+	<input type="number" id="y" onchange="crosshair()" value=1>
+	<br>
 	<button onclick="board.letAIplay()">Let AI play!</button>
-	<button onclick="document.getElementById('x').value=0;document.getElementById('y').value=0;submit()">Pass.</button>
-	<button onclick="undo()">Undo.</button>
+	<button onclick="sb.board.pass();sb.placeMoves()">Pass.</button>
+	<button onclick="sb.board.undo();sb.placeMoves()">Undo.</button>
+	<button onclick="sb.updatescore()">Score.</button>
+	<br>
 	<button onclick="sb.plotinfluence()">Plot influence.</button>
+	<button onclick="sb.board.autoMarkDeadStones();sb.placeMoves()">Mark dead stones.</button>
 	<br>
 	<canvas id="TriCanvas" width=600 height="540"></canvas>
 	<p id="scores">Current score is #f00: 0, #0f0: 0, #00f: 0</p>
@@ -40,9 +43,9 @@
 <script type="text/javascript" src="screenboard.js"></script>
 
 <script>
-var t=new Trigo.Triangle(0,0);
+/*var t=new Trigo.Triangle(0,0);
 var tg=new Trigo.TriangleGrid(3);
-var b=new Trigo.Board(3);
+var b=new Trigo.Board(3);*/
 var sb=new Trigo.ScreenBoard("TriCanvas",9,30,50,50);
 sb.drawGrid();
 

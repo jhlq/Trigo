@@ -298,7 +298,7 @@ Trigo.TriangleGrid.prototype.getCluster=function(x,y){
 		return this.getCluster_arr(x)
 	}
 	if (y===undefined) return this.getCluster_tri(x);
-	return this.getCluster(get(x,y));
+	return this.getCluster(this.get(x,y));
 };
 Trigo.TriangleGrid.prototype.getCluster_tri=function(tri){
 	var g=this.getGroup(tri);
@@ -507,6 +507,7 @@ Trigo.Board.prototype.pass=function(){
 };
 
 Trigo.Board.prototype.score=function(){
+	if (this.moves.length==0) return;
 	var checked=[];
 	var scores=[0,0];
 	for (let y=0;y<this.tg.triangles.length;y++){
@@ -517,7 +518,7 @@ Trigo.Board.prototype.score=function(){
 				for (let ci=0;ci<c.length;ci++){
 					checked.push(c[ci]);
 				}
-				var adj=tg.adjacent(c);
+				var adj=this.tg.adjacent(c);
 				var p=adj[0].player;
 				if (!adj.length==0 && p>0){
 					var oneplayer=true;
@@ -568,6 +569,7 @@ Trigo.Board.prototype.markDeadStones_arr=function(c){
 	}
 };
 Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
+	if (maxit===undefined) maxit=100;
 	var space=this.tg.getConnectedSpace(cluster);
 	if (space.length>this.tg.sideLength*this.tg.sideLength/5) return false;
 	var c0=cluster[0];
@@ -588,7 +590,7 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
 			var placedmove;
 			var adjrt=bc.tg.adjacent(rt);
 			var adjacentallsame=true;
-			for (let ai=0;a<adjrt.length;a++){
+			for (let ai=0;ai<adjrt.length;ai++){
 				a=adjrt[ai];
 				if (a.player!=bc.player){
 					adjacentallsame=false;
@@ -615,24 +617,26 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
 	return false;
 };
 Trigo.Board.prototype.autoMarkDeadStones=function(){
+	console.log("Automarking");
 	var tried=[];
 	var tobemarked=[];
-	for (let mi=0;m<this.moves.length;m++){
+	for (let mi=0;mi<this.moves.length;mi++){
 		m=this.moves[mi];
 		if (!tried.includes(m)){
 			var c=this.tg.getCluster(m);
+			console.log("Trying to capture cluster of size "+c.length);
 			var success=this.tryCaptureCluster(c);
 			if (success){
-				//markDeadStones(c);
+				console.log(success);
 				tobemarked.push(c);
 			}
-			for (let cti=0;ct<c.length;ct++){
+			for (let cti=0;cti<c.length;cti++){
 				ct=c[cti];
 				tried.push(ct);
 			}
 		}
 	}
-	for (let clusteri=0;cluster<tobemarked.length;cluster++){
+	for (let clusteri=0;clusteri<tobemarked.length;clusteri++){
 		cluster=tobemarked[clusteri];
 		this.markDeadStones(cluster);
 	}
@@ -700,6 +704,8 @@ Trigo.Board.prototype.spreadinfluence_tri=function(tri,range,tunneling){
 };
 Trigo.Board.prototype.spreadinfluence=function(range,tunneling){
 	for (let mi=0;mi<this.moves.length;mi++){
-		this.spreadinfluence_tri(this.moves[mi],range,tunneling);
+		if (this.moves[mi].alive()){
+			this.spreadinfluence_tri(this.moves[mi],range,tunneling);
+		}
 	}
 };
