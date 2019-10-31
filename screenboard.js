@@ -207,6 +207,9 @@ Trigo.CanvasDrawer.prototype.circle=function(x,y,col,r){
 //New functions
 
 Trigo.ScreenBoard.prototype.plotinfluence=function(player,range,tunneling){
+	if (player==undefined) player=0;
+	if (range==undefined) range=3;
+	if (tunneling==undefined) tunneling=true;
 	this.board.resetinfluence();
 	this.board.spreadinfluence(range,tunneling);
 	for (let y=0;y<this.board.influence.length;y++){
@@ -217,6 +220,13 @@ Trigo.ScreenBoard.prototype.plotinfluence=function(player,range,tunneling){
 				this.drawer.circle(st.pixX,st.pixY,"#0f0",this.unitSize*it.green/2);
 			} else if (player==2){
 				this.drawer.circle(st.pixX,st.pixY,"#00f",this.unitSize*it.blue/2);
+			} else if (player==0){
+				var infl=it.green-it.blue;
+				if (infl>0){
+					this.drawer.circle(st.pixX,st.pixY,"#0f0",this.unitSize*infl/2);
+				} else if (infl<0){
+					this.drawer.circle(st.pixX,st.pixY,"#00f",this.unitSize*Math.abs(infl)/2);
+				}
 			}
 		}
 	}
