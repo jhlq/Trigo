@@ -19,25 +19,22 @@
 	<button onclick="sb.board.autoMarkDeadStones();sb.placeMoves()">Mark dead stones.</button>
 	<br>
 	<canvas id="TriCanvas" width=600 height="540"></canvas>
-	<p id="scores">Current score is #f00: 0, #0f0: 0, #00f: 0</p>
+	<p id="scores"></p>
 	<label for="shortcuts">Enable keyboard shortcuts (w a s d and e to enter): </label>
 	<input type="checkbox" id="shortcuts" checked="true">
 	<br>
-	<label for="supersolidity">Supersolidity: </label>
-	<input type="checkbox" id="supersolidity" checked="true" onchange="board.common.supersolidity=document.getElementById('supersolidity').checked;board.common.drawAll();">
-	<br>
-	<label for="clicksubmit">Click to submit: </label>
-	<input type="checkbox" id="clicksubmit">
 	
-	<p>Canvas width: 
-	<input type="number" id="size" step="100" value=600>
-	<button onclick="changesize()">Change</button>
+	<p>Canvas size: 
+	<input type="number" id="canvassize" step="100" value=600>
+	Unit size: 
+	<input type="number" id="unitsize" step="5" value=25>
+	Side length (y rows): 
+	<input type="number" id="sidelength" step="1" value=13>
+	<button onclick="changesize()">Change.</button>
 	</p>
 	
-    Colors: <input type="text" id="board_cols" value='#f00,#0f0'>
-    <input type="hidden" id="col" value="#f00">
-    Game record: <input type="text" id="board_moves" value='#909:0,0'>
-  <button class="btn btn-primary" onclick="board.common.drawAll()">Load game record without saving</button>
+    Game record: <input type="text" id="board_moves" value=''>
+  <button class="btn btn-primary" onclick="sb.loadGame()">Load game record (paste first).</button>
   
   <script type="text/javascript" src="trigolib.js"></script>
 <script type="text/javascript" src="screenboard.js"></script>
@@ -98,6 +95,19 @@ function crosshair(){
 		sb.drawer.line(st.pixX,st.pixY-sb.unitSize,st.pixX,st.pixY+sb.unitSize,"#909",5);
 	}
 };
+function changesize(){
+	var s=parseInt(document.getElementById("canvassize").value);
+	sb.drawer.canvas.width=s;
+	sb.drawer.canvas.height=s*0.9;
+	var us=parseInt(document.getElementById("unitsize").value);
+	sb.unitSize=us;
+	var sl=parseInt(document.getElementById("sidelength").value);
+	if (sl!=sb.board.tg.sideLength){
+		sb.board=new Trigo.Board(sl);
+	}
+	sb.updateParams();
+	sb.placeMoves();
+}
 
 /*
 function undo(){

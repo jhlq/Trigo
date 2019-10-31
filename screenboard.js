@@ -19,6 +19,13 @@ Trigo.ScreenBoard=function(drawAreaID,sideLength,_unitSize,_offsetX,_offsetY){
     this.triangles=[];
     this.setUpGrid();
 };
+Trigo.ScreenBoard.prototype.updateParams=function(){					//added
+	this.h=this.unitSize*Math.cos(Math.PI/3);
+    this.l=2*this.unitSize*Math.cos(Math.PI/6);
+    this.triangles=[];
+    this.setUpGrid();
+    this.drawer.updateParams();
+};
 Trigo.ScreenBoard.prototype.makeTriangle=function(x,y){
     var ox=this.offsetX;
     var oy=this.offsetY;
@@ -35,6 +42,7 @@ Trigo.ScreenBoard.prototype.makeTriangle=function(x,y){
     return new Trigo.ScreenTriangle(x,y,ox,oy);
 }
 Trigo.ScreenBoard.prototype.setUpGrid=function(){
+	if (this.triangles.length>0) this.triangles=[];						//added check
     var sideLength=this.board.tg.sideLength;
     for (let yt = 0; yt < sideLength; yt++) {
         var v=[];
@@ -92,21 +100,6 @@ Trigo.ScreenBoard.prototype.clickEvent = function (e) {
             break;
         }
     }
-/*	for (var key in this.map){
-		var xy=key.split(',');
-		var x=this.drawer.x0+parseInt(xy[0],10)*this.drawer.d+parseInt(xy[1],10)*this.drawer.yvec[0];
-		var y=this.drawer.y0-parseInt(xy[1],10)*this.drawer.yvec[1];
-		if (this.core.distance(localX,localY,x,y)<this.drawer.d/2 && document.getElementById("x")){
-			document.getElementById("x").value=xy[0];
-			document.getElementById("y").value=xy[1];
-			this.drawAll();
-			this.drawer.circle(x,y,this.col());
-			break;
-		}
-	}
-	if (document.getElementById("clicksubmit").checked){
-		submit();
-	}*/
 };
 Trigo.ScreenBoard.prototype.placeMoves=function(){
 	this.drawer.context.clearRect(0, 0, this.drawer.canvas.width, this.drawer.canvas.height);
@@ -143,36 +136,12 @@ Trigo.CanvasDrawer=function(drawAreaID,l){
 	var paddingY=(document.documentElement || document.body.parentNode || document.body).scrollTop;
 	this.canvasOriginX = rect.left;
 	this.canvasOriginY = rect.top+paddingY;
-/*
-	this.d=this.canvas.width/(2*l+1);
-	this.l=l;
-	this.yvec=[this.d/2,this.d*Math.sin(Math.PI/3)];
-
-	this.x0=this.canvas.width/2;
-	this.y0=this.canvas.height/2;
-	this.sl=(this.l-1)*this.d;
-	this.h=Math.sin(Math.PI/3)*this.d;
-	this.ssl=Math.sin(Math.PI/3)*this.sl;
-	this.csl=Math.cos(Math.PI/3)*this.sl;	
-	*/
 }
 Trigo.CanvasDrawer.prototype.updateParams = function(){
-/*	var rect = this.canvas.getBoundingClientRect();
+	var rect = this.canvas.getBoundingClientRect();
 	var paddingY=(document.documentElement || document.body.parentNode || document.body).scrollTop;
 	this.canvasOriginX = rect.left;
 	this.canvasOriginY = rect.top+paddingY;
-
-	this.d=this.canvas.width/(2*this.l+1);
-	this.l=this.l;
-	this.yvec=[this.d/2,this.d*Math.sin(Math.PI/3)];
-
-	this.x0=this.canvas.width/2;
-	this.y0=this.canvas.height/2;
-	this.sl=(this.l-1)*this.d;
-	this.h=Math.sin(Math.PI/3)*this.d;
-	this.ssl=Math.sin(Math.PI/3)*this.sl;
-	this.csl=Math.cos(Math.PI/3)*this.sl;
-	*/
 };
 Trigo.CanvasDrawer.prototype.line = function(x0, y0, x1, y1, col, lw, text) {
 	if (typeof(col)==='undefined') col = "#000";
