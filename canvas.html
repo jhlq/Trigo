@@ -13,9 +13,9 @@
 	<button onclick="board.letAIplay()">Let AI play!</button>
 	<button onclick="sb.board.pass();sb.placeMoves()">Pass.</button>
 	<button onclick="sb.board.undo();sb.placeMoves()">Undo.</button>
-	<button onclick="sb.updatescore()">Score.</button>
+	<button onclick="sb.updateScore()">Score.</button>
 	<br>
-	<button onclick="sb.plotinfluence()">Plot influence.</button>
+	<button onclick="sb.plotInfluence()">Plot influence.</button>
 	<button onclick="sb.board.autoMarkDeadStones();sb.placeMoves()">Mark dead stones.</button>
 	<br>
 	<canvas id="TriCanvas" width=600 height="540"></canvas>
@@ -33,7 +33,7 @@
 	<button onclick="changesize()">Change.</button>
 	</p>
 	
-    Game record: <input type="text" id="board_moves" value=''>
+    Game record: <input type="text" id="board_moves" value='9;'>
   <button class="btn btn-primary" onclick="sb.loadGame()">Load game record (paste first).</button>
   
   <script type="text/javascript" src="trigolib.js"></script>

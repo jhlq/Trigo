@@ -350,7 +350,7 @@ Trigo.Board=function(sideLength){
 	this.territory=[0,0]; //call score() to update
 	
 	this.influence=[];													//new
-	this.initinfluence();
+	this.initInfluence();
 };
 Trigo.Board.prototype.copy=function(){
 	var bc=new Trigo.Board(this.tg.sideLength);
@@ -476,9 +476,9 @@ Trigo.Board.prototype.placeCustomMove=function(x,y,p){
 };
 Trigo.Board.prototype.state=function(){
 	var s=this.tg.sideLength+";";
-	for (let movei=0;move<this.moves.length;move++){
+	for (let movei=0;movei<this.moves.length;movei++){
 		move=this.moves[movei];
-		s+=move.x+","+move.y+","+move.player+";";
+		s+=move.x+","+move.y+":"+move.player+";";						//changed , to :
 	}
 	return s;
 };
@@ -651,7 +651,7 @@ Trigo.InfluenceTriangle=function(x,y){
 	this.green=0;
 	this.blue=0;
 };
-Trigo.Board.prototype.initinfluence=function(){
+Trigo.Board.prototype.initInfluence=function(){
 	for (let y=0;y<this.tg.triangles.length;y++){
 		var v=[];
 		for (let x=0;x<this.tg.triangles[y].length;x++){
@@ -661,7 +661,7 @@ Trigo.Board.prototype.initinfluence=function(){
 		this.influence.push(v);
 	}
 };
-Trigo.Board.prototype.resetinfluence=function(){
+Trigo.Board.prototype.resetInfluence=function(){
 	for (let y=0;y<this.influence.length;y++){
 		for (let x=0;x<this.influence[y].length;x++){
 			this.influence[y][x].green=0;
@@ -669,7 +669,7 @@ Trigo.Board.prototype.resetinfluence=function(){
 		}
 	}
 };
-Trigo.Board.prototype.spreadinfluence_tri=function(tri,range,tunneling){
+Trigo.Board.prototype.spreadInfluence_tri=function(tri,range,tunneling){
 	var visited=[];
 	var fringe=[[tri,false]]; //bool: tunnelled
 	var player=tri.player
@@ -702,10 +702,10 @@ Trigo.Board.prototype.spreadinfluence_tri=function(tri,range,tunneling){
 		fringe=newfringe;
 	}
 };
-Trigo.Board.prototype.spreadinfluence=function(range,tunneling){
+Trigo.Board.prototype.spreadInfluence=function(range,tunneling){
 	for (let mi=0;mi<this.moves.length;mi++){
 		if (this.moves[mi].alive()){
-			this.spreadinfluence_tri(this.moves[mi],range,tunneling);
+			this.spreadInfluence_tri(this.moves[mi],range,tunneling);
 		}
 	}
 };

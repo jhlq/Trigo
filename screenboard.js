@@ -126,7 +126,7 @@ Trigo.ScreenBoard.prototype.placeMoves=function(){
             this.drawer.circle(st.pixX,st.pixY,"#fff",s/3);
         }
     }
-//    updatescore();
+    document.getElementById("board_moves").value=this.board.state();
 };
 Trigo.CanvasDrawer=function(drawAreaID,l){
 	this.canvas = document.getElementById(drawAreaID);
@@ -175,12 +175,12 @@ Trigo.CanvasDrawer.prototype.circle=function(x,y,col,r){
 
 //New functions
 
-Trigo.ScreenBoard.prototype.plotinfluence=function(player,range,tunneling){
+Trigo.ScreenBoard.prototype.plotInfluence=function(player,range,tunneling){
 	if (player==undefined) player=0;
 	if (range==undefined) range=4;
 	if (tunneling==undefined) tunneling=true;
-	this.board.resetinfluence();
-	this.board.spreadinfluence(range,tunneling);
+	this.board.resetInfluence();
+	this.board.spreadInfluence(range,tunneling);
 	for (let y=0;y<this.board.influence.length;y++){
 		for (let x=0;x<this.board.influence[y].length;x++){
 			var it=this.board.influence[y][x];
@@ -204,9 +204,9 @@ Trigo.ScreenBoard.prototype.plotinfluence=function(player,range,tunneling){
 Trigo.ScreenBoard.prototype.placeMove=function(x,y){
 	if (this.board.placeMove(x,y)) this.placeMoves();
 };
-Trigo.ScreenBoard.prototype.updatescore=function(){
+Trigo.ScreenBoard.prototype.updateScore=function(){
 	this.board.score();
-	var ss="<b>Current score</b><br>";
+	var ss="<b>Last scoring</b><br>";
 	ss+="Green: "+this.board.stones[0]+" stones, "+this.board.captures[0]+" captures and "+this.board.territory[0]+" territory.<br>";
 	ss+="Blue: "+this.board.stones[1]+" stones, "+this.board.captures[1]+" captures and "+this.board.territory[1]+" territory.<br>";
 	ss+="Suggested komi for blue is 7.";
@@ -216,4 +216,22 @@ Trigo.ScreenBoard.prototype.updatescore=function(){
 	ssa+="Suggested komi for blue is 7.";
 	alert(ssa);
 	document.getElementById("scores").innerHTML=ss;
+};
+Trigo.ScreenBoard.prototype.loadGame=function(){
+	var arr=document.getElementById("board_moves").value.split(';');
+	var sl=parseInt(arr[0]);
+	if (sl!=this.board.tg.sideLength){
+		this.board=new Trigo.Board(sl);
+		this.setUpGrid();
+	} else {
+		this.board.moves=[];
+	}
+	for (let arri=1;arri<arr.length-1;arri++){
+		var ma=arr[arri].split(':');
+		var loc=ma[0].split(',');
+		var tri=new Trigo.Triangle(parseInt(loc[0]),parseInt(loc[1]),parseInt(ma[1]));
+		this.board.moves.push(tri);
+	}
+	this.board.placeMoves();
+	this.placeMoves();
 };
