@@ -356,7 +356,7 @@ Trigo.Board.prototype.copy=function(){
 		bc.moves.push(new Trigo.Triangle(m.x,m.y,m.player));
 	}
 	bc.placeMoves();
-	bc.player=this.player; //in case of custom placed moves
+	bc.player=this.player;
 	return bc;
 };
 Trigo.Board.prototype.reset=function(){
@@ -385,8 +385,8 @@ Trigo.Board.prototype.removeCapturedBy=function(tri){
 };
 Trigo.Board.prototype.invalidMoveType=function(x,y,player){
 	if (y===undefined) return this.invalidMoveType_tri(x);
-	var t=new Triangle(x,y,player);
-	return invalidMoveType(t);
+	var t=new Trigo.Triangle(x,y,player);
+	return this.invalidMoveType(t);
 };
 Trigo.Board.prototype.invalidMoveType_tri=function(t){
 	if (!this.tg.has(t.x,t.y)){
@@ -430,14 +430,15 @@ Trigo.Board.prototype.isValidMove_tri=function(t){
 	}
 	return true;
 };
-Trigo.Board.prototype.otherPlayer=function(){
+/*Trigo.Board.prototype.otherPlayer=function(){
 	if (this.player==1){
 		return 2;
 	} else {
 		return 1;
 	}
-};
+};*/
 Trigo.Board.prototype.otherPlayer=function(p){
+	if (p===undefined) p=this.player;
 	if (p==1){
 		return 2;
 	} else {
@@ -445,16 +446,16 @@ Trigo.Board.prototype.otherPlayer=function(p){
 	}
 };
 Trigo.Board.prototype.switchPlayer=function(){
-	this.player=otherPlayer();
+	this.player=this.otherPlayer();
 };
 Trigo.Board.prototype.placeMove=function(x,y){
-	var b=placeMove(x,y,player);
+	var b=this.placeCustomMove(x,y,this.player);
 	if (b) {
 		this.switchPlayer();
 	}
 	return b;
 };
-Trigo.Board.prototype.placeMove=function(x,y,p){
+Trigo.Board.prototype.placeCustomMove=function(x,y,p){
 	if (x<0){ //pass
 		this.moves.push(new Triangle(x,y,p));
 		return true;
@@ -486,7 +487,6 @@ Trigo.Board.prototype.placeMoves=function(){
 		move=m[movei];
 		this.placeMove(move.x,move.y,move.player);
 	}
-	this.player=p;
 };
 Trigo.Board.prototype.undo=function(){
 	if (!this.moves.length==0){
@@ -537,13 +537,17 @@ Trigo.Board.prototype.score=function(){
 	this.territory[1]=scores[1];
 };
 Trigo.Board.prototype.markDeadStones=function(x,y){
+	if (Array.isArray(x)){
+		return this.markDeadStones_arr(x)
+	}
+	if (y===undefined) return markDeadStones_tri(x);
 	this.markDeadStones(this.tg.get(x,y));
 };
-Trigo.Board.prototype.markDeadStones=function(tri){
+Trigo.Board.prototype.markDeadStones_tri=function(tri){	
 	var c=this.tg.getCluster(tri);
 	this.markDeadStones(c);
 };
-Trigo.Board.prototype.markDeadStones=function(c){
+Trigo.Board.prototype.markDeadStones_arr=function(c){
 	var tri=c[0];
 	if (c.length==0) return;
 	var flipto=!(tri.markedDead);

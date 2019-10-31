@@ -63,7 +63,7 @@ Trigo.ScreenBoard.prototype.clickEvent = function (e) {
 	var mouseY = e.pageY;
 	var localX = mouseX - this.drawer.canvasOriginX;
 	var localY = mouseY - this.drawer.canvasOriginY;
-	this.drawer.circle(localX,localY,"#0f0",this.unitSize/2);
+	//this.drawer.circle(localX,localY,"#0f0",this.unitSize/2);
 	var leny=this.triangles.length;
     var breakLoop=false;
     for (let yt=0;yt<leny;yt++){
@@ -109,7 +109,7 @@ Trigo.ScreenBoard.prototype.clickEvent = function (e) {
 	}*/
 };
 Trigo.ScreenBoard.prototype.placeMoves=function(){
-    this.drawer.context.clearRect(0, 0, this.drawer.canvas.width, this.drawer.canvas.height);
+	this.drawer.context.clearRect(0, 0, this.drawer.canvas.width, this.drawer.canvas.height);
     this.drawGrid();
     var s=this.unitSize/2;
     var ylen=this.triangles.length;
@@ -119,7 +119,7 @@ Trigo.ScreenBoard.prototype.placeMoves=function(){
             var tri=this.triangles[yt][xt];
             var t=this.board.tg.get(tri.x,tri.y);
             if (t.player>0){
-                this.drawer.circle(tri.pixX,tri.pixY,["#0f0","#00f"][t.player],s);
+				this.drawer.circle(tri.pixX,tri.pixY,["#0f0","#00f"][t.player-1],s);
                 if (t.markedDead){
 					this.drawer.circle(tri.pixX,tri.pixY,"#f00",s/2);
                 }
@@ -130,7 +130,7 @@ Trigo.ScreenBoard.prototype.placeMoves=function(){
         var t=this.board.moves[this.board.moves.length-1];
         if (!t.isPass()){
             var st=this.triangles[t.y][t.x];
-            this.drawer.circle(tri.pixX,tri.pixY,"#000",s/3);
+            this.drawer.circle(st.pixX,st.pixY,"#fff",s/3);
         }
     }
 //    updatescore();
@@ -191,7 +191,7 @@ Trigo.CanvasDrawer.prototype.line = function(x0, y0, x1, y1, col, text) {
 };
 Trigo.CanvasDrawer.prototype.circle=function(x,y,col,r){
 	if (typeof(r)==='undefined') r = 30;	//how to make unitSize accessible?
-	if (col===undefined) col="#f00";
+	if (col===undefined) col="#000";
 	if (r<0) r = 0;
 	this.context.fillStyle=col;
 	this.context.beginPath();
