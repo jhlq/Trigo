@@ -24,11 +24,11 @@ Trigo.ScreenBoard.prototype.makeTriangle=function(x,y){
     var oy=this.offsetY;
     var remainder=x%2;
     if (remainder==1){
-		//ox+=l/2+(x/2)*l+(l/2)*y;										//what?
+		//ox+=l/2+(x/2)*l+(l/2)*y;										//what? C++ code discards 0.5
         ox+=(x/2)*this.l+(this.l/2)*y;
         oy+=this.h+(this.unitSize+this.h)*y;
     } else {
-		var ex=x-remainder;												//moved
+		var ex=x-remainder;												//moved, this should be changed because remainder subtraction is in wrong place...
         ox+=(ex/2)*this.l+y*(this.l/2);
         oy+=(this.unitSize+this.h)*y;
     }
