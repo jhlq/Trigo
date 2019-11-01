@@ -598,6 +598,7 @@ Trigo.Board.prototype.markDeadStones_arr=function(c){
 	}
 };
 Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
+	if (cluster.length==0) return false;								//added check
 	if (maxit===undefined) maxit=100;
 	var space=this.tg.getConnectedSpace(cluster);
 	if (space.length>this.tg.sideLength*this.tg.sideLength/5) return false;
@@ -620,7 +621,7 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
 			var adjrt=bc.tg.adjacent(rt);
 			var adjacentallsame=true;
 			for (let ai=0;ai<adjrt.length;ai++){
-				a=adjrt[ai];
+				var a=adjrt[ai];
 				if (a.player!=bc.player){
 					adjacentallsame=false;
 				}
@@ -663,7 +664,7 @@ Trigo.Board.prototype.autoMarkDeadStones=function(){
 		}
 	}
 	for (let clusteri=0;clusteri<tobemarked.length;clusteri++){
-		cluster=tobemarked[clusteri];
+		var cluster=tobemarked[clusteri];
 		this.markDeadStones(cluster);
 	}
 };
@@ -775,10 +776,10 @@ Trigo.Board.prototype.findEdge=function(player){
 			var it=this.influence[y][x];
 			if (player==1){
 				var infl=it.green-it.blue;
-				if (infl<0.5 && infl>0) edge.push(new Trigo.Triangle(x,y,player));
+				if (infl<0.5 && infl>-0.3 && it.blue>0 && it.green>0) edge.push(new Trigo.Triangle(x,y,player));
 			} else if (player==2){
 				var infl=it.blue-it.green;
-				if (infl<0.5 && infl>0) edge.push(new Trigo.Triangle(x,y,player));
+				if (infl<0.5 && infl>-0.3 && it.green>0 && it.blue>0) edge.push(new Trigo.Triangle(x,y,player));
 			}
 		}
 	}
@@ -801,9 +802,9 @@ function indexOfMax(arr) {												//util
 Trigo.Board.prototype.placeSmartMove=function(reset){
 	if (this.moves.length<2){
 		for (let i=0;i<30;i++){
-			var ry=Math.floor(Math.random()*this.tg.sideLength/2+this.tg.sideLength/5);
+			var ry=Math.floor(Math.random()*this.tg.sideLength/2+1);
 			var xmax=this.tg.triangles[ry].length;
-			var rx=Math.floor(Math.random()*xmax/2+xmax/5);
+			var rx=Math.floor(Math.random()*xmax/2+2);
 			if (this.placeMove(rx,ry)) return;
 		}
 	}
