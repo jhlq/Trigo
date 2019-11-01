@@ -1,3 +1,5 @@
+'use strict';
+
 var Trigo = {}
 	
 //Triangle
@@ -12,7 +14,7 @@ Trigo.Triangle=function(x,y,player){
     this.markedDead=false;
 };
 Trigo.Triangle.prototype.isPass=function(){
-    if (x<0){
+    if (this.x<0){
         return true;
     }
     return false;
@@ -469,8 +471,16 @@ Trigo.Board.prototype.otherPlayer=function(p){
 Trigo.Board.prototype.switchPlayer=function(){
 	this.player=this.otherPlayer();
 };
-Trigo.Board.prototype.placeMove=function(x,y){
-	var b=this.placeCustomMove(x,y,this.player);
+Trigo.Board.prototype.placeMove=function(x,y){							//add _tri version? Ambiguous if we want board.player ot tri.player... 
+	var p=this.player;
+	var xt=x;
+	var yt=y;
+	if (y===undefined){
+		xt=x.x;
+		yt=x.y;
+		if (x.player>0) p=x.player;
+	}
+	var b=this.placeCustomMove(xt,yt,p);
 	if (b) {
 		this.switchPlayer();
 	}
@@ -478,7 +488,7 @@ Trigo.Board.prototype.placeMove=function(x,y){
 };
 Trigo.Board.prototype.placeCustomMove=function(x,y,p){
 	if (x<0){ //pass
-		this.moves.push(new Triangle(x,y,p));
+		this.moves.push(new Trigo.Triangle(x,y,p));
 		return true;
 	}
 	if (!this.isValidMove(x,y,p)){
@@ -495,7 +505,7 @@ Trigo.Board.prototype.placeCustomMove=function(x,y,p){
 Trigo.Board.prototype.state=function(){
 	var s=this.tg.sideLength+";";
 	for (let movei=0;movei<this.moves.length;movei++){
-		move=this.moves[movei];
+		var move=this.moves[movei];
 		s+=move.x+","+move.y+":"+move.player+";";						//changed , to :
 	}
 	return s;
@@ -506,7 +516,7 @@ Trigo.Board.prototype.placeMoves=function(reset){
 	var p=this.player;
 	if (reset) this.reset();											//add conditional reset? If tg doesn't need to be reinitialized, when board was just created. Yea
 	for (let movei=0;movei<m.length;movei++){
-		move=m[movei];
+		var move=m[movei];
 		this.placeMove(move.x,move.y,move.player);
 	}
 };
@@ -639,7 +649,7 @@ Trigo.Board.prototype.autoMarkDeadStones=function(){
 	var tried=[];
 	var tobemarked=[];
 	for (let mi=0;mi<this.moves.length;mi++){
-		m=this.moves[mi];
+		var m=this.moves[mi];
 		if (!tried.includes(m)){
 			var c=this.tg.getCluster(m);
 			var success=this.tryCaptureCluster(c);
@@ -647,7 +657,7 @@ Trigo.Board.prototype.autoMarkDeadStones=function(){
 				tobemarked.push(c);
 			}
 			for (let cti=0;cti<c.length;cti++){
-				ct=c[cti];
+				var ct=c[cti];
 				tried.push(ct);
 			}
 		}
@@ -694,6 +704,7 @@ Trigo.Board.prototype.normalizeInfluence=function(){
 	}
 };
 Trigo.Board.prototype.spreadInfluence_tri=function(tri,range,tunneling){
+	if (tri.isPass()) return;
 	var visited=[];
 	var fringe=[[tri,false]]; //bool: tunnelled
 	var player=tri.player
@@ -735,12 +746,15 @@ Trigo.Board.prototype.spreadInfluence=function(range,tunneling){
 	}
 	this.normalizeInfluence();
 };
-Trigo.Board.prototype.estimateScore=function(){
+Trigo.Board.prototype.estimateScore=function(reset){
 	//todo: symbiosis mode, more equal points=higher score
+	if (reset===undefined) reset=true;
 	var green=0;
 	var blue=0; //komi?
-	this.resetInfluence();
-	this.spreadInfluence(5,true);
+	if (reset){
+		this.resetInfluence();
+		this.spreadInfluence(5,true);
+	}
 	for (let y=0;y<this.influence.length;y++){
 		for (let x=0;x<this.influence[y].length;x++){
 			var it=this.influence[y][x];
@@ -753,4 +767,65 @@ Trigo.Board.prototype.estimateScore=function(){
 		}
 	}
 	return [green,blue];
+};
+Trigo.Board.prototype.findEdge=function(player){
+	var edge=[];
+	for (let y=0;y<this.influence.length;y++){
+		for (let x=0;x<this.influence[y].length;x++){
+			var it=this.influence[y][x];
+			if (player==1){
+				var infl=it.green-it.blue;
+				if (infl<0.5 && infl>0) edge.push(new Trigo.Triangle(x,y,player));
+			} else if (player==2){
+				var infl=it.blue-it.green;
+				if (infl<0.5 && infl>0) edge.push(new Trigo.Triangle(x,y,player));
+			}
+		}
+	}
+	return edge;
+};
+function indexOfMax(arr) {												//util
+    if (arr.length === 0) {
+        return -1;
+    }
+    var max = arr[0];
+    var maxIndex = 0;
+    for (let i = 1; i < arr.length; i++) {
+        if (arr[i] > max) {
+            maxIndex = i;
+            max = arr[i];
+        }
+    }
+    return maxIndex;
+};
+Trigo.Board.prototype.placeSmartMove=function(reset){
+	if (this.moves.length<2){
+		for (let i=0;i<30;i++){
+			var ry=Math.floor(Math.random()*this.tg.sideLength/2+this.tg.sideLength/5);
+			var xmax=this.tg.triangles[ry].length;
+			var rx=Math.floor(Math.random()*xmax/2+xmax/5);
+			if (this.placeMove(rx,ry)) return;
+		}
+	}
+	if (reset===undefined) reset=true;
+	if (reset){
+		this.resetInfluence();
+		this.spreadInfluence(5,false);
+	}
+	var edge=this.findEdge(this.player);
+	var se=this.estimateScore()[this.player-1];
+	var diffs=[];
+	var bc=this.copy();
+	for (let edgei=0;edgei<edge.length;edgei++){
+		if (edgei>0) bc.undo();
+		bc.placeMove(edge[edgei]);
+		bc.spreadInfluence(5,false);
+		diffs.push(bc.estimateScore()[this.player-1]-se);
+	}
+	var mi=indexOfMax(diffs);
+	if (mi==-1){ 
+		this.placeMove(-1,-1);
+	} else {
+		this.placeMove(edge[mi]);
+	}
 };

@@ -10,7 +10,7 @@
   	<input type="number" id="x" onchange="crosshair()" value=1>
 	<input type="number" id="y" onchange="crosshair()" value=1>
 	<br>
-	<button onclick="board.letAIplay()">Let AI play!</button>
+	<button onclick="sb.board.placeSmartMove();sb.placeMoves()">Let AI play!</button>
 	<button onclick="sb.board.pass();sb.placeMoves()">Pass.</button>
 	<button onclick="sb.board.undo();sb.placeMoves()">Undo.</button>
 	<button onclick="sb.updateScore()">Score.</button>
