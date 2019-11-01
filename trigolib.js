@@ -82,6 +82,7 @@ Trigo.TriangleGrid.prototype.adjacent_tri=function(triangle){
 	if (Array.isArray(triangle)){
 		return this.adjacent_arr(triangle)
 	}
+	if (!this.has(triangle)) return [];
 	var adj=[];
 	var leny=this.triangles.length;//this.sideLength;
 	var lenx=this.triangles[triangle.y].length;
@@ -300,6 +301,7 @@ Trigo.TriangleGrid.prototype.getCluster=function(x,y){
 		return this.getCluster_arr(x)
 	}
 	if (y===undefined) return this.getCluster_tri(x);
+	if (!this.has(x,y)) return [];										//added check
 	return this.getCluster(this.get(x,y));
 };
 Trigo.TriangleGrid.prototype.getCluster_tri=function(tri){
@@ -597,12 +599,31 @@ Trigo.Board.prototype.markDeadStones_arr=function(c){
 		}
 	}
 };
+Trigo.Board.prototype.validMovesInSpace=function(space){				//added
+	var vm=0;
+	for (let si=0;si<space.length;si++){
+		var t=space[si];
+		if (this.isValidMove(t.x,t.y,1) || this.isValidMove(t.x,t.y,2)) vm+=1;
+	}
+	return vm;
+};
+Trigo.Board.prototype.twoSuicideMovesInSpace=function(space,player){	//added, must connect all danglers first
+	var sm=0;
+	for (let si=0;si<space.length;si++){
+		var t=space[si];
+		if (this.invalidMoveType(t.x,t.y,player)==2) sm+=1;
+		if (sm>=2) return true;
+	}
+	return false;
+};
 Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
 	if (cluster.length==0) return false;								//added check
-	if (maxit===undefined) maxit=100;
+	if (maxit===undefined) maxit=10;
 	var space=this.tg.getConnectedSpace(cluster);
 	if (space.length>this.tg.sideLength*this.tg.sideLength/5) return false;
 	var c0=cluster[0];
+	//connect danglers
+	//if (this.twoSuicideMovesInSpace(space,this.otherPlayer(c0.player))) return false;
 	var totalstones=this.stones[c0.player-1];
 	var clusterstones=cluster.length;
 	var stonelimit=totalstones-clusterstones*0.7;
@@ -611,10 +632,18 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
 	for (let i=0;i<maxit;i++){
 		var bc=this.copy();
 		var cc=bc.tg.getCluster(c0.x,c0.y);
-		space=this.tg.getConnectedSpace(cc);
+		space=bc.tg.getConnectedSpace(cc);								//changed this to bc
 		var ss=space.length;
 		for (let si=0;si<ss*3;si++){
-			//var r=rand() % space.length;
+			if (si>0){
+				for (let ci=0;ci<cc.length;ci++){						//update space
+					if (cc[ci].player==c0.player){
+						cc=bc.tg.getCluster(c0.x,c0.y);
+						space=bc.tg.getConnectedSpace(cc);
+					}
+				}
+			}
+			//if (bc.validMovesInSpace(space)==0) break;				//is there a better way? This was very slow
 			var r=Math.floor(Math.random()*space.length);
 			var rt=space[r];
 			var placedmove;
@@ -636,8 +665,8 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
 					nwin++;
 					break;
 				}
-				space.splice(r,1);
-				if (space.length==0) break;
+				//space.splice(r,1);
+				//if (space.length==0) break;							//modified
 			} else {
 				bc.switchPlayer();
 			}
@@ -651,7 +680,7 @@ Trigo.Board.prototype.autoMarkDeadStones=function(){
 	var tobemarked=[];
 	for (let mi=0;mi<this.moves.length;mi++){
 		var m=this.moves[mi];
-		if (!tried.includes(m)){
+		if (!tried.includes(m) && !m.isPass()){
 			var c=this.tg.getCluster(m);
 			var success=this.tryCaptureCluster(c);
 			if (success){
@@ -713,16 +742,18 @@ Trigo.Board.prototype.spreadInfluence_tri=function(tri,range,tunneling){
 		var newfringe=[];
 		for (let fi=0;fi<fringe.length;fi++){
 			var t=fringe[fi][0];
+			var tunnelled=fringe[fi][1];
+			var ra=1;
+			if (tunnelled) ra+=1;
 			if (player==1){
-				this.influence[t.y][t.x].green+=1/(r+1);
+				this.influence[t.y][t.x].green+=1/(r+ra);
 			} else if (player==2){
-				this.influence[t.y][t.x].blue+=1/(r+1);
+				this.influence[t.y][t.x].blue+=1/(r+ra);
 			}
 			var adj=this.tg.adjacent(t);
 			for (let adji=0;adji<adj.length;adji++){
 				var at=adj[adji];
 				if (!visited.includes(at)){
-					var tunnelled=fringe[fi][1];
 					if (at.alive() && at.player!=player){
 						if (tunneling && !tunnelled){
 							tunnelled=true;
@@ -773,6 +804,7 @@ Trigo.Board.prototype.findEdge=function(player){
 	var edge=[];
 	for (let y=0;y<this.influence.length;y++){
 		for (let x=0;x<this.influence[y].length;x++){
+			if (this.tg.get(x,y).player!=0) continue;					//no support for marked dead stones!
 			var it=this.influence[y][x];
 			if (player==1){
 				var infl=it.green-it.blue;
@@ -797,21 +829,21 @@ function indexOfMax(arr) {												//util
             max = arr[i];
         }
     }
-    return maxIndex;
+    return maxIndex; //get all inds, randomize pick
 };
 Trigo.Board.prototype.placeSmartMove=function(reset){
 	if (this.moves.length<2){
 		for (let i=0;i<30;i++){
-			var ry=Math.floor(Math.random()*this.tg.sideLength/2+1);
+			var ry=Math.floor(Math.random()*(this.tg.sideLength-3))+1;
 			var xmax=this.tg.triangles[ry].length;
-			var rx=Math.floor(Math.random()*xmax/2+2);
+			var rx=Math.floor(Math.random()*(xmax-4))+2;
 			if (this.placeMove(rx,ry)) return;
 		}
 	}
 	if (reset===undefined) reset=true;
 	if (reset){
 		this.resetInfluence();
-		this.spreadInfluence(5,false);
+		this.spreadInfluence(4,true);
 	}
 	var edge=this.findEdge(this.player);
 	var se=this.estimateScore()[this.player-1];
@@ -819,12 +851,17 @@ Trigo.Board.prototype.placeSmartMove=function(reset){
 	var bc=this.copy();
 	for (let edgei=0;edgei<edge.length;edgei++){
 		if (edgei>0) bc.undo();
-		bc.placeMove(edge[edgei]);
-		bc.spreadInfluence(5,false);
-		diffs.push(bc.estimateScore()[this.player-1]-se);
+		var placedmove=bc.placeMove(edge[edgei]);
+		if (!placedmove){
+			diffs.push(-1)
+			bc.placeMove(-1,-1);
+		} else {
+			bc.spreadInfluence(5,false);
+			diffs.push(bc.estimateScore()[this.player-1]-se);
+		}
 	}
 	var mi=indexOfMax(diffs);
-	if (mi==-1){ 
+	if (mi==-1 || diffs[mi]<0){ 
 		this.placeMove(-1,-1);
 	} else {
 		this.placeMove(edge[mi]);

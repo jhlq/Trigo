@@ -66,7 +66,7 @@ function keyDown(e) {
 			return;
 		}else if (k==68){ //d
 			document.getElementById("x").value=parseInt(document.getElementById("x").value)+1;
-		} else if (k==69 || k==13){ //e
+		} else if (k==69){ //e,  || k==13 conflicts with enter for buttons
 			//document.getElementById("y").value=parseInt(document.getElementById("y").value)+1;
 			var docx=parseInt(document.getElementById("x").value);
 			var docy=parseInt(document.getElementById("y").value);
