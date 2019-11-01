@@ -532,12 +532,13 @@ Trigo.Board.prototype.state=function(){
 Trigo.Board.prototype.placeMoves=function(reset){
 	if (reset===undefined) reset=true;
 	var m=this.moves;
-	var p=this.player; //why unused?
+	//var p=this.player; //why unused?
 	if (reset) this.reset();											//add conditional reset? If tg doesn't need to be reinitialized, when board was just created. Yea
 	for (let movei=0;movei<m.length;movei++){
 		var move=m[movei];
 		this.placeCustomMove(move.x,move.y,move.player);
 	}
+	this.player=this.otherPlayer(m[m.length-1].player);
 };
 Trigo.Board.prototype.undo=function(){
 	if (!this.moves.length==0){
@@ -582,7 +583,6 @@ Trigo.Board.prototype.score=function(){
 
 				}
 			}
-
 		}
 	}
 	this.territory[0]=scores[0];
@@ -913,7 +913,7 @@ Trigo.Board.prototype.placeSmartMove=function(reset){
 			if (this.placeMove(rx,ry)) return;
 		}
 	}
-	if (reset===undefined) reset=true;	//resets anyhow in estimatescore
+	if (reset===undefined) reset=false;	//resets anyhow in estimatescore
 	if (reset){
 		this.resetInfluence();
 		this.spreadInfluence(3,true);
@@ -931,7 +931,6 @@ Trigo.Board.prototype.placeSmartMove=function(reset){
 			diffs.push(-1)
 			bc.placeMove(-1,-1);
 		} else {
-			//bc.spreadInfluence(5,true);
 			diffs.push(bc.estimateScore()[this.player-1]-se);
 		}
 	}
