@@ -616,8 +616,43 @@ Trigo.Board.prototype.twoSuicideMovesInSpace=function(space,player){	//added, mu
 	}
 	return false;
 };
+Trigo.Board.prototype.surrounds=function(cluster){
+	var checked=[];
+	var surrounded=[];
+	//for (let y=0;y<this.tg.triangles.length;y++){
+	//	for (let x=0;x<this.tg.triangles[y].length;x++){
+	var adjc=this.tg.adjacent(cluster);
+	for (let adjci=0;adjci<adjc.length;adjci++){
+		var tri=adjc[adjci];
+		if ((tri.player==0||tri.markedDead) && !checked.includes(tri)){
+			var c=this.tg.getConnected(tri);
+			for (let ci=0;ci<c.length;ci++){
+				checked.push(c[ci]);
+			}
+			var adj=this.tg.adjacent(c);
+			var p=adj[0].player;
+			if (!adj.length==0 && p>0){
+				var oneplayer=true;
+				for (let adji=0;adji<adj.length;adji++){
+					if (adj[adji].player!=p){
+						oneplayer=false;
+						break;
+					}
+				}
+				if (oneplayer){
+					for (let ci=0;ci<c.length;ci++){
+						surrounded.push(c[ci]);
+					}
+				}
+			}
+		}
+	}
+	return surrounded;
+};
 Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
-	if (cluster.length==0) return false;								//added check
+	if (cluster.length==0) return false;								//added checks
+	var surrounded=this.surrounds(cluster);
+	if (surrounded.length>5) return false;
 	if (maxit===undefined) maxit=10;
 	var space=this.tg.getConnectedSpace(cluster);
 	if (space.length>this.tg.sideLength*this.tg.sideLength/5) return false;
@@ -629,14 +664,15 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
 	var stonelimit=totalstones-clusterstones*0.7;
 	//srand(time(NULL));
 	var nwin=0;
+	var stonechange=0;
 	for (let i=0;i<maxit;i++){
 		var bc=this.copy();
 		var cc=bc.tg.getCluster(c0.x,c0.y);
 		space=bc.tg.getConnectedSpace(cc);								//changed this to bc
 		var ss=space.length;
 		for (let si=0;si<ss*3;si++){
-			if (si>0){
-				for (let ci=0;ci<cc.length;ci++){						//update space
+			if (si>0 && stonechange!=0){
+				for (let ci=0;ci<cc.length;ci++){						//update space, only if captures happened
 					if (cc[ci].player==c0.player){
 						cc=bc.tg.getCluster(c0.x,c0.y);
 						space=bc.tg.getConnectedSpace(cc);
@@ -658,7 +694,9 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
 			if (adjacentallsame){
 				placedmove=false;
 			} else {
+				var currentstones=this.stones[this.otherPlayer()-1];				//added
 				placedmove=bc.placeMove(rt.x,rt.y);
+				stonechange=currentstones-this.stones[this.player-1];
 			}
 			if (placedmove){
 				if (bc.stones[c0.player-1]<stonelimit){
