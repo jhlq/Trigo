@@ -358,12 +358,12 @@ Trigo.Board.prototype.copy=function(){
 		var m=this.moves[i];
 		bc.moves.push(new Trigo.Triangle(m.x,m.y,m.player));
 	}
-	bc.placeMoves();
+	bc.placeMoves(true);												//setting this to false causes too many recursions...
 	bc.player=this.player;
 	return bc;
 };
 Trigo.Board.prototype.reset=function(){
-	this.tg=new Trigo.TriangleGrid(this.tg.sideLength);					//this may be called unnecessarily, add boolean reset?
+	this.tg=new Trigo.TriangleGrid(this.tg.sideLength);					//this may be called unnecessarily in placeMoves, add boolean reset? Done. See problem above... Too many recursions why?
 	this.history=[];
 	this.moves=[];
 	this.player=1;
@@ -482,10 +482,11 @@ Trigo.Board.prototype.state=function(){
 	}
 	return s;
 };
-Trigo.Board.prototype.placeMoves=function(){
+Trigo.Board.prototype.placeMoves=function(reset){
+	if (reset===undefined) reset=true;
 	var m=this.moves;
 	var p=this.player;
-	this.reset();
+	if (reset) this.reset();											//add conditional reset? If tg doesn't need to be reinitialized, when board was just created. Yea
 	for (let movei=0;movei<m.length;movei++){
 		move=m[movei];
 		this.placeMove(move.x,move.y,move.player);
@@ -617,17 +618,14 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
 	return false;
 };
 Trigo.Board.prototype.autoMarkDeadStones=function(){
-	console.log("Automarking");
 	var tried=[];
 	var tobemarked=[];
 	for (let mi=0;mi<this.moves.length;mi++){
 		m=this.moves[mi];
 		if (!tried.includes(m)){
 			var c=this.tg.getCluster(m);
-			console.log("Trying to capture cluster of size "+c.length);
 			var success=this.tryCaptureCluster(c);
 			if (success){
-				console.log(success);
 				tobemarked.push(c);
 			}
 			for (let cti=0;cti<c.length;cti++){
@@ -708,4 +706,23 @@ Trigo.Board.prototype.spreadInfluence=function(range,tunneling){
 			this.spreadInfluence_tri(this.moves[mi],range,tunneling);
 		}
 	}
+};
+Trigo.Board.prototype.estimateScore=function(){
+	//todo: symbiosis mode, more equal points=higher score
+	var green=0;
+	var blue=0; //komi?
+	this.resetInfluence();
+	this.spreadInfluence(5,true);
+	for (let y=0;y<this.influence.length;y++){
+		for (let x=0;x<this.influence[y].length;x++){
+			var it=this.influence[y][x];
+			var infl=it.green-it.blue;
+			if (infl>0){
+				green++;
+			} else if (infl<0){
+				blue++;
+			}
+		}
+	}
+	return [green,blue];
 };
