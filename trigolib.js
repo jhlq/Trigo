@@ -318,12 +318,22 @@ Trigo.TriangleGrid.prototype.liberties_arr=function(group){
 	}
 	return lib;
 };
+Trigo.TriangleGrid.prototype.libertiesInds=function(group){				//new
+	var adj=this.adjacent(group);
+	var libinds=[];
+	for (let i=0;i<adj.length;i++){
+		if (!adj[i].alive()){
+			libinds.push(adj[i]);
+		}
+	}
+	return libinds;
+};
 Trigo.TriangleGrid.prototype.liberties=function(tri){
 	if (Array.isArray(tri)){
 		return this.liberties_arr(tri)
 	}
 	var group=this.getGroup(tri);
-	return this.liberties(group);
+	return this.liberties_arr(group);
 };
 Trigo.TriangleGrid.prototype.removeGroup=function(group){
 	for (let n=0;n<group.length;n++){
@@ -360,16 +370,23 @@ Trigo.Board.prototype.copy=function(){
 	var bc=new Trigo.Board(this.tg.sideLength);
 	for (let i=0;i<this.moves.length;i++){
 		var m=this.moves[i];
-		bc.moves.push(new Trigo.Triangle(m.x,m.y,m.player));
+		var nt=new Trigo.Triangle(m.x,m.y,m.player);
+		if (!m.isPass() && this.tg.get(m.x,m.y).player==m.player){
+			bc.tg.triangles[nt.y][nt.x]=nt;
+		}
+		bc.moves.push(nt);
 	}
 	//bc.placeMoves(true);												//setting this to false causes too many recursions... Too many recursions also if true, place moves calls copy which calls place moves... Maybe the speedup made it too many function calls per second
-	for (let yi=0;yi<this.tg.triangles.length;yi++){
+	/*this.tg.set(x,y,p);		this is how placeMove links the triangles, caused quite a hassle when the triangle in moves wasn't equal... 
+	var tri=this.tg.get(x,y);
+	this.moves.push(tri);*/
+	/*for (let yi=0;yi<this.tg.triangles.length;yi++){		no longer needed, yay unexpected benefit
 		for (let xi=0;xi<this.tg.triangles[yi].length;xi++){
 			var ot=this.tg.triangles[yi][xi];
 			bc.tg.triangles[yi][xi].player=ot.player;
 			bc.tg.triangles[yi][xi].markedDead=ot.markedDead;
 		}
-	}
+	}*/
 	for (let hi=0;hi<this.history.length;hi++){
 		bc.history.push(this.history[hi]);
 	}
@@ -515,11 +532,11 @@ Trigo.Board.prototype.state=function(){
 Trigo.Board.prototype.placeMoves=function(reset){
 	if (reset===undefined) reset=true;
 	var m=this.moves;
-	var p=this.player;
+	var p=this.player; //why unused?
 	if (reset) this.reset();											//add conditional reset? If tg doesn't need to be reinitialized, when board was just created. Yea
 	for (let movei=0;movei<m.length;movei++){
 		var move=m[movei];
-		this.placeMove(move.x,move.y,move.player);
+		this.placeCustomMove(move.x,move.y,move.player);
 	}
 };
 Trigo.Board.prototype.undo=function(){
@@ -771,11 +788,11 @@ Trigo.Board.prototype.normalizeInfluence=function(){
 		}
 	}
 };
-Trigo.Board.prototype.spreadInfluence_tri=function(tri,range,tunneling){
+Trigo.Board.prototype.spreadInfluence_tri=function(tri,range,tunneling){//something is wrong with tunneling
 	if (tri.isPass()) return;
 	var visited=[];
 	var fringe=[[tri,false]]; //bool: tunnelled
-	var player=tri.player
+	var player=tri.player;
 	for (let r=0;r<=range;r++){
 		var newfringe=[];
 		for (let fi=0;fi<fringe.length;fi++){
@@ -846,14 +863,32 @@ Trigo.Board.prototype.findEdge=function(player){
 			var it=this.influence[y][x];
 			if (player==1){
 				var infl=it.green-it.blue;
-				if (infl<0.5 && infl>-0.3 && it.blue>0 && it.green>0) edge.push(new Trigo.Triangle(x,y,player));
+				if (infl<0.5 && infl>0 && it.blue>0 && it.green>0) edge.push(new Trigo.Triangle(x,y,player));
 			} else if (player==2){
 				var infl=it.blue-it.green;
-				if (infl<0.5 && infl>-0.3 && it.green>0 && it.blue>0) edge.push(new Trigo.Triangle(x,y,player));
+				if (infl<0.5 && infl>0 && it.green>0 && it.blue>0) edge.push(new Trigo.Triangle(x,y,player));
 			}
 		}
 	}
 	return edge;
+};
+Trigo.Board.prototype.findCapturable=function(){
+	var checked=[];
+	var capturing=[];
+	for (let mi=0;mi<this.moves.length;mi++){
+		var t=this.moves[mi];
+		if (!checked.includes(t)){
+			var group=this.tg.getGroup(t);
+			var libinds=this.tg.libertiesInds(group);
+			if (libinds.length==1){
+				capturing.push(libinds[0]);
+			}
+			for (let gi=0;gi<group.length;gi++){
+				checked.push(group[gi]);
+			}
+		}
+	}
+	return capturing;
 };
 function indexOfMax(arr) {												//util
     if (arr.length === 0) {
@@ -878,23 +913,25 @@ Trigo.Board.prototype.placeSmartMove=function(reset){
 			if (this.placeMove(rx,ry)) return;
 		}
 	}
-	if (reset===undefined) reset=true;
+	if (reset===undefined) reset=true;	//resets anyhow in estimatescore
 	if (reset){
 		this.resetInfluence();
-		this.spreadInfluence(4,true);
+		this.spreadInfluence(3,true);
 	}
 	var edge=this.findEdge(this.player);
+	var capturing=this.findCapturable();
+	var moves2consider=edge.concat(capturing);
 	var se=this.estimateScore()[this.player-1];
 	var diffs=[];
 	var bc=this.copy();
-	for (let edgei=0;edgei<edge.length;edgei++){
-		if (edgei>0) bc.undo();
-		var placedmove=bc.placeMove(edge[edgei]);
+	for (let m2ci=0;m2ci<moves2consider.length;m2ci++){
+		if (m2ci>0) bc.undo();
+		var placedmove=bc.placeMove(moves2consider[m2ci]);
 		if (!placedmove){
 			diffs.push(-1)
 			bc.placeMove(-1,-1);
 		} else {
-			bc.spreadInfluence(5,false);
+			//bc.spreadInfluence(5,true);
 			diffs.push(bc.estimateScore()[this.player-1]-se);
 		}
 	}
@@ -902,6 +939,6 @@ Trigo.Board.prototype.placeSmartMove=function(reset){
 	if (mi==-1 || diffs[mi]<0){ 
 		this.placeMove(-1,-1);
 	} else {
-		this.placeMove(edge[mi]);
+		this.placeMove(moves2consider[mi]);
 	}
 };
