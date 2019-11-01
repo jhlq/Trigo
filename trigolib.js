@@ -350,7 +350,7 @@ Trigo.Board=function(sideLength){
 	this.territory=[0,0]; //call score() to update
 	
 	this.influence=[];													//new
-	this.initInfluence();
+	//this.initInfluence();
 };
 Trigo.Board.prototype.copy=function(){
 	var bc=new Trigo.Board(this.tg.sideLength);
@@ -358,8 +358,22 @@ Trigo.Board.prototype.copy=function(){
 		var m=this.moves[i];
 		bc.moves.push(new Trigo.Triangle(m.x,m.y,m.player));
 	}
-	bc.placeMoves(true);												//setting this to false causes too many recursions...
+	//bc.placeMoves(true);												//setting this to false causes too many recursions... Too many recursions also if true, place moves calls copy which calls place moves... Maybe the speedup made it too many function calls per second
+	for (let yi=0;yi<this.tg.triangles.length;yi++){
+		for (let xi=0;xi<this.tg.triangles[yi].length;xi++){
+			var ot=this.tg.triangles[yi][xi];
+			bc.tg.triangles[yi][xi].player=ot.player;
+			bc.tg.triangles[yi][xi].markedDead=ot.markedDead;
+		}
+	}
+	for (let hi=0;hi<this.history.length;hi++){
+		bc.history.push(this.history[hi]);
+	}
 	bc.player=this.player;
+	bc.stones[0]=this.stones[0];
+	bc.stones[1]=this.stones[1];
+	bc.captures[0]=this.captures[0];
+	bc.captures[1]=this.captures[1];
 	return bc;
 };
 Trigo.Board.prototype.reset=function(){
@@ -370,6 +384,7 @@ Trigo.Board.prototype.reset=function(){
 	this.stones=[0,0];
 	this.captures=[0,0];
 	this.territory=[0,0];
+	this.influence=[];
 };
 Trigo.Board.prototype.removeCapturedBy=function(tri){
 	//Triangle tri=tg.get(x,y);
@@ -414,12 +429,15 @@ Trigo.Board.prototype.invalidMoveType_tri=function(t){
 	}
 	var group=bc.tg.getGroup(tri);
 	if (bc.tg.liberties(group)==0){
+		bc=null;
 		return 2;
 	}
 	var h=bc.tg.historyString();
 	if (this.history.includes(h)){
+		bc=null;
 		return 3;
 	}
+	bc=null;
 	return 0;
 };
 Trigo.Board.prototype.isValidMove=function(x,y,player){
@@ -503,7 +521,7 @@ Trigo.Board.prototype.undo=function(){
 	}
 };
 Trigo.Board.prototype.pass=function(){
-	this.moves.push(new Triangle(-1,-1,this.player));
+	this.moves.push(new Trigo.Triangle(-1,-1,this.player));
 	this.switchPlayer();
 };
 
@@ -667,6 +685,14 @@ Trigo.Board.prototype.resetInfluence=function(){
 		}
 	}
 };
+Trigo.Board.prototype.normalizeInfluence=function(){
+	for (let y=0;y<this.influence.length;y++){
+		for (let x=0;x<this.influence[y].length;x++){
+			this.influence[y][x].green=Math.tanh(this.influence[y][x].green);
+			this.influence[y][x].blue=Math.tanh(this.influence[y][x].blue);
+		}
+	}
+};
 Trigo.Board.prototype.spreadInfluence_tri=function(tri,range,tunneling){
 	var visited=[];
 	var fringe=[[tri,false]]; //bool: tunnelled
@@ -701,11 +727,13 @@ Trigo.Board.prototype.spreadInfluence_tri=function(tri,range,tunneling){
 	}
 };
 Trigo.Board.prototype.spreadInfluence=function(range,tunneling){
+	if (this.influence.length==0) this.initInfluence();
 	for (let mi=0;mi<this.moves.length;mi++){
 		if (this.moves[mi].alive()){
 			this.spreadInfluence_tri(this.moves[mi],range,tunneling);
 		}
 	}
+	this.normalizeInfluence();
 };
 Trigo.Board.prototype.estimateScore=function(){
 	//todo: symbiosis mode, more equal points=higher score
