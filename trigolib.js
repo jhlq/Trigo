@@ -532,13 +532,14 @@ Trigo.Board.prototype.state=function(){
 Trigo.Board.prototype.placeMoves=function(reset){
 	if (reset===undefined) reset=true;
 	var m=this.moves;
-	//var p=this.player; //why unused?
+	var p=this.player; //why unused?
 	if (reset) this.reset();											//add conditional reset? If tg doesn't need to be reinitialized, when board was just created. Yea
 	for (let movei=0;movei<m.length;movei++){
 		var move=m[movei];
-		this.placeCustomMove(move.x,move.y,move.player);
+		this.placeMove(new Trigo.Triangle(move.x,move.y,move.player));	//why isn't it possible to undo after placeCustomMove here?
+		//this.placeCustomMove(move.x,move.y,move.player);				//because the triangle in moves is linked to the trianglegrid, player info is overwritten... In C++ this is not a problem because the == operator is overloaded, array.includes is dependant on linking
 	}
-	this.player=this.otherPlayer(m[m.length-1].player);
+	this.player=p;//this.otherPlayer(m[m.length-1].player);
 };
 Trigo.Board.prototype.undo=function(){
 	if (!this.moves.length==0){
@@ -826,7 +827,8 @@ Trigo.Board.prototype.spreadInfluence_tri=function(tri,range,tunneling){//someth
 };
 Trigo.Board.prototype.spreadInfluence=function(range,tunneling){
 	if (this.influence.length==0) this.initInfluence();
-	for (let mi=0;mi<this.moves.length;mi++){
+	for (let mi=0;mi<this.moves.length;mi++){							//this is problematic, we need the move to be linked to tg but then player info is overwritten...
+		//var t=this.tg.get
 		if (this.moves[mi].alive()){
 			this.spreadInfluence_tri(this.moves[mi],range,tunneling);
 		}
