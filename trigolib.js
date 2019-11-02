@@ -368,7 +368,7 @@ Trigo.Board=function(sideLength){
 	this.territory=[0,0]; //call score() to update
 	
 	this.influence=[];													//new
-	//this.initInfluence();
+	this.komi=7;
 };
 Trigo.Board.prototype.copy=function(){
 	var bc=new Trigo.Board(this.tg.sideLength);
@@ -399,10 +399,11 @@ Trigo.Board.prototype.copy=function(){
 	bc.stones[1]=this.stones[1];
 	bc.captures[0]=this.captures[0];
 	bc.captures[1]=this.captures[1];
+	bc.komi=this.komi;
 	return bc;
 };
 Trigo.Board.prototype.reset=function(){
-	this.tg=new Trigo.TriangleGrid(this.tg.sideLength);					//this may be called unnecessarily in placeMoves, add boolean reset? Done. See problem above... Too many recursions why?
+	this.tg=new Trigo.TriangleGrid(this.tg.sideLength);					//this may be called unnecessarily in placeMoves, add boolean reset? Done. See problem above... Too many recursions why? ALl fixed?
 	this.history=[];
 	this.moves=[];
 	this.player=1;
@@ -789,8 +790,8 @@ Trigo.Board.prototype.autoMarkDeadStones=function(){
 //New functions
 
 Trigo.InfluenceTriangle=function(x,y){
-	this.x=x;	//remove indices?
-	this.y=y;
+	//this.x=x;	//remove indices?
+	//this.y=y; //haven't used em yet
 	//this.border=0;
 	this.green=0;
 	this.blue=0;
@@ -800,16 +801,20 @@ Trigo.Board.prototype.initInfluence=function(){
 		var v=[];
 		for (let x=0;x<this.tg.triangles[y].length;x++){
 			var tri=this.tg.triangles[y][x];
-			v.push(new Trigo.InfluenceTriangle(tri.x,tri.y));
+			v.push(new Trigo.InfluenceTriangle(0,0));
 		}
 		this.influence.push(v);
 	}
 };
 Trigo.Board.prototype.resetInfluence=function(){
-	for (let y=0;y<this.influence.length;y++){
-		for (let x=0;x<this.influence[y].length;x++){
-			this.influence[y][x].green=0;
-			this.influence[y][x].blue=0;
+	if (this.influence.length==0){
+		this.initInfluence();
+	} else {
+		for (let y=0;y<this.influence.length;y++){
+			for (let x=0;x<this.influence[y].length;x++){
+				this.influence[y][x].green=0;
+				this.influence[y][x].blue=0;
+			}
 		}
 	}
 };
@@ -858,7 +863,8 @@ Trigo.Board.prototype.spreadInfluence_tri=function(tri,range,tunneling){//someth
 	}
 };
 Trigo.Board.prototype.spreadInfluence=function(range,tunneling){
-	if (this.influence.length==0) this.initInfluence();
+	//if (this.influence.length==0) this.initInfluence(); //merged into resetInfluence
+	this.resetInfluence();
 	//for (let mi=0;mi<this.moves.length;mi++){							//this is problematic, we need the move to be linked to tg but then player info is overwritten...
 	//	var t=this.tg.get(this.moves[mi].x,this.moves[mi].y);			//also this will spread double influence from recaptured moves...
 	//	if (this.moves[mi].alive()){
@@ -872,14 +878,16 @@ Trigo.Board.prototype.spreadInfluence=function(range,tunneling){
 	}
 	this.normalizeInfluence();
 };
-Trigo.Board.prototype.estimateScore=function(reset){
+Trigo.Board.prototype.estimateScore=function(reset,range,tunneling){
 	//todo: symbiosis mode, more equal points=higher score
 	if (reset===undefined) reset=true;
-	var green=0;
-	var blue=0; //komi?
+	if (range===undefined) range=5;
+	if (tunneling===undefined) tunneling=true;
+	var green=this.captures[0]+this.stones[0];	//hybrid rules, both stones and captures give points
+	var blue=this.captures[1]+this.stones[1]+this.komi; 
 	if (reset){
-		this.resetInfluence();
-		this.spreadInfluence(5,true);
+		//this.resetInfluence(); //merged with spreadInfluence, dosn't make much sence spreading without? Indeed
+		this.spreadInfluence(range,tunneling);
 	}
 	for (let y=0;y<this.influence.length;y++){
 		for (let x=0;x<this.influence[y].length;x++){
@@ -894,7 +902,8 @@ Trigo.Board.prototype.estimateScore=function(reset){
 	}
 	return [green,blue];
 };
-Trigo.Board.prototype.findEdge=function(player){
+Trigo.Board.prototype.findEdge=function(player){	//remove player? Other places assume board.player
+	if (player===undefined) player=this.player;
 	var edge=[];
 	for (let y=0;y<this.influence.length;y++){
 		for (let x=0;x<this.influence[y].length;x++){
@@ -915,12 +924,13 @@ Trigo.Board.prototype.findCapturable=function(){
 	var checked=[];
 	var capturing=[];
 	for (let mi=0;mi<this.moves.length;mi++){
-		if (this.moves[mi].isPass) continue;
+		if (this.moves[mi].isPass()) continue;
 		var t=this.tg.get(this.moves[mi].x,this.moves[mi].y);
 		if (!checked.includes(t)){
 			var group=this.tg.getGroup(t);
 			var libinds=this.tg.libertiesInds(group);
 			if (libinds.length==1){
+				if (libinds[0].x==0&&libinds[0].y==0) console.log(libinds[0]);
 				capturing.push(libinds[0]);
 			}
 			for (let gi=0;gi<group.length;gi++){
@@ -929,6 +939,25 @@ Trigo.Board.prototype.findCapturable=function(){
 		}
 	}
 	return capturing;
+};
+Trigo.Board.prototype.findReductions=function(){
+	//this should be merged with findEdge since they both iterate of inluence
+	//however they may require different influence spread...
+	var reds=[];
+	for (let y=0;y<this.influence.length;y++){
+		for (let x=0;x<this.influence[y].length;x++){
+			if (this.tg.get(x,y).player!=0) continue;					//no support for marked dead stones!
+			var it=this.influence[y][x];
+			if (this.player==1){
+				var infl=it.green-it.blue;
+				if (infl<0.5 && it.green>0 && it.blue>0) reds.push(new Trigo.Triangle(x,y,this.player));
+			} else if (this.player==2){
+				var infl=it.blue-it.green;
+				if (infl<0.5 && it.blue>0 && it.green>0) reds.push(new Trigo.Triangle(x,y,this.player));
+			}
+		}
+	}
+	return reds;
 };
 Trigo.Board.prototype.canBeCaptured=function(x,y){						//this will be useful
 	//must take KOs etc into account. Why is it called 4 times? Fixed, another linking problem
@@ -961,14 +990,18 @@ Trigo.Board.prototype.placeSmartMove=function(reset){
 			if (this.placeMove(rx,ry)) return;
 		}
 	}
-	if (reset===undefined) reset=true;	//resets anyhow in estimatescore
+	if (reset===undefined) reset=true;	
 	if (reset){
-		this.resetInfluence();
+		//this.resetInfluence(); //merged with spreadInfluence
 		this.spreadInfluence(3,true);
 	}
+	//merge into findFromInlfuence, or?
 	var edge=this.findEdge(this.player);
 	var capturing=this.findCapturable();
-	var moves2consider0=edge.concat(capturing);
+	//this.resetInfluence();
+	this.spreadInfluence(3,false);
+	var reductions=this.findReductions();
+	var moves2consider0=(edge.concat(capturing)).concat(reductions);
 	var moves2consider=[];
 	for (let m2c0i=0;m2c0i<moves2consider0.length;m2c0i++){
 		var m=moves2consider0[m2c0i];

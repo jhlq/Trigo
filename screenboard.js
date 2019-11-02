@@ -1,5 +1,7 @@
 //Load trigolib.js first
 
+'use strict';
+
 Trigo.ScreenTriangle=function(_x,_y,_pixX,_pixY){
     this.x=_x;
     this.y=_y;
@@ -84,15 +86,12 @@ Trigo.ScreenBoard.prototype.clickEvent = function (e) {
                 if (this.board.tg.get(tri.x,tri.y).player==0){
                     var success=this.board.placeMove(tri.x,tri.y);
                     if (success){
-                        //emit modifiedmoves();
                         this.placeMoves();
                     }
                     break;
                 } else {
                     this.board.markDeadStones(tri.x,tri.y);
                     this.placeMoves();
-                    //emit modifiedmoves();
-                    
                 }
             }
         }
@@ -201,21 +200,37 @@ Trigo.ScreenBoard.prototype.plotInfluence=function(player,range,tunneling){
 	}
 };
 
-Trigo.ScreenBoard.prototype.placeMove=function(x,y){
-	if (this.board.placeMove(x,y)) this.placeMoves();
+Trigo.ScreenBoard.prototype.placeMove=function(x,y,player){
+	if (player===undefined){
+		if (this.board.placeMove(x,y)) this.placeMoves();
+	} else {
+		if (this.board.placeCustomMove(x,y,player)) this.placeMoves();
+	}
 };
 Trigo.ScreenBoard.prototype.updateScore=function(){
 	this.board.score();
+	var hybridsum=this.board.stones[0]+this.board.captures[0]+this.board.territory[0]-this.board.stones[1]-this.board.captures[1]-this.board.territory[1]-this.board.komi;
+	var result="Hybrid rules sum gives final result: ";
+	if (hybridsum>0){
+		result+="Green by "+hybridsum+" points.";
+	} else if (hybridsum<0){
+		result+="Blue by "+Math.abs(hybridsum)+" points.";
+	} else {
+		result+="Draw!";
+	}
 	var ss="<b>Last scoring</b><br>";
 	ss+="Green: "+this.board.stones[0]+" stones, "+this.board.captures[0]+" captures and "+this.board.territory[0]+" territory.<br>";
 	ss+="Blue: "+this.board.stones[1]+" stones, "+this.board.captures[1]+" captures and "+this.board.territory[1]+" territory.<br>";
-	ss+="Suggested komi for blue is 7.";
+	ss+="Komi for blue is set at "+this.board.komi+".<br>";
+	ss+=result;
+	document.getElementById("scores").innerHTML=ss;
+	
 	var ssa="Current score\n";
 	ssa+="Green: "+this.board.stones[0]+" stones, "+this.board.captures[0]+" captures and "+this.board.territory[0]+" territory.\n";
 	ssa+="Blue: "+this.board.stones[1]+" stones, "+this.board.captures[1]+" captures and "+this.board.territory[1]+" territory.\n";
-	ssa+="Suggested komi for blue is 7.";
+	ssa+="Komi for blue is set at "+this.board.komi+".\n";
+	ssa+=result;
 	alert(ssa);
-	document.getElementById("scores").innerHTML=ss;
 };
 Trigo.ScreenBoard.prototype.loadGame=function(){
 	var arr=document.getElementById("board_moves").value.split(';');

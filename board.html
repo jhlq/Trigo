@@ -10,7 +10,7 @@
   	<input type="number" id="x" onchange="crosshair()" value=1>
 	<input type="number" id="y" onchange="crosshair()" value=1>
 	<br>
-	<button onclick="sb.board.placeSmartMove();sb.placeMoves()">Let AI play!</button>
+	<button onclick="letAIPlay()">Let AI play!</button>
 	<button onclick="sb.board.pass();sb.placeMoves()">Pass.</button>
 	<button onclick="sb.board.undo();sb.placeMoves()">Undo.</button>
 	<button onclick="sb.updateScore()">Score.</button>
@@ -46,7 +46,17 @@ var b=new Trigo.Board(3);*/
 var sb=new Trigo.ScreenBoard("TriCanvas",9,30,50,50);
 sb.drawGrid();
 
-
+function letAIPlay(){
+	sb.board.placeSmartMove();
+	var nmoves=sb.board.moves.length
+	if (sb.board.moves[nmoves-1].isPass() && sb.board.moves[nmoves-2].isPass()){
+		sb.board.autoMarkDeadStones();
+		sb.placeMoves();
+		sb.updateScore();
+	} else {
+		sb.placeMoves();
+	}
+};
 document.body.addEventListener("keydown", keyDown, false);
 function keyDown(e) {
 	if (document.getElementById("shortcuts")==null || typeof(document.getElementById("shortcuts"))=="undefined"){
@@ -74,11 +84,11 @@ function keyDown(e) {
 		} else if (k==87){ //w
 			document.getElementById("y").value=parseInt(document.getElementById("y").value)-1;
 			document.getElementById("x").value=parseInt(document.getElementById("x").value)+1;
-		} else if (k==88){
+		/*} else if (k==88){
 			document.getElementById("y").value=parseInt(document.getElementById("y").value)-1;
 			document.getElementById("x").value=parseInt(document.getElementById("x").value)+1;
 		} else if (k==90){
-			document.getElementById("y").value=parseInt(document.getElementById("y").value)-1;
+			document.getElementById("y").value=parseInt(document.getElementById("y").value)-1;*/
 		} else {
 			return 0;
 		}
@@ -108,47 +118,6 @@ function changesize(){
 	sb.updateParams();
 	sb.placeMoves();
 }
-
-/*
-function undo(){
-	var plays=document.getElementById("board_moves").value.split("+");
-	var newstr="";
-	for (var i = 0; i < plays.length-1; i++) {
-		newstr+=plays[i];
-		if (i<plays.length-2){
-			newstr+='+';
-		}
-	}
-	//newstr+=plays[plays.length-2] || "";
-	document.getElementById("board_moves").value=newstr || "#909:0,0";
-	var cols=document.getElementById("board_cols").value.split(",");
-	var ncols=cols[cols.length-1];
-	document.getElementById("col").value=ncols;
-	for (var i = 0; i < cols.length-1; i++) {
-		ncols+=","+cols[i];
-	}
-	document.getElementById("board_cols").value=ncols;
-	board.common.drawAll();
-}
-
-function submit(){
-	board.submit();
-	
-}
-
-function changesize(){
-  var s=document.getElementById("size").value;
-  board.common.drawer.canvas.width=s;
-  board.common.drawer.canvas.height=s*0.9;
-  board.common.drawer.updateParams();
-  board.common.drawAll();
-}
-function line(ax){
-	var o=document.getElementById(ax).value;
-	board.common.drawer.gridLine(o,3,ax,"#909",o,true);
-	//board.common.drawAll();
-	
-}*/
 
 </script>
 
