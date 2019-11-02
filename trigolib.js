@@ -882,9 +882,9 @@ Trigo.Board.prototype.estimateScore=function(reset,range,tunneling){
 	//todo: symbiosis mode, more equal points=higher score
 	if (reset===undefined) reset=true;
 	if (range===undefined) range=5;
-	if (tunneling===undefined) tunneling=true;
-	var green=this.captures[0]+this.stones[0];	//hybrid rules, both stones and captures give points
-	var blue=this.captures[1]+this.stones[1]+this.komi; 
+	if (tunneling===undefined) tunneling=false;
+	var green=this.captures[0];//+this.stones[0];	//hybrid rules, both stones and captures give points
+	var blue=this.captures[1]+this.komi;//+this.stones[1]; //stones are counted from influence
 	if (reset){
 		//this.resetInfluence(); //merged with spreadInfluence, dosn't make much sence spreading without? Indeed
 		this.spreadInfluence(range,tunneling);
@@ -996,7 +996,7 @@ Trigo.Board.prototype.placeSmartMove=function(reset){
 		this.spreadInfluence(3,true);
 	}
 	//merge into findFromInlfuence, or?
-	var edge=this.findEdge(this.player);
+	var edge=this.findEdge();
 	var capturing=this.findCapturable();
 	//this.resetInfluence();
 	this.spreadInfluence(3,false);
@@ -1009,21 +1009,31 @@ Trigo.Board.prototype.placeSmartMove=function(reset){
 			moves2consider.push(m);
 		}
 	}
-	var se=this.estimateScore()[this.player-1];
-	var diffs=[];
+	var se=this.estimateScore();
+	var locvalues=[];
+	var player=this.player;
 	var bc=this.copy();
 	for (let m2ci=0;m2ci<moves2consider.length;m2ci++){
-		if (m2ci>0) bc.undo();
+		//if (m2ci>0) bc.undo();
 		var placedmove=bc.placeMove(moves2consider[m2ci]);
 		if (!placedmove){
-			diffs.push(-1)
-			bc.placeMove(-1,-1);
+			locvalues.push(-1)
+			//bc.placeMove(-1,-1);
 		} else {
-			diffs.push(bc.estimateScore()[this.player-1]-se);
+			var se2=bc.estimateScore();
+			var locvalue=se2[player-1]-se[player-1]+se[this.otherPlayer(player)-1]-se2[this.otherPlayer(player)-1];
+			bc.undo();
+			var pcm=bc.placeCustomMove(moves2consider[m2ci].x,moves2consider[m2ci].y,this.otherPlayer(player));
+			if (pcm){
+				var se3=bc.estimateScore();
+				locvalue+=se3[this.otherPlayer(player)-1]-se[this.otherPlayer(player)-1]+se[player-1]-se3[player-1];
+				bc.undo(); //this isn't necessary on last iteration...
+			}
+			locvalues.push(locvalue);
 		}
 	}
-	var mi=indexOfMax(diffs);
-	if (mi==-1 || diffs[mi]<0){ 
+	var mi=indexOfMax(locvalues);
+	if (mi==-1 || locvalues[mi]<0){ 
 		this.placeMove(-1,-1);
 	} else {
 		this.placeMove(moves2consider[mi]);
