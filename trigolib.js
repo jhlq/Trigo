@@ -374,14 +374,14 @@ Trigo.Board.prototype.copy=function(){
 		if (!m.isPass() && this.tg.get(m.x,m.y).player==m.player){
 			bc.tg.triangles[nt.y][nt.x]=nt;
 		}
-		bc.moves.push(nt);
+		bc.moves.push(new Trigo.Triangle(nt.x,nt.y,nt.player));
 	}
 	//bc.placeMoves(true);												//setting this to false causes too many recursions... Too many recursions also if true, place moves calls copy which calls place moves... Maybe the speedup made it too many function calls per second
 	/*this.tg.set(x,y,p);		this is how placeMove links the triangles, caused quite a hassle when the triangle in moves wasn't equal... 
-	var tri=this.tg.get(x,y);
+	var tri=this.tg.get(x,y);	shouldn't be this way though, overrides player info in moves
 	this.moves.push(tri);*/
 	/*for (let yi=0;yi<this.tg.triangles.length;yi++){		no longer needed, yay unexpected benefit
-		for (let xi=0;xi<this.tg.triangles[yi].length;xi++){
+		for (let xi=0;xi<this.tg.triangles[yi].length;xi++){	or is this better?
 			var ot=this.tg.triangles[yi][xi];
 			bc.tg.triangles[yi][xi].player=ot.player;
 			bc.tg.triangles[yi][xi].markedDead=ot.markedDead;
@@ -517,7 +517,7 @@ Trigo.Board.prototype.placeCustomMove=function(x,y,p){
 	var tri=this.tg.get(x,y);
 	this.removeCapturedBy(tri);
 	this.history.push(this.tg.historyString());
-	this.moves.push(tri);
+	this.moves.push(new Trigo.Triangle(tri.x,tri.y,tri.player));
 	this.stones[p-1]+=1;
 	return true;
 };
@@ -530,16 +530,18 @@ Trigo.Board.prototype.state=function(){
 	return s;
 };
 Trigo.Board.prototype.placeMoves=function(reset){
-	if (reset===undefined) reset=true;
+	if (reset===undefined) reset=true;									//doesn't seem necessary?
 	var m=this.moves;
-	var p=this.player; //why unused?
+	//var p=this.player; //why unused? Better to have the player default to next after last move
 	if (reset) this.reset();											//add conditional reset? If tg doesn't need to be reinitialized, when board was just created. Yea
 	for (let movei=0;movei<m.length;movei++){
 		var move=m[movei];
 		this.placeMove(new Trigo.Triangle(move.x,move.y,move.player));	//why isn't it possible to undo after placeCustomMove here?
 		//this.placeCustomMove(move.x,move.y,move.player);				//because the triangle in moves is linked to the trianglegrid, player info is overwritten... In C++ this is not a problem because the == operator is overloaded, array.includes is dependant on linking
 	}
-	this.player=p;//this.otherPlayer(m[m.length-1].player);
+	if (this.moves.length>0){
+		this.player=this.otherPlayer(this.moves[this.moves.length-1].player);
+	}
 };
 Trigo.Board.prototype.undo=function(){
 	if (!this.moves.length==0){
@@ -617,7 +619,8 @@ Trigo.Board.prototype.markDeadStones_arr=function(c){
 		}
 	}
 };
-Trigo.Board.prototype.validMovesInSpace=function(space){				//added
+/*
+Trigo.Board.prototype.validMovesInSpace=function(space){				//added. Sloooow...
 	var vm=0;
 	for (let si=0;si<space.length;si++){
 		var t=space[si];
@@ -633,8 +636,8 @@ Trigo.Board.prototype.twoSuicideMovesInSpace=function(space,player){	//added, mu
 		if (sm>=2) return true;
 	}
 	return false;
-};
-Trigo.Board.prototype.surrounds=function(cluster){
+};*/
+Trigo.Board.prototype.surrounds=function(cluster){						//efficient
 	var checked=[];
 	var surrounded=[];
 	//for (let y=0;y<this.tg.triangles.length;y++){
@@ -692,8 +695,9 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
 			if (si>0 && stonechange!=0){
 				for (let ci=0;ci<cc.length;ci++){						//update space, only if captures happened
 					if (cc[ci].player==c0.player){
-						cc=bc.tg.getCluster(c0.x,c0.y);
+						cc=bc.tg.getCluster(cc[ci].x,cc[ci].y);
 						space=bc.tg.getConnectedSpace(cc);
+						break;
 					}
 				}
 			}
@@ -727,6 +731,7 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
 				bc.switchPlayer();
 			}
 		}
+		//console.log(nwin/i);
 	}
 	if (nwin/maxit>0.5) return true;
 	return false;
@@ -734,17 +739,22 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
 Trigo.Board.prototype.autoMarkDeadStones=function(){
 	var tried=[];
 	var tobemarked=[];
-	for (let mi=0;mi<this.moves.length;mi++){
-		var m=this.moves[mi];
-		if (!tried.includes(m) && !m.isPass()){
-			var c=this.tg.getCluster(m);
-			var success=this.tryCaptureCluster(c);
-			if (success){
-				tobemarked.push(c);
-			}
-			for (let cti=0;cti<c.length;cti++){
-				var ct=c[cti];
-				tried.push(ct);
+	//for (let mi=0;mi<this.moves.length;mi++){							//changed, iterating over moves caused linking troubles and in endgame number of moves is comparable to number of triangles
+	//	var m=this.moves[mi];
+	//	if (!tried.includes(m) && !m.isPass()){
+	for (let yi=0;yi<this.tg.triangles.length;yi++){
+		for (let xi=0;xi<this.tg.triangles[yi].length;xi++){
+			var t=this.tg.get(xi,yi);
+			if (t.alive() && !tried.includes(t)){
+				var c=this.tg.getCluster(t);
+				var success=this.tryCaptureCluster(c);
+				if (success){
+					tobemarked.push(c);
+				}
+				for (let cti=0;cti<c.length;cti++){
+					var ct=c[cti];
+					tried.push(ct);
+				}
 			}
 		}
 	}
@@ -827,10 +837,15 @@ Trigo.Board.prototype.spreadInfluence_tri=function(tri,range,tunneling){//someth
 };
 Trigo.Board.prototype.spreadInfluence=function(range,tunneling){
 	if (this.influence.length==0) this.initInfluence();
-	for (let mi=0;mi<this.moves.length;mi++){							//this is problematic, we need the move to be linked to tg but then player info is overwritten...
-		//var t=this.tg.get
-		if (this.moves[mi].alive()){
-			this.spreadInfluence_tri(this.moves[mi],range,tunneling);
+	//for (let mi=0;mi<this.moves.length;mi++){							//this is problematic, we need the move to be linked to tg but then player info is overwritten...
+	//	var t=this.tg.get(this.moves[mi].x,this.moves[mi].y);			//also this will spread double influence from recaptured moves...
+	//	if (this.moves[mi].alive()){
+	for (let y=0;y<this.tg.triangles.length;y++){
+		for (let x=0;x<this.tg.triangles[y].length;x++){
+			var t=this.tg.triangles[y][x];
+			if (t.alive()){
+				this.spreadInfluence_tri(t,range,tunneling);
+			}
 		}
 	}
 	this.normalizeInfluence();
