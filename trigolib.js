@@ -682,7 +682,7 @@ Trigo.Board.prototype.surrounds=function(cluster){						//efficient
 	}
 	return surrounded;
 };
-Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
+Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connect danglers?
 	if (cluster.length==0) return false;								//added checks
 	var surrounded=this.surrounds(cluster);
 	if (surrounded.length>5) return false;
@@ -906,9 +906,17 @@ Trigo.Board.prototype.estimateScore=function(reset,range,tunneling){
 			var it=this.influence[y][x];
 			var infl=it.green-it.blue;
 			if (infl>0){
-				green++;
+				if (it.blue>0.5){
+					green+=0.5;
+				} else {
+					green++;
+				}
 			} else if (infl<0){
-				blue++;
+				if (it.green>0.5){
+					blue+=0.5;
+				} else {
+					blue++;
+				}
 			}
 		}
 	}
@@ -1042,6 +1050,8 @@ Trigo.Board.prototype.placeSmartMove=function(reset){
 				bc.undo(); //this isn't necessary on last iteration...
 			}
 			locvalues.push(locvalue);
+			//if (moves2consider[m2ci].x==2&&moves2consider[m2ci].y==2) console.log("2,2: "+locvalue);
+			//if (moves2consider[m2ci].x==2&&moves2consider[m2ci].y==2) console.log(locvalue);
 		}
 	}
 	var mi=indexOfMax(locvalues);
