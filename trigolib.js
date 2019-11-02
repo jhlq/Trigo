@@ -76,7 +76,7 @@ Trigo.TriangleGrid.prototype.adjacent=function(x,y){
 		return this.adjacent_arr(x)
 	}
 	if (y===undefined) return this.adjacent_tri(x);
-	return this.adjacent(new Trigo.Triangle(x,y));
+	return this.adjacent_tri(new Trigo.Triangle(x,y));
 };
 Trigo.TriangleGrid.prototype.adjacent_tri=function(triangle){
 	if (Array.isArray(triangle)){
@@ -670,6 +670,14 @@ Trigo.Board.prototype.surrounds=function(cluster){						//efficient
 	}
 	return surrounded;
 };
+Trigo.Board.prototype.canBeCaptured=function(move){						//this will be useful
+	//must take KOs etc into account
+	var bc=this.copy();
+	var captures=bc.placeMoveCountCaptures(move);
+	if (captures<0) return true; //suicide
+	if (captures<1 && bc.tg.liberties_arr(bc.tg.getGroup(move))==1) return true;
+	return false; //add code for ladders/nets
+};
 Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
 	if (cluster.length==0) return false;								//added checks
 	var surrounded=this.surrounds(cluster);
@@ -687,12 +695,17 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
 	var nwin=0;
 	var stonechange=0;
 	for (let i=0;i<maxit;i++){
+		var stonescaptured=0;
 		var bc=this.copy();
 		var cc=bc.tg.getCluster(c0.x,c0.y);
 		space=bc.tg.getConnectedSpace(cc);								//changed this to bc
 		var ss=space.length;
 		for (let si=0;si<ss*3;si++){
 			if (si>0 && stonechange!=0){
+				if (stonescaptured>clusterstones){
+					nwin++;
+					break;
+				}
 				for (let ci=0;ci<cc.length;ci++){						//update space, only if captures happened
 					if (cc[ci].player==c0.player){
 						cc=bc.tg.getCluster(cc[ci].x,cc[ci].y);
@@ -701,6 +714,7 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
 					}
 				}
 			}
+			stonechange=0; //this didn't change much... Better!
 			//if (bc.validMovesInSpace(space)==0) break;				//is there a better way? This was very slow
 			var r=Math.floor(Math.random()*space.length);
 			var rt=space[r];
@@ -716,9 +730,14 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
 			if (adjacentallsame){
 				placedmove=false;
 			} else {
-				var currentstones=this.stones[this.otherPlayer()-1];				//added
+				var currentstones=bc.stones[bc.otherPlayer()-1];				//added
 				placedmove=bc.placeMove(rt.x,rt.y);
-				stonechange=currentstones-this.stones[this.player-1];
+				if (placedmove){
+					stonechange=currentstones-bc.stones[bc.player-1];
+					if (stonechange>0 && bc.player==c0.player){
+						stonescaptured+=stonechange;					//placeMoveCountCaptures -> -1=didn't place
+					}
+				}
 			}
 			if (placedmove){
 				if (bc.stones[c0.player-1]<stonelimit){
@@ -731,7 +750,7 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
 				bc.switchPlayer();
 			}
 		}
-		//console.log(nwin/i);
+		//console.log(nwin/(i+1));
 	}
 	if (nwin/maxit>0.5) return true;
 	return false;
