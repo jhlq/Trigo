@@ -690,9 +690,14 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
 	var space=this.tg.getConnectedSpace(cluster);
 	if (space.length>this.tg.sideLength*this.tg.sideLength/5) return false;
 	var c0=cluster[0];
+	/*if (c0.x==14&&c0.y==0){
+		var verb=true;
+		var s="";
+	}*/
 	//connect danglers
 	//if (this.twoSuicideMovesInSpace(space,this.otherPlayer(c0.player))) return false;
 	var totalstones=this.stones[c0.player-1];
+	//if (verb) console.log(totalstones);
 	var clusterstones=cluster.length;
 	var stonelimit=totalstones-clusterstones*0.7;
 	//srand(time(NULL));
@@ -704,6 +709,7 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
 		var cc=bc.tg.getCluster(c0.x,c0.y);
 		space=bc.tg.getConnectedSpace(cc);								//changed this to bc
 		var ss=space.length;
+		//console.log("ss: "+ss);
 		for (let si=0;si<ss*3;si++){
 			if (si>0 && stonechange!=0){
 				if (stonescaptured>clusterstones){
@@ -737,6 +743,7 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
 				var currentstones=bc.stones[bc.otherPlayer()-1];				//added
 				placedmove=bc.placeMove(rt.x,rt.y);
 				if (placedmove){
+					//s+=rt.x+","+rt.y+"   ";
 					stonechange=currentstones-bc.stones[bc.player-1];
 					if (stonechange>0 && bc.player==c0.player){
 						stonescaptured+=stonechange;					//placeMoveCountCaptures -> -1=didn't place
@@ -748,13 +755,18 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
 					nwin++;
 					break;
 				}
-				//space.splice(r,1);
+				space.splice(r,1);
 				//if (space.length==0) break;							//modified
 			} else {
+//				s+="nope "+rt.x+","+rt.y+"   ";
 				bc.switchPlayer();
 			}
 		}
-		//console.log(nwin/(i+1));
+/*		if (verb){
+			console.log(s);
+			s="";
+			console.log(nwin/(i+1));
+		}*/
 	}
 	if (nwin/maxit>0.5) return true;
 	return false;
