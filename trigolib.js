@@ -915,6 +915,7 @@ Trigo.Board.prototype.findCapturable=function(){
 	var checked=[];
 	var capturing=[];
 	for (let mi=0;mi<this.moves.length;mi++){
+		if (this.moves[mi].isPass) continue;
 		var t=this.tg.get(this.moves[mi].x,this.moves[mi].y);
 		if (!checked.includes(t)){
 			var group=this.tg.getGroup(t);
