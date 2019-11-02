@@ -234,7 +234,11 @@ Trigo.TriangleGrid.prototype.getConnectedSpace=function(cluster){
 	}
 	return space;
 };
-Trigo.TriangleGrid.prototype.getGroup=function(tri){
+Trigo.TriangleGrid.prototype.getGroup=function(x,y){
+	if (y===undefined) return this.getGroup_tri(x);
+	return this.getGroup_tri(this.get(x,y));
+};
+Trigo.TriangleGrid.prototype.getGroup_tri=function(tri){
 	if (tri.player==0){
 		var v=[];
 		return v;
@@ -521,6 +525,13 @@ Trigo.Board.prototype.placeCustomMove=function(x,y,p){
 	this.stones[p-1]+=1;
 	return true;
 };
+Trigo.Board.prototype.placeMoveCountCaptures=function(x,y){
+	var s=this.stones[this.otherPlayer()-1];
+	var placed=this.placeMove(x,y);
+	if (!placed) return -1;
+	var captures=s-this.stones[this.player-1];
+	return captures;
+};
 Trigo.Board.prototype.state=function(){
 	var s=this.tg.sideLength+";";
 	for (let movei=0;movei<this.moves.length;movei++){
@@ -669,14 +680,6 @@ Trigo.Board.prototype.surrounds=function(cluster){						//efficient
 		}
 	}
 	return surrounded;
-};
-Trigo.Board.prototype.canBeCaptured=function(move){						//this will be useful
-	//must take KOs etc into account
-	var bc=this.copy();
-	var captures=bc.placeMoveCountCaptures(move);
-	if (captures<0) return true; //suicide
-	if (captures<1 && bc.tg.liberties_arr(bc.tg.getGroup(move))==1) return true;
-	return false; //add code for ladders/nets
 };
 Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){
 	if (cluster.length==0) return false;								//added checks
@@ -912,7 +915,7 @@ Trigo.Board.prototype.findCapturable=function(){
 	var checked=[];
 	var capturing=[];
 	for (let mi=0;mi<this.moves.length;mi++){
-		var t=this.moves[mi];
+		var t=this.tg.get(this.moves[mi].x,this.moves[mi].y);
 		if (!checked.includes(t)){
 			var group=this.tg.getGroup(t);
 			var libinds=this.tg.libertiesInds(group);
@@ -925,6 +928,14 @@ Trigo.Board.prototype.findCapturable=function(){
 		}
 	}
 	return capturing;
+};
+Trigo.Board.prototype.canBeCaptured=function(x,y){						//this will be useful
+	//must take KOs etc into account. Why is it called 4 times? Fixed, another linking problem
+	var bc=this.copy();
+	var captures=bc.placeMoveCountCaptures(x,y);
+	if (captures<0) return true; //suicide/invalid
+	if (captures<1 && bc.tg.liberties_arr(bc.tg.getGroup(x,y))==1) return true;
+	return false; //add code for ladders/nets
 };
 function indexOfMax(arr) {												//util
     if (arr.length === 0) {
@@ -956,7 +967,14 @@ Trigo.Board.prototype.placeSmartMove=function(reset){
 	}
 	var edge=this.findEdge(this.player);
 	var capturing=this.findCapturable();
-	var moves2consider=edge.concat(capturing);
+	var moves2consider0=edge.concat(capturing);
+	var moves2consider=[];
+	for (let m2c0i=0;m2c0i<moves2consider0.length;m2c0i++){
+		var m=moves2consider0[m2c0i];
+		if (!this.canBeCaptured(m.x,m.y)){
+			moves2consider.push(m);
+		}
+	}
 	var se=this.estimateScore()[this.player-1];
 	var diffs=[];
 	var bc=this.copy();
