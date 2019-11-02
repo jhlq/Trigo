@@ -863,10 +863,10 @@ Trigo.Board.prototype.findEdge=function(player){
 			var it=this.influence[y][x];
 			if (player==1){
 				var infl=it.green-it.blue;
-				if (infl<0.5 && infl>0 && it.blue>0 && it.green>0) edge.push(new Trigo.Triangle(x,y,player));
+				if (infl<0.5 && infl>0 && it.green>0) edge.push(new Trigo.Triangle(x,y,player));
 			} else if (player==2){
 				var infl=it.blue-it.green;
-				if (infl<0.5 && infl>0 && it.green>0 && it.blue>0) edge.push(new Trigo.Triangle(x,y,player));
+				if (infl<0.5 && infl>0 && it.blue>0) edge.push(new Trigo.Triangle(x,y,player));
 			}
 		}
 	}
@@ -913,7 +913,7 @@ Trigo.Board.prototype.placeSmartMove=function(reset){
 			if (this.placeMove(rx,ry)) return;
 		}
 	}
-	if (reset===undefined) reset=false;	//resets anyhow in estimatescore
+	if (reset===undefined) reset=true;	//resets anyhow in estimatescore
 	if (reset){
 		this.resetInfluence();
 		this.spreadInfluence(3,true);
