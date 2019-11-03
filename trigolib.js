@@ -756,7 +756,7 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connec
 					break;
 				}
 				space.splice(r,1);
-				//if (space.length==0) break;							//modified
+				if (space.length==0) break;								//modified
 			} else {
 //				s+="nope "+rt.x+","+rt.y+"   ";
 				bc.switchPlayer();
