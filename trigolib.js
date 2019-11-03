@@ -76,7 +76,7 @@ Trigo.TriangleGrid.prototype.adjacent=function(x,y){
 		return this.adjacent_arr(x)
 	}
 	if (y===undefined) return this.adjacent_tri(x);
-	return this.adjacent_tri(new Trigo.Triangle(x,y));
+	return this.adjacent_tri(this.get(x,y));
 };
 Trigo.TriangleGrid.prototype.adjacent_tri=function(triangle){
 	if (Array.isArray(triangle)){
@@ -109,13 +109,31 @@ Trigo.TriangleGrid.prototype.adjacent_tri=function(triangle){
 	}
 	return adj;
 };
-Trigo.TriangleGrid.prototype.adjacentInds=function(triangle){
+Trigo.TriangleGrid.prototype.adjacent_arr=function(group){
+	var adjg=[];
+	var ng=group.length;
+	for (let n=0;n<ng;n++){
+		var tri=group[n];
+		var adj=this.adjacent_tri(tri);
+		var ladj=adj.length;
+		for (let i=0;i<ladj;i++){
+			var ttri=adj[i];
+			var contains1=group.includes(ttri);
+			var contains2=adjg.includes(ttri);
+			if (!contains1 && !contains2){
+				adjg.push(ttri);
+			}
+		}
+	}
+	return adjg;
+};
+Trigo.TriangleGrid.prototype.adjacentInds=function(triangle){			//supports negative indices
 	if (Array.isArray(triangle)){
 		return this.adjacentInds_arr(triangle)
 	}
 	var adji=[];
 	if (Math.abs(triangle.x%2)==1){
-		adji.push(new Triangle(triangle.x+1,triangle.y));
+		adji.push(new Triangle(triangle.x+1,triangle.y));				//this should maybe return tuples
 		adji.push(new Triangle(triangle.x-1,triangle.y+1));
 		adji.push(new Triangle(triangle.x-1,triangle.y));
 	} else {
@@ -158,24 +176,6 @@ Trigo.TriangleGrid.prototype.adjacentIndsSpread=function(triangle,spread){
 		}
 	}
 	return adjis;
-};
-Trigo.TriangleGrid.prototype.adjacent_arr=function(group){
-	var adjg=[];
-	var ng=group.length;
-	for (let n=0;n<ng;n++){
-		var tri=group[n];
-		var adj=this.adjacent_tri(tri);
-		var ladj=adj.length;
-		for (let i=0;i<ladj;i++){
-			var ttri=adj[i];
-			var contains1=group.includes(ttri);
-			var contains2=adjg.includes(ttri);
-			if (!contains1 && !contains2){
-				adjg.push(ttri);
-			}
-		}
-	}
-	return adjg;
 };
 Trigo.TriangleGrid.prototype.adjacentPieces=function(tri){
 	if (Array.isArray(tri)){
@@ -801,10 +801,10 @@ Trigo.Board.prototype.autoMarkDeadStones=function(){
 
 //New functions
 
-Trigo.InfluenceTriangle=function(x,y){
+Trigo.InfluenceTriangle=function(){
 	//this.x=x;	//remove indices?
 	//this.y=y; //haven't used em yet
-	//this.border=0;
+	this.border=0;
 	this.green=0;
 	this.blue=0;
 };
@@ -813,13 +813,15 @@ Trigo.Board.prototype.initInfluence=function(){
 		var v=[];
 		for (let x=0;x<this.tg.triangles[y].length;x++){
 			var tri=this.tg.triangles[y][x];
-			v.push(new Trigo.InfluenceTriangle(0,0));
+			var vt=new Trigo.InfluenceTriangle();
+			if (y==0 || x<2 || x>(this.tg.triangles[y].length-3)) vt.border=1;	//add decreasing border influence
+			v.push(vt);
 		}
 		this.influence.push(v);
 	}
 };
 Trigo.Board.prototype.resetInfluence=function(){
-	if (this.influence.length==0){
+	if (this.influence.length==0){										//interesting topic, what are the performance gains of forcing the caller to keep track of initialization?
 		this.initInfluence();
 	} else {
 		for (let y=0;y<this.influence.length;y++){
@@ -922,19 +924,19 @@ Trigo.Board.prototype.estimateScore=function(reset,range,tunneling){
 	}
 	return [green,blue];
 };
-Trigo.Board.prototype.findEdge=function(player){	//remove player? Other places assume board.player
-	if (player===undefined) player=this.player;
+Trigo.Board.prototype.findEdge=function(){
 	var edge=[];
 	for (let y=0;y<this.influence.length;y++){
 		for (let x=0;x<this.influence[y].length;x++){
 			if (this.tg.get(x,y).player!=0) continue;					//no support for marked dead stones!
 			var it=this.influence[y][x];
-			if (player==1){
-				var infl=it.green-it.blue;
-				if (infl<0.5 && infl>0 && it.green>0) edge.push(new Trigo.Triangle(x,y,player));
-			} else if (player==2){
-				var infl=it.blue-it.green;
-				if (infl<0.5 && infl>0 && it.blue>0) edge.push(new Trigo.Triangle(x,y,player));
+			var infl=it.border;
+			if (this.player==1){
+				infl+=it.green-it.blue;
+				if (infl<0.5 && infl>0 && it.green>0) edge.push(this.tg.get(x,y));
+			} else if (this.player==2){
+				infl+=it.blue-it.green;
+				if (infl<0.5 && infl>0 && it.blue>0) edge.push(this.tg.get(x,y));
 			}
 		}
 	}
@@ -950,7 +952,6 @@ Trigo.Board.prototype.findCapturable=function(){
 			var group=this.tg.getGroup(t);
 			var libinds=this.tg.libertiesInds(group);
 			if (libinds.length==1){
-				if (libinds[0].x==0&&libinds[0].y==0) console.log(libinds[0]);
 				capturing.push(libinds[0]);
 			}
 			for (let gi=0;gi<group.length;gi++){
@@ -970,10 +971,10 @@ Trigo.Board.prototype.findReductions=function(){
 			var it=this.influence[y][x];
 			if (this.player==1){
 				var infl=it.green-it.blue;
-				if (infl<0.5 && it.green>0 && it.blue>0) reds.push(new Trigo.Triangle(x,y,this.player));
+				if (infl<0.5 && it.green>0 && it.blue>0) reds.push(this.tg.get(x,y));
 			} else if (this.player==2){
 				var infl=it.blue-it.green;
-				if (infl<0.5 && it.blue>0 && it.green>0) reds.push(new Trigo.Triangle(x,y,this.player));
+				if (infl<0.5 && it.blue>0 && it.green>0) reds.push(this.tg.get(x,y));
 			}
 		}
 	}
@@ -1013,13 +1014,12 @@ Trigo.Board.prototype.placeSmartMove=function(reset){
 	if (reset===undefined) reset=true;	
 	if (reset){
 		//this.resetInfluence(); //merged with spreadInfluence
-		this.spreadInfluence(3,true);
+		this.spreadInfluence(3,false);
 	}
 	//merge into findFromInlfuence, or?
 	var edge=this.findEdge();
 	var capturing=this.findCapturable();
-	//this.resetInfluence();
-	this.spreadInfluence(3,false);
+	//this.spreadInfluence(3,false);
 	var reductions=this.findReductions();
 	var moves2consider0=(edge.concat(capturing)).concat(reductions);
 	var moves2consider=[];
