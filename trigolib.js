@@ -22,8 +22,8 @@ Trigo.Triangle.prototype.isPass=function(){
 Trigo.Triangle.prototype.alive=function(){
     return this.player>0 && !this.markedDead;
 };
-Trigo.Triangle.prototype.sameTenantAs=function(t){
-    return this.player==t.player || ((this.markedDead||this.player==0)&&(t.markedDead||t.player==0));
+Trigo.Triangle.prototype.sameTenantAs=function(t){ //rewrite with ifs?	Fixed bug
+    return (this.player==t.player&&!this.markedDead&&!t.markedDead) || ((this.markedDead||this.player==0)&&(t.markedDead||t.player==0));
 };
 Trigo.Triangle.prototype.equals=function(t){
     return this.x == t.x && this.y == t.y;
@@ -208,7 +208,7 @@ Trigo.TriangleGrid.prototype.adjacentPieces_arr=function(group){
 Trigo.TriangleGrid.prototype.getConnected=function(tri){
 	var group=[];
 	group.push(tri);
-	var recentlyAdded=this.adjacentPieces(tri);
+	var recentlyAdded=this.adjacentPieces(tri);	//why is this used also for empty space?
 	while (!recentlyAdded.length==0){
 		var rai=recentlyAdded.length;
 		for (let i=0;i<rai;i++){
@@ -756,7 +756,7 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connec
 					break;
 				}
 				space.splice(r,1);
-				if (space.length==0) break;								//modified
+				if (space.length==0) break;								//modified, this should be improved somehow, space can't be 0... something got captured
 			} else {
 //				s+="nope "+rt.x+","+rt.y+"   ";
 				bc.switchPlayer();
