@@ -1,4 +1,4 @@
-'use strict';
+//'use strict';
 
 var Trigo = {}
 	
@@ -602,6 +602,12 @@ Trigo.Board.prototype.score=function(){
 	}
 	this.territory[0]=scores[0];
 	this.territory[1]=scores[1];
+	scores[0]+=this.stones[0];
+	scores[1]+=this.stones[1];
+	scores[0]+=this.captures[0];
+	scores[1]+=this.captures[1];
+	scores[1]+=this.komi;
+	return scores;
 };
 Trigo.Board.prototype.markDeadStones=function(x,y){
 	if (Array.isArray(x)){
@@ -1060,4 +1066,36 @@ Trigo.Board.prototype.placeSmartMove=function(reset){
 	} else {
 		this.placeMove(moves2consider[mi]);
 	}
+};
+
+//AI
+
+Trigo.AI=function(board){
+	this.board=board;
+	this.estimates=[]; //form moveindex: score. 
+};
+Trigo.AI.prototype.playGame=function(){
+	for (let mi=0;mi<this.board.tg.sideLength*this.board.tg.sideLength*3;mi++){	//avoid while loop
+		this.board.placeSmartMove();
+		var nm=this.board.moves.length;
+		if (this.board.moves[nm-1].isPass() && this.board.moves[nm-2].isPass()){
+			break;
+		}
+	}
+	return [this.board.state(),this.board.score()];
+};
+Trigo.AI.prototype.playNGames=function(n,makestring){
+	var resultsum=0;
+	var games="";
+	for (let ni=0;ni<n;ni++){
+		if (ni%5==0) console.log(ni);
+		var aic=new Trigo.AI(this.board.copy());
+		var r=aic.playGame();
+		var result=r[1][0]-r[1][1];
+		resultsum+=result;
+		if (makestring){
+			games+=r[0]+"result:"+result+";\n";
+		}
+	}
+	return [resultsum/n,games];
 };
