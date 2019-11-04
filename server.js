@@ -1,10 +1,10 @@
 const http = require('http');
 //require("trigolib.js")();
 var fs = require('fs');
-eval(fs.readFileSync('trigolib.js')+'');
+eval(fs.readFileSync('trigolib.js')+'');    //this is bad practice but seems early to turn it into a module
 var b=new Trigo.Board(9);
 var ai=new Trigo.AI(b);
-var r=ai.playNGames(10,true);
+var r=ai.playNGames(50,true);
 console.log(r[0]);
 fs.appendFile("data/simulations.txt", r[1], function(err) {
     if(err) {

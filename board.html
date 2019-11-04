@@ -45,9 +45,10 @@ var tg=new Trigo.TriangleGrid(3);
 var b=new Trigo.Board(3);*/
 var sb=new Trigo.ScreenBoard("TriCanvas",9,30,50,50);
 sb.drawGrid();
+var ai=new Trigo.AI(sb.board);
 
 function letAIPlay(){
-	sb.board.placeSmartMove();
+	ai.placeSmartMove();
 	var nmoves=sb.board.moves.length
 	if (sb.board.moves[nmoves-1].isPass() && sb.board.moves[nmoves-2].isPass()){
 		sb.board.autoMarkDeadStones();

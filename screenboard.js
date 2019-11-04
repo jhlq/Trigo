@@ -232,21 +232,11 @@ Trigo.ScreenBoard.prototype.updateScore=function(){
 	ssa+=result;
 	alert(ssa);
 };
-Trigo.ScreenBoard.prototype.loadGame=function(){
-	var arr=document.getElementById("board_moves").value.split(';');
-	var sl=parseInt(arr[0]);
+Trigo.ScreenBoard.prototype.loadGame=function(){						//should be a wrapper around Board.loadGame
+	var sl=this.board.tg.sideLength;
+	this.board.loadGame(document.getElementById("board_moves").value);
 	if (sl!=this.board.tg.sideLength){
-		this.board=new Trigo.Board(sl);
 		this.setUpGrid();
-	} else {
-		this.board.moves=[];
 	}
-	for (let arri=1;arri<arr.length-1;arri++){
-		var ma=arr[arri].split(':');
-		var loc=ma[0].split(',');
-		var tri=new Trigo.Triangle(parseInt(loc[0]),parseInt(loc[1]),parseInt(ma[1]));
-		this.board.moves.push(tri);
-	}
-	this.board.placeMoves();
 	this.placeMoves();
 };
