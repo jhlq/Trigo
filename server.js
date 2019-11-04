@@ -1,7 +1,7 @@
 const http = require('http');
 //require("trigolib.js")();
 var fs = require('fs');
-eval(fs.readFileSync('trigolib.js')+'');    //this is bad practice but seems early to turn it into a module
+eval(fs.readFileSync('javascript/trigolib.js')+'');    //this is bad practice but seems early to turn it into a module
 var b=new Trigo.Board(9);
 var ai=new Trigo.AI(b);
 var r=ai.playNGames(50,true);
