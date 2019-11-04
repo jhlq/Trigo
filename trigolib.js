@@ -950,151 +950,12 @@ Trigo.Board.prototype.loadGame=function(movesstring){
 	}
 	this.placeMoves();
 };
-/*
-Trigo.Board.prototype.findEdge=function(){
-	var edge=[];
-	for (let y=0;y<this.influence.length;y++){
-		for (let x=0;x<this.influence[y].length;x++){
-			if (this.tg.get(x,y).player!=0) continue;					//no support for marked dead stones!
-			var it=this.influence[y][x];
-			var infl=it.border;
-			if (this.player==1){
-				infl+=it.green-it.blue;
-				if (infl<0.5 && infl>0 && it.green>0) edge.push(this.tg.get(x,y));
-			} else if (this.player==2){
-				infl+=it.blue-it.green;
-				if (infl<0.5 && infl>0 && it.blue>0) edge.push(this.tg.get(x,y));
-			}
-		}
-	}
-	return edge;
-};
-Trigo.Board.prototype.findCapturable=function(){
-	var checked=[];
-	var capturing=[];
-	for (let mi=0;mi<this.moves.length;mi++){
-		if (this.moves[mi].isPass()) continue;
-		var t=this.tg.get(this.moves[mi].x,this.moves[mi].y);
-		if (!checked.includes(t)){
-			var group=this.tg.getGroup(t);
-			var libinds=this.tg.libertiesInds(group);
-			if (libinds.length==1){
-				capturing.push(libinds[0]);
-			}
-			for (let gi=0;gi<group.length;gi++){
-				checked.push(group[gi]);
-			}
-		}
-	}
-	return capturing;
-};
-Trigo.Board.prototype.findReductions=function(){
-	//this should be merged with findEdge since they both iterate of inluence
-	//however they may require different influence spread...
-	var reds=[];
-	for (let y=0;y<this.influence.length;y++){
-		for (let x=0;x<this.influence[y].length;x++){
-			if (this.tg.get(x,y).player!=0) continue;					//no support for marked dead stones!
-			var it=this.influence[y][x];
-			if (this.player==1){
-				var infl=it.green-it.blue;
-				if (infl<0.5 && it.green>0 && it.blue>0) reds.push(this.tg.get(x,y));
-			} else if (this.player==2){
-				var infl=it.blue-it.green;
-				if (infl<0.5 && it.blue>0 && it.green>0) reds.push(this.tg.get(x,y));
-			}
-		}
-	}
-	return reds;
-};
-Trigo.Board.prototype.canBeCaptured=function(x,y){						//this will be useful
-	//must take KOs etc into account. Why is it called 4 times? Fixed, another linking problem
-	var bc=this.copy();
-	var captures=bc.placeMoveCountCaptures(x,y);
-	if (captures<0) return true; //suicide/invalid
-	if (captures<1 && bc.tg.liberties_arr(bc.tg.getGroup(x,y))==1) return true;
-	return false; //add code for ladders/nets
-};
-function indexOfMax(arr) {												//util
-    if (arr.length === 0) {
-        return -1;
-    }
-    var max = arr[0];
-    var maxIndex = 0;
-    for (let i = 1; i < arr.length; i++) {
-        if (arr[i] > max) {
-            maxIndex = i;
-            max = arr[i];
-        }
-    }
-    return maxIndex; //get all inds, randomize pick
-};
-Trigo.Board.prototype.placeSmartMove=function(reset){
-	if (this.moves.length<2){
-		for (let i=0;i<30;i++){
-			var ry=Math.floor(Math.random()*(this.tg.sideLength-3))+1;
-			var xmax=this.tg.triangles[ry].length;
-			var rx=Math.floor(Math.random()*(xmax-4))+2;
-			if (this.placeMove(rx,ry)) return;
-		}
-	}
-	if (reset===undefined) reset=true;	
-	if (reset){
-		//this.resetInfluence(); //merged with spreadInfluence
-		this.spreadInfluence(3,false);
-	}
-	//merge into findFromInlfuence, or?
-	var edge=this.findEdge();
-	var capturing=this.findCapturable();
-	//this.spreadInfluence(3,false);
-	var reductions=this.findReductions();
-	var moves2consider0=(edge.concat(capturing)).concat(reductions);
-	var moves2consider=[];
-	for (let m2c0i=0;m2c0i<moves2consider0.length;m2c0i++){
-		var m=moves2consider0[m2c0i];
-		if (!this.canBeCaptured(m.x,m.y)){
-			moves2consider.push(m);
-		}
-	}
-	var se=this.estimateScore();
-	var locvalues=[];
-	var player=this.player;
-	var bc=this.copy();
-	for (let m2ci=0;m2ci<moves2consider.length;m2ci++){
-		//if (m2ci>0) bc.undo();
-		var placedmove=bc.placeMove(moves2consider[m2ci]);
-		if (!placedmove){
-			locvalues.push(-1)
-			//bc.placeMove(-1,-1);
-		} else {
-			var se2=bc.estimateScore();
-			var locvalue=se2[player-1]-se[player-1]+se[this.otherPlayer(player)-1]-se2[this.otherPlayer(player)-1];
-			bc.undo();
-			var pcm=bc.placeCustomMove(moves2consider[m2ci].x,moves2consider[m2ci].y,this.otherPlayer(player));
-			if (pcm){
-				var se3=bc.estimateScore();
-				locvalue+=se3[this.otherPlayer(player)-1]-se[this.otherPlayer(player)-1]+se[player-1]-se3[player-1];
-				bc.undo(); //this isn't necessary on last iteration...
-			}
-			locvalues.push(locvalue);
-			//if (moves2consider[m2ci].x==2&&moves2consider[m2ci].y==2) console.log("2,2: "+locvalue);
-			//if (moves2consider[m2ci].x==2&&moves2consider[m2ci].y==2) console.log(locvalue);
-		}
-	}
-	var mi=indexOfMax(locvalues);
-	if (mi==-1 || locvalues[mi]<0){ 
-		this.placeMove(-1,-1);
-	} else {
-		this.placeMove(moves2consider[mi]);
-	}
-};
-*/
 
 //AI
 
 Trigo.AI=function(board){
 	this.board=board;
-	this.estimates=[]; //form moveindex: score. 
+	this.estimates=[]; //form moveindex: score (negative for blue lead). 
 };
 Trigo.AI.prototype.findEdge=function(){
 	var edge=[];
@@ -1201,6 +1062,7 @@ Trigo.AI.prototype.placeSmartMove=function(reset){
 		}
 	}
 	var se=this.board.estimateScore();
+	this.estimates.push([this.board.moves.length-1,se[0]-se[1]]);
 	var locvalues=[];
 	var player=this.board.player;
 	var bc=this.board.copy();
@@ -1252,7 +1114,12 @@ Trigo.AI.prototype.playNGames=function(n,makestring){
 		var result=r[1][0]-r[1][1];
 		resultsum+=result;
 		if (makestring){
-			games+=r[0]+"result:"+result+";\n";
+			var ses=";estimates:";
+			for (let esi=0;esi<aic.estimates.length;esi++){
+				ses+=aic.estimates[esi][0]+"="+aic.estimates[esi][1];
+				if (esi<aic.estimates.length-1) ses+=",";
+			}
+			games+=r[0]+"result:"+result+ses+";\n";
 		}
 	}
 	return [resultsum/n,games];
