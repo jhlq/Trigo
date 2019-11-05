@@ -17,6 +17,7 @@
 	<br>
 	<button onclick="sb.plotInfluence()">Plot influence.</button>
 	<button onclick="sb.board.autoMarkDeadStones();sb.placeMoves()">Mark dead stones.</button>
+	<button onclick="sb.board.reset();sb.placeMoves()">Reset.</button>
 	<br>
 	<canvas id="TriCanvas" width=600 height="540"></canvas>
 	<p id="scores"></p>
@@ -116,7 +117,9 @@ function changesize(){
 	sb.unitSize=us;
 	var sl=parseInt(document.getElementById("sidelength").value);
 	if (sl!=sb.board.tg.sideLength){
-		sb.board=new Trigo.Board(sl);
+		//sb.board=new Trigo.Board(sl);
+		sb.board.tg.sideLength=sl;
+		sb.board.reset();
 	}
 	sb.updateParams();
 	sb.placeMoves();
