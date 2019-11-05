@@ -131,7 +131,7 @@ var ai=new Trigo.AI(sb.board);
 
 function letAIPlay(){
 	ai.placeSmartMove();
-	var nmoves=sb.board.moves.length
+	var nmoves=sb.board.moves.length;
 	if (sb.board.moves[nmoves-1].isPass() && sb.board.moves[nmoves-2].isPass()){
 		sb.board.autoMarkDeadStones();
 		sb.placeMoves();
@@ -194,7 +194,7 @@ function changesize(){
 	}
 	sb.updateParams();
 	sb.placeMoves();
-}
+};
 
 </script>
 </body>

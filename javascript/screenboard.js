@@ -43,7 +43,7 @@ Trigo.ScreenBoard.prototype.makeTriangle=function(x,y){
         oy+=(this.unitSize+this.h)*y;
     }
     return new Trigo.ScreenTriangle(x,y,ox,oy);
-}
+};
 Trigo.ScreenBoard.prototype.setUpGrid=function(){
 	if (this.triangles.length>0) this.triangles=[];						//added check
     var sideLength=this.board.tg.sideLength;
@@ -54,7 +54,7 @@ Trigo.ScreenBoard.prototype.setUpGrid=function(){
         }
         this.triangles.push(v);
     }
-}
+};
 Trigo.ScreenBoard.prototype.drawGrid=function(){
     var ylen=this.triangles.length;										//add checked array?
     for (let yt = 0; yt < ylen; yt++){
@@ -68,7 +68,7 @@ Trigo.ScreenBoard.prototype.drawGrid=function(){
             }
         }
     }
-}
+};
 Trigo.ScreenBoard.prototype.clickEvent = function (e) {
 	var mouseX = e.pageX;
 	var mouseY = e.pageY;
@@ -120,10 +120,10 @@ Trigo.ScreenBoard.prototype.placeMoves=function(){
             }
         }
     }
-    if (!this.board.moves.length==0){
-        var t=this.board.moves[this.board.moves.length-1];
-        if (!t.isPass()){
-            var st=this.triangles[t.y][t.x];
+    if (!(this.board.moves.length==0)){
+        var t2=this.board.moves[this.board.moves.length-1];
+        if (!t2.isPass()){
+            var st=this.triangles[t2.y][t2.x];
             this.drawer.circle(st.pixX,st.pixY,"#fff",s/3);
         }
     }
@@ -140,7 +140,7 @@ Trigo.CanvasDrawer=function(drawAreaID,l){
 	var paddingY=(document.documentElement || document.body.parentNode || document.body).scrollTop;
 	this.canvasOriginX = rect.left;
 	this.canvasOriginY = rect.top+paddingY;
-}
+};
 Trigo.CanvasDrawer.prototype.updateParams = function(){
 	var rect = this.canvas.getBoundingClientRect();
 	var paddingY=(document.documentElement || document.body.parentNode || document.body).scrollTop;

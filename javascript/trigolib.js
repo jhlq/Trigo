@@ -1,6 +1,6 @@
 //'use strict';
 
-var Trigo = {}
+var Trigo = {};
 	
 //Triangle
 
@@ -74,14 +74,14 @@ Trigo.TriangleGrid.prototype.nTriangles=function(){ //this should be sideLength^
 };
 Trigo.TriangleGrid.prototype.adjacent=function(x,y){
 	if (Array.isArray(x)){
-		return this.adjacent_arr(x)
+		return this.adjacent_arr(x);
 	}
 	if (y===undefined) return this.adjacent_tri(x);
 	return this.adjacent_tri(this.get(x,y));
 };
 Trigo.TriangleGrid.prototype.adjacent_tri=function(triangle){
 	if (Array.isArray(triangle)){
-		return this.adjacent_arr(triangle)
+		return this.adjacent_arr(triangle);
 	}
 	if (!this.has(triangle)) return [];
 	var adj=[];
@@ -130,17 +130,17 @@ Trigo.TriangleGrid.prototype.adjacent_arr=function(group){
 };
 Trigo.TriangleGrid.prototype.adjacentInds=function(triangle){			//supports negative indices
 	if (Array.isArray(triangle)){
-		return this.adjacentInds_arr(triangle)
+		return this.adjacentInds_arr(triangle);
 	}
 	var adji=[];
 	if (Math.abs(triangle.x%2)==1){
-		adji.push(new Triangle(triangle.x+1,triangle.y));				//this should maybe return tuples
-		adji.push(new Triangle(triangle.x-1,triangle.y+1));
-		adji.push(new Triangle(triangle.x-1,triangle.y));
+		adji.push(new Trigo.Triangle(triangle.x+1,triangle.y));				//this should maybe return tuples
+		adji.push(new Trigo.Triangle(triangle.x-1,triangle.y+1));
+		adji.push(new Trigo.Triangle(triangle.x-1,triangle.y));
 	} else {
-		adji.push(new Triangle(triangle.x+1,triangle.y));
-		adji.push(new Triangle(triangle.x-1,triangle.y));
-		adji.push(new Triangle(triangle.x+1,triangle.y-1));
+		adji.push(new Trigo.Triangle(triangle.x+1,triangle.y));
+		adji.push(new Trigo.Triangle(triangle.x-1,triangle.y));
+		adji.push(new Trigo.Triangle(triangle.x+1,triangle.y-1));
 	}
 	return adji;
 };
@@ -167,7 +167,7 @@ Trigo.TriangleGrid.prototype.adjacentIndsSpread=function(triangle,spread){
 	var adji=this.adjacentInds(triangle);
 	for (let sp=0;sp<spread;sp++){
 		for (let ai=0;ai<adji.length;ai++){
-			var a=adji[ai]
+			var a=adji[ai];
 			if (!(a==triangle)){// && !adjis.includes(a)){
 				adjis.push(a);
 			}
@@ -180,7 +180,7 @@ Trigo.TriangleGrid.prototype.adjacentIndsSpread=function(triangle,spread){
 };
 Trigo.TriangleGrid.prototype.adjacentPieces=function(tri){
 	if (Array.isArray(tri)){
-		return this.adjacentPieces_arr(tri)
+		return this.adjacentPieces_arr(tri);
 	}
 	var adj=this.adjacent(tri);
 	var adjp=[];
@@ -210,7 +210,7 @@ Trigo.TriangleGrid.prototype.getConnected=function(tri){
 	var group=[];
 	group.push(tri);
 	var recentlyAdded=this.adjacentPieces(tri);	//why is this used also for empty space?
-	while (!recentlyAdded.length==0){
+	while (!(recentlyAdded.length==0)){
 		var rai=recentlyAdded.length;
 		for (let i=0;i<rai;i++){
 			if (!group.includes(recentlyAdded[i])){
@@ -264,7 +264,7 @@ Trigo.TriangleGrid.prototype.getCluster_arr=function(group){
 			adjempty.push(adj[ai]);
 		}
 	}
-	while (!adjempty.length==0){
+	while (!(adjempty.length==0)){
 		for (let aei=0;aei<adjempty.length;aei++){
 			if (!checked.includes(adjempty[aei])){
 				checked.push(adjempty[aei]);
@@ -303,7 +303,7 @@ Trigo.TriangleGrid.prototype.getCluster_arr=function(group){
 };
 Trigo.TriangleGrid.prototype.getCluster=function(x,y){
 	if (Array.isArray(x)){
-		return this.getCluster_arr(x)
+		return this.getCluster_arr(x);
 	}
 	if (y===undefined) return this.getCluster_tri(x);
 	if (!this.has(x,y)) return [];										//added check
@@ -335,7 +335,7 @@ Trigo.TriangleGrid.prototype.libertiesInds=function(group){				//new
 };
 Trigo.TriangleGrid.prototype.liberties=function(tri){
 	if (Array.isArray(tri)){
-		return this.liberties_arr(tri)
+		return this.liberties_arr(tri);
 	}
 	var group=this.getGroup(tri);
 	return this.liberties_arr(group);
@@ -558,7 +558,7 @@ Trigo.Board.prototype.placeMoves=function(reset){
 	}
 };
 Trigo.Board.prototype.undo=function(){
-	if (!this.moves.length==0){
+	if (!(this.moves.length==0)){
 		if (!this.moves[this.moves.length-1].isPass()){
 			this.history.pop();
 		}
@@ -586,7 +586,7 @@ Trigo.Board.prototype.score=function(){
 				}
 				var adj=this.tg.adjacent(c);
 				var p=adj[0].player;
-				if (!adj.length==0 && p>0){
+				if (!(adj.length==0) && p>0){
 					var oneplayer=true;
 					for (let adji=0;adji<adj.length;adji++){
 						if (adj[adji].player!=p){
@@ -613,7 +613,7 @@ Trigo.Board.prototype.score=function(){
 };
 Trigo.Board.prototype.markDeadStones=function(x,y){
 	if (Array.isArray(x)){
-		return this.markDeadStones_arr(x)
+		return this.markDeadStones_arr(x);
 	}
 	if (y===undefined) return this.markDeadStones_tri(x);
 	this.markDeadStones(this.tg.get(x,y));
@@ -672,7 +672,7 @@ Trigo.Board.prototype.surrounds=function(cluster){						//efficient
 			}
 			var adj=this.tg.adjacent(c);
 			var p=adj[0].player;
-			if (!adj.length==0 && p>0){
+			if (!(adj.length==0) && p>0){
 				var oneplayer=true;
 				for (let adji=0;adji<adj.length;adji++){
 					if (adj[adji].player!=p){
@@ -681,8 +681,8 @@ Trigo.Board.prototype.surrounds=function(cluster){						//efficient
 					}
 				}
 				if (oneplayer){
-					for (let ci=0;ci<c.length;ci++){
-						surrounded.push(c[ci]);
+					for (let ci2=0;ci2<c.length;ci2++){
+						surrounded.push(c[ci2]);
 					}
 				}
 			}
@@ -820,7 +820,7 @@ Trigo.Board.prototype.initInfluence=function(){
 	for (let y=0;y<this.tg.triangles.length;y++){
 		var v=[];
 		for (let x=0;x<this.tg.triangles[y].length;x++){
-			var tri=this.tg.triangles[y][x];
+			//var tri=this.tg.triangles[y][x];
 			var vt=new Trigo.InfluenceTriangle();
 			if (y==0 || x<2 || x>(this.tg.triangles[y].length-3)) vt.border=1;	//add decreasing border influence
 			v.push(vt);
@@ -1002,11 +1002,12 @@ Trigo.AI.prototype.findReductions=function(){
 		for (let x=0;x<this.board.influence[y].length;x++){
 			if (this.board.tg.get(x,y).player!=0) continue;					//no support for marked dead stones!
 			var it=this.board.influence[y][x];
+			var infl=0;	//lint complained that var infl var declared twice in mutually exclusive if-else branches
 			if (this.board.player==1){
-				var infl=it.green-it.blue;
+				infl=it.green-it.blue;
 				if (infl<0.5 && it.green>0 && it.blue>0) reds.push(this.board.tg.get(x,y));
 			} else if (this.board.player==2){
-				var infl=it.blue-it.green;
+				infl=it.blue-it.green;
 				if (infl<0.5 && it.blue>0 && it.green>0) reds.push(this.board.tg.get(x,y));
 			}
 		}
@@ -1070,7 +1071,7 @@ Trigo.AI.prototype.placeSmartMove=function(reset){
 		//if (m2ci>0) bc.undo();
 		var placedmove=bc.placeMove(moves2consider[m2ci]);
 		if (!placedmove){
-			locvalues.push(-1)
+			locvalues.push(-1);
 			//bc.placeMove(-1,-1);
 		} else {
 			var se2=bc.estimateScore();
