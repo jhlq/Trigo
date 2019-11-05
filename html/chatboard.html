@@ -1,11 +1,75 @@
 <!DOCTYPE html>
-<html>
-	<head>
-		<title>Trigo</title>
-	<meta charset="utf-8"/>
-	</head>
-	<body>
-		<h1>Trigo!</h1>
+<html lang="en">
+<head>
+<title>Board with chat</title>
+<script type="text/javascript">
+window.onload = function () {
+		var conn;
+		var msg = document.getElementById("msg");
+		var log = document.getElementById("log");
+
+		function appendLog(item) {
+				var doScroll = log.scrollTop > log.scrollHeight - log.clientHeight - 1;
+				log.appendChild(item);
+				if (doScroll) {
+						log.scrollTop = log.scrollHeight - log.clientHeight;
+				}
+		}
+
+		document.getElementById("form").onsubmit = function () {
+				if (!conn) {
+						return false;
+				}
+				if (!msg.value) {
+						return false;
+				}
+				conn.send(msg.value);
+				msg.value = "";
+				return false;
+		};
+
+		if (window["WebSocket"]) {
+				conn = new WebSocket("ws://" + document.location.host + "/ws");
+				conn.onclose = function (evt) {
+						var item = document.createElement("div");
+						item.innerHTML = "<b>Connection closed.</b>";
+						appendLog(item);
+				};
+				conn.onmessage = function (evt) {
+						var messages = evt.data.split('\n');
+						for (var i = 0; i < messages.length; i++) {
+								var item = document.createElement("div");
+								item.innerText = messages[i];
+								appendLog(item);
+						}
+				};
+		} else {
+				var item = document.createElement("div");
+				item.innerHTML = "<b>Your browser does not support WebSockets.</b>";
+				appendLog(item);
+		}
+};
+</script>
+<style type="text/css">
+#chat {
+	position: relative;
+	display: block;
+	float: right;
+	width:30%; 
+}
+#log {
+	background: white;
+	overflow: auto;
+	height:280px; 
+}
+#form {
+		overflow: auto;
+}
+
+</style>
+</head>
+<body>
+	<h1>Trigo!</h1>
 		
 		<input type="number" id="x" onchange="crosshair()" value=1>
 	<input type="number" id="y" onchange="crosshair()" value=1>
@@ -20,9 +84,16 @@
 	<button onclick="sb.board.reset();sb.placeMoves()">Reset.</button>
 	<br>
 	<canvas id="TriCanvas" width=600 height="540"></canvas>
+	<div id="chat">
+		<div id="log"></div>
+		<form id="form">
+			<input type="text" id="msg" size="16"/>
+			<input type="submit" value="Send" />
+		</form>
+	</div>
 	<p id="scores"></p>
 	<label for="shortcuts">Enable keyboard shortcuts (w a s d and e to enter): </label>
-	<input type="checkbox" id="shortcuts" checked="true">
+	<input type="checkbox" id="shortcuts">
 	<br>
 	
 	<p>Canvas size: 
@@ -36,26 +107,26 @@
 	
 		Game record: <input type="text" id="board_moves" value='9;'>
 	<button class="btn btn-primary" onclick="sb.loadGame()">Load game record (paste first).</button>
- 
-
 <footer class="footer">
 	<small>
 		Go is fun!
 	</small>
 	<nav>
 		<ul>
-			<li><a href="/chatboard.html">Board with chat</a></li>
+			<li><a href="/board.html">Board</a></li>
 			<li><a href="/about.html">About</a></li>
 			<li><a href="/contact.html">Contact</a></li>
 		</ul>
 	</nav>
-</footer>
+</footer> 
+
 <script type="text/javascript" src="/javascript/trigolib.js"></script>
 <script type="text/javascript" src="/javascript/screenboard.js"></script>
 
 <script>
 var sb=new Trigo.ScreenBoard("TriCanvas",9,30,50,50);
 sb.drawGrid();
+sb.setupWS();
 var ai=new Trigo.AI(sb.board);
 
 function letAIPlay(){
@@ -126,7 +197,5 @@ function changesize(){
 }
 
 </script>
-
-	</body>
+</body>
 </html>
- 

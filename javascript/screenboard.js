@@ -20,6 +20,7 @@ Trigo.ScreenBoard=function(drawAreaID,sideLength,_unitSize,_offsetX,_offsetY){
     this.l=2*this.unitSize*Math.cos(Math.PI/6);
     this.triangles=[];
     this.setUpGrid();
+    this.ws=false;
 };
 Trigo.ScreenBoard.prototype.updateParams=function(){					//added
 	this.h=this.unitSize*Math.cos(Math.PI/3);
@@ -86,7 +87,8 @@ Trigo.ScreenBoard.prototype.clickEvent = function (e) {
                 if (this.board.tg.get(tri.x,tri.y).player==0){
                     var success=this.board.placeMove(tri.x,tri.y);
                     if (success){
-                        this.placeMoves();
+                        this.placeMoves();	//maybe unnecessary to place all moves...
+                        this.send("placeMove "+tri.x+","+tri.y);
                     }
                     break;
                 } else {
@@ -127,6 +129,9 @@ Trigo.ScreenBoard.prototype.placeMoves=function(){
     }
     document.getElementById("board_moves").value=this.board.state();
 };
+
+//CanvasDrawer
+
 Trigo.CanvasDrawer=function(drawAreaID,l){
 	this.canvas = document.getElementById(drawAreaID);
 	this.context = this.canvas.getContext('2d');
@@ -201,7 +206,7 @@ Trigo.ScreenBoard.prototype.plotInfluence=function(player,range,tunneling){
 };
 
 Trigo.ScreenBoard.prototype.placeMove=function(x,y,player){
-	if (player===undefined){
+	if (player===undefined || isNaN(player)){
 		if (this.board.placeMove(x,y)) this.placeMoves();
 	} else {
 		if (this.board.placeCustomMove(x,y,player)) this.placeMoves();
@@ -232,11 +237,45 @@ Trigo.ScreenBoard.prototype.updateScore=function(){
 	ssa+=result;
 	alert(ssa);
 };
-Trigo.ScreenBoard.prototype.loadGame=function(){						//should be a wrapper around Board.loadGame
+Trigo.ScreenBoard.prototype.loadGame=function(){
 	var sl=this.board.tg.sideLength;
 	this.board.loadGame(document.getElementById("board_moves").value);
 	if (sl!=this.board.tg.sideLength){
 		this.setUpGrid();
 	}
 	this.placeMoves();
+};
+Trigo.ScreenBoard.prototype.setupWS=function(){
+	if (window["WebSocket"]) {
+        this.ws = new WebSocket("ws://" + document.location.host + "/ws");
+        this.ws.onclose = function (evt) {
+            console.log("Connection closed.");
+        };
+        var _this=this;
+        this.ws.onmessage = function (evt) {
+            var messages = evt.data.split('\n');
+            for (var i = 0; i < messages.length; i++) {
+                var arr=messages[i].split(' ');
+                if (arr[0]=="placeMove"){
+					var lp=arr[1].split(':');
+					var loc=lp[0].split(',');
+					_this.placeMove(parseInt(loc[0]),parseInt(loc[1]),parseInt(lp[1]));
+				} else if (arr[0]=="loadGame"){
+					document.getElementById("board_moves").value=arr[1];
+					_this.loadGame();
+					_this.placeMoves();
+				}
+            }
+        };
+    }
+};
+Trigo.ScreenBoard.prototype.send=function(string){
+	if (!this.ws) {
+		return false;
+	}
+	if (!string) {
+		return false;
+	}
+	this.ws.send(string);
+	return true;
 };
