@@ -22,7 +22,9 @@ class SharkTrainer
 public:
     SharkTrainer();
     RealVector makeEvalVector(Board board,Triangle move);
+    Board loadGame(std::string movesstring);
     void makeData(std::string inputfile);
+    void makeSimulationsData(std::string inputfile);
     RegressionDataset loadData(const std::string& dataFile,const std::string& labelFile);
     RegressionDataset dataset;
     void start();

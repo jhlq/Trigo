@@ -61,7 +61,7 @@ SharkTrainer::SharkTrainer()
     return input;
 }*/
 RealVector SharkTrainer::makeEvalVector(Board board,Triangle move){
-    std::vector<Triangle> inds=board.tg.adjacentIndsSpread(move,3);
+    std::vector<Triangle> inds=board.tg.adjacentIndsSpread(move,5);
     int inputlength=inds.size()*5;
     RealVector input(inputlength,0);
     int n=0;
@@ -101,6 +101,29 @@ RealVector SharkTrainer::makeEvalVector(Board board,Triangle move){
     }*/
     return input;
 }
+Board SharkTrainer::loadGame(std::string movesstring){
+	std::setlocale(LC_ALL, "C"); // C uses "." as decimal-point separator
+	std::vector<Triangle> moves;
+	std::vector<std::string> strs;
+	boost::split(strs,movesstring,boost::is_any_of(";"));
+	int sideLength=std::stoi(strs[0]);
+	for (std::size_t i = 1; i < strs.size()-1; i++){
+		std::vector<std::string> strs2;
+		boost::split(strs2,strs[i],boost::is_any_of(":"));
+		std::vector<std::string> loc;
+		boost::split(loc,strs2[0],boost::is_any_of(","));
+		if (loc.size()<2){
+			continue;
+		}
+		Triangle t=Triangle(std::stoi(loc[0]),std::stoi(loc[1]),std::stoi(strs2[1]));
+		moves.push_back(t);
+	}
+	Board board(sideLength);
+	board.moves=moves;
+	board.player=board.otherPlayer(board.moves.back().player);
+	board.placeMoves();
+	return board;
+}
 void SharkTrainer::makeData(std::string inputfile){
     std::ifstream file;
     file.open (inputfile);
@@ -138,6 +161,52 @@ void SharkTrainer::makeData(std::string inputfile){
         std::ofstream labelsfile;
         inputsfile.open("inputs.csv");
         labelsfile.open("labels.csv");
+        labelsfile<<labels[0];
+        for (int i=1;i<labels.size();i++){
+            labelsfile<<"\n"<<labels[i];
+        }
+        //int inp [inputlength]=*(arrays[0]); //this got complicated and buggy...
+        inputsfile<<arrays[0][0];
+        int inputlength=arrays[0].size();
+        for (int n=1;n<inputlength;n++){
+            inputsfile<<","<<arrays[0][n];
+        }
+        for (int ai=1;ai<arrays.size();ai++){
+            inputsfile<<"\n"<<arrays[ai][0];
+            for (int n=1;n<inputlength;n++){
+                inputsfile<<","<<arrays[ai][n];
+            }
+        }
+        inputsfile.close();
+        labelsfile.close();
+    }
+}
+void SharkTrainer::makeSimulationsData(std::string inputfile){
+    std::ifstream file;
+    file.open (inputfile);
+    std::string line;
+    std::vector< RealVector > arrays;
+    std::vector<double> labels;
+    std::setlocale(LC_ALL, "C"); // C uses "." as decimal-point separator
+    if (file.is_open()){
+        while (getline(file,line)){
+            double target;
+            target=0.5;
+            Board b=loadGame(line);
+            for (int i=0;i<b.moves.size();i++){
+				Triangle markedmove=b.moves.back();
+				b.undo();
+				arrays.push_back(makeEvalVector(b,markedmove));
+				labels.push_back(target);
+			}
+        }
+        file.close();
+    }
+    if (labels.size()>0){
+        std::ofstream inputsfile;
+        std::ofstream labelsfile;
+        inputsfile.open("simulationsinputs.csv");
+        labelsfile.open("simulationslabels.csv");
         labelsfile<<labels[0];
         for (int i=1;i<labels.size();i++){
             labelsfile<<"\n"<<labels[i];
