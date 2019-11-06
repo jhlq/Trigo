@@ -20,6 +20,7 @@ Trigo.ScreenBoard=function(drawAreaID,sideLength,_unitSize,_offsetX,_offsetY){
     this.l=2*this.unitSize*Math.cos(Math.PI/6);
     this.triangles=[];
     this.setUpGrid();
+    this.ws=false;
 };
 Trigo.ScreenBoard.prototype.updateParams=function(){					//added
 	this.h=this.unitSize*Math.cos(Math.PI/3);
@@ -42,7 +43,7 @@ Trigo.ScreenBoard.prototype.makeTriangle=function(x,y){
         oy+=(this.unitSize+this.h)*y;
     }
     return new Trigo.ScreenTriangle(x,y,ox,oy);
-}
+};
 Trigo.ScreenBoard.prototype.setUpGrid=function(){
 	if (this.triangles.length>0) this.triangles=[];						//added check
     var sideLength=this.board.tg.sideLength;
@@ -53,7 +54,7 @@ Trigo.ScreenBoard.prototype.setUpGrid=function(){
         }
         this.triangles.push(v);
     }
-}
+};
 Trigo.ScreenBoard.prototype.drawGrid=function(){
     var ylen=this.triangles.length;										//add checked array?
     for (let yt = 0; yt < ylen; yt++){
@@ -67,7 +68,7 @@ Trigo.ScreenBoard.prototype.drawGrid=function(){
             }
         }
     }
-}
+};
 Trigo.ScreenBoard.prototype.clickEvent = function (e) {
 	var mouseX = e.pageX;
 	var mouseY = e.pageY;
@@ -86,7 +87,8 @@ Trigo.ScreenBoard.prototype.clickEvent = function (e) {
                 if (this.board.tg.get(tri.x,tri.y).player==0){
                     var success=this.board.placeMove(tri.x,tri.y);
                     if (success){
-                        this.placeMoves();
+                        this.placeMoves();	//maybe unnecessary to place all moves...
+                        this.send("placeMove "+tri.x+","+tri.y);
                     }
                     break;
                 } else {
@@ -118,15 +120,18 @@ Trigo.ScreenBoard.prototype.placeMoves=function(){
             }
         }
     }
-    if (!this.board.moves.length==0){
-        var t=this.board.moves[this.board.moves.length-1];
-        if (!t.isPass()){
-            var st=this.triangles[t.y][t.x];
+    if (!(this.board.moves.length==0)){
+        var t2=this.board.moves[this.board.moves.length-1];
+        if (!t2.isPass()){
+            var st=this.triangles[t2.y][t2.x];
             this.drawer.circle(st.pixX,st.pixY,"#fff",s/3);
         }
     }
     document.getElementById("board_moves").value=this.board.state();
 };
+
+//CanvasDrawer
+
 Trigo.CanvasDrawer=function(drawAreaID,l){
 	this.canvas = document.getElementById(drawAreaID);
 	this.context = this.canvas.getContext('2d');
@@ -135,7 +140,7 @@ Trigo.CanvasDrawer=function(drawAreaID,l){
 	var paddingY=(document.documentElement || document.body.parentNode || document.body).scrollTop;
 	this.canvasOriginX = rect.left;
 	this.canvasOriginY = rect.top+paddingY;
-}
+};
 Trigo.CanvasDrawer.prototype.updateParams = function(){
 	var rect = this.canvas.getBoundingClientRect();
 	var paddingY=(document.documentElement || document.body.parentNode || document.body).scrollTop;
@@ -201,7 +206,7 @@ Trigo.ScreenBoard.prototype.plotInfluence=function(player,range,tunneling){
 };
 
 Trigo.ScreenBoard.prototype.placeMove=function(x,y,player){
-	if (player===undefined){
+	if (player===undefined || isNaN(player)){
 		if (this.board.placeMove(x,y)) this.placeMoves();
 	} else {
 		if (this.board.placeCustomMove(x,y,player)) this.placeMoves();
@@ -232,11 +237,45 @@ Trigo.ScreenBoard.prototype.updateScore=function(){
 	ssa+=result;
 	alert(ssa);
 };
-Trigo.ScreenBoard.prototype.loadGame=function(){						//should be a wrapper around Board.loadGame
+Trigo.ScreenBoard.prototype.loadGame=function(){
 	var sl=this.board.tg.sideLength;
 	this.board.loadGame(document.getElementById("board_moves").value);
 	if (sl!=this.board.tg.sideLength){
 		this.setUpGrid();
 	}
 	this.placeMoves();
+};
+Trigo.ScreenBoard.prototype.setupWS=function(){
+	if (window["WebSocket"]) {
+        this.ws = new WebSocket("ws://" + document.location.host + "/ws");
+        this.ws.onclose = function (evt) {
+            console.log("Connection closed.");
+        };
+        var _this=this;
+        this.ws.onmessage = function (evt) {
+            var messages = evt.data.split('\n');
+            for (var i = 0; i < messages.length; i++) {
+                var arr=messages[i].split(' ');
+                if (arr[0]=="placeMove"){
+					var lp=arr[1].split(':');
+					var loc=lp[0].split(',');
+					_this.placeMove(parseInt(loc[0]),parseInt(loc[1]),parseInt(lp[1]));
+				} else if (arr[0]=="loadGame"){
+					document.getElementById("board_moves").value=arr[1];
+					_this.loadGame();
+					_this.placeMoves();
+				}
+            }
+        };
+    }
+};
+Trigo.ScreenBoard.prototype.send=function(string){
+	if (!this.ws) {
+		return false;
+	}
+	if (!string) {
+		return false;
+	}
+	this.ws.send(string);
+	return true;
 };
