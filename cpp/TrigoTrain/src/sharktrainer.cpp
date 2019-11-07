@@ -61,11 +61,20 @@ SharkTrainer::SharkTrainer()
     return input;
 }*/
 RealVector SharkTrainer::makeEvalVector(Board board,Triangle move){
+    //assumes board.spreadInfluence() has been called
     std::vector<Triangle> inds=board.tg.adjacentIndsSpread(move,5);
-    int inputlength=inds.size()*5;
+    int inputlength=inds.size()*7+2;
     RealVector input(inputlength,0);
-    int n=0;
-    bool hasKO=false; //board.hasKO()?
+    if (move.isPass()) return input;
+    if (board.player==1){
+        input[0]=board.influence[move.y][move.x].green;
+        input[1]=board.influence[move.y][move.x].blue;
+    } else if (board.player==2){
+        input[0]=board.influence[move.y][move.x].blue;
+        input[1]=board.influence[move.y][move.x].green;
+    }
+    int n=2;
+    bool hasKO=false; //board.hasKO()? must factor in value of KO..
     for (Triangle i:inds){
         if (board.tg.has(i)){
             Triangle t=board.tg.get(i.x,i.y);
@@ -84,10 +93,17 @@ RealVector SharkTrainer::makeEvalVector(Board board,Triangle move){
                     }
                 }
             }
+            if (board.player==1){
+                input[n+4]=board.influence[t.y][t.x].green;
+                input[n+5]=board.influence[t.y][t.x].blue;
+            } else if (board.player==2){
+                input[n+4]=board.influence[t.y][t.x].blue;
+                input[n+5]=board.influence[t.y][t.x].green;
+            }
         } else {
-            input[n+4]=1;
+            input[n+6]=1;
         }
-        n+=5;
+        n+=7;
     }
     /*
     if (hasKO){
@@ -152,6 +168,7 @@ void SharkTrainer::makeData(std::string inputfile){
             board.moves=moves;
             board.player=markedmove.player;
             board.placeMoves();
+            board.spreadInfluence();
             arrays.push_back(makeEvalVector(board,markedmove));
         }
         file.close();
@@ -197,6 +214,7 @@ void SharkTrainer::makeSimulationsData(std::string inputfile){
             for (int i=0;i<b.moves.size();i++){
 				Triangle markedmove=b.moves.back();
 				b.undo();
+                b.spreadInfluence();
                 if (markedmove.isPass()){
                     target=-0.3;
                     for (int yi=0;yi<b.tg.triangles.size();yi++){
@@ -332,7 +350,7 @@ void SharkTrainer::start(){
     std::cout<<"Pass second? "<<eval<<std::endl;
     */
 }
-double SharkTrainer::evaluateMove(Board b,Triangle move){
+double SharkTrainer::evaluateMove(Board b,Triangle move){ //remember to spread influence with board first
     RealVector rv=makeEvalVector(b,move);
     return model(rv)[0];
 }

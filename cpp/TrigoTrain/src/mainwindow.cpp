@@ -184,11 +184,13 @@ void MainWindow::saveTrainingExample(){
 }
 void MainWindow::evaluateMove(){
     if (screenboard->board.moves.empty()) return;
+    screenboard->board.spreadInfluence();
     double e=st.evaluateMove(screenboard->board,screenboard->board.moves.back());
     QLabel *elabel=this->findChild<QLabel*>("evaluationLabel");
     elabel->setText(QString::fromStdString(std::to_string(e)));
 }
 void MainWindow::plotAllEvaluations(){
+    screenboard->board.spreadInfluence();
     double passe=st.evaluateMove(screenboard->board,Triangle(-1,-1,screenboard->board.player));
     if (passe>0){
         if (passe>1) passe=1;
