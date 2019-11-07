@@ -62,7 +62,7 @@ SharkTrainer::SharkTrainer()
 }*/
 RealVector SharkTrainer::makeEvalVector(Board board,Triangle move){
     //assumes board.spreadInfluence() has been called
-    std::vector<Triangle> inds=board.tg.adjacentIndsSpread(move,5);
+    std::vector<Triangle> inds=board.tg.adjacentIndsSpread(move,1);
     int inputlength=inds.size()*7+2;
     RealVector input(inputlength,0);
     if (move.isPass()) return input;
@@ -117,7 +117,7 @@ RealVector SharkTrainer::makeEvalVector(Board board,Triangle move){
     }*/
     return input;
 }
-Board SharkTrainer::loadGame(std::string movesstring){
+Board SharkTrainer::loadGame(std::string movesstring){		//should be moved to trigolib
 	std::setlocale(LC_ALL, "C"); // C uses "." as decimal-point separator
 	std::vector<Triangle> moves;
 	std::vector<std::string> strs;
@@ -210,12 +210,14 @@ void SharkTrainer::makeSimulationsData(std::string inputfile){
         double target;
         while (getline(file,line)){
             std::cout<<++lineit<<std::endl;
+            if (lineit>1) break;
             Board b=loadGame(line);
-            for (int i=0;i<b.moves.size();i++){
+            b.spreadInfluence();
+            int nm=b.moves.size();
+            for (int i=0;i<nm;i++){
 				Triangle markedmove=b.moves.back();
 				b.undo();
-                b.spreadInfluence();
-                if (markedmove.isPass()){
+				if (markedmove.isPass()){
                     target=-0.3;
                     for (int yi=0;yi<b.tg.triangles.size();yi++){
                         for (int xi=0;xi<b.tg.triangles[yi].size();xi++){
@@ -227,6 +229,7 @@ void SharkTrainer::makeSimulationsData(std::string inputfile){
                         }
                     }
                 } else {
+					b.spreadInfluence();
                     target=0.3;
                     arrays.push_back(makeEvalVector(b,markedmove));
                     labels.push_back(target);
@@ -292,7 +295,7 @@ void SharkTrainer::makeModel(){
     initRandomNormal(model,0.001);
 }
 void SharkTrainer::trainModel(RegressionDataset dataset){
-    std::cout<<"Traioing model..."<<std::endl;
+    std::cout<<"Training model..."<<std::endl;
     SquaredLoss<> loss;
     ErrorFunction<> errorFunction(dataset, &model, &loss, true);//enable minibatch training
     //CG<> optimizer;
@@ -317,8 +320,8 @@ void SharkTrainer::init(){
         examplesdataset=loadData("inputs.csv","labels.csv");
 		makeModel();
         trainModel(examplesdataset);
-        //std::cout<<"Compiling simulations..."<<std::endl;
-        //makeSimulationsData("../../../data/simulations.txt");
+        std::cout<<"Compiling simulations..."<<std::endl;
+        makeSimulationsData("../../../data/simulations.txt");
         std::ifstream f2("simulationsinputs.csv");
         if (f.good()){
             simulationsdataset=loadData("simulationsinputs.csv","simulationslabels.csv");
