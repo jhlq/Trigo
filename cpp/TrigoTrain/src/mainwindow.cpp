@@ -30,6 +30,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(passButton, SIGNAL(clicked()),screenboard,SLOT(pass()));
     QPushButton *scoreButton=this->findChild<QPushButton*>("scoreButton");
     connect(scoreButton, SIGNAL(clicked()),screenboard,SLOT(score()));
+    QPushButton *esButton=this->findChild<QPushButton*>("estimateScoreButton");
+    connect(esButton, SIGNAL(clicked()),screenboard,SLOT(estimatescore()));
     QPushButton *amButton=this->findChild<QPushButton*>("autoMarkButton");
     connect(amButton, SIGNAL(clicked()),screenboard,SLOT(autoMark()));
 
@@ -144,7 +146,7 @@ void MainWindow::newGameButtonClicked(){
     newGameDialog->show();
 }
 void MainWindow::makeNewGame(int sideLength,int unitSize){
-    delete screenboard;
+    delete screenboard; //this should be updated to modify the existing board
     screenboard=new ScreenBoard(sideLength,unitSize);
     connect(diagramScene, SIGNAL(released(int,int)),this->screenboard,SLOT(clickevent(int,int)));
     connect(screenboard, SIGNAL(modifiedmoves()),this,SLOT(placemoves()));
@@ -155,6 +157,8 @@ void MainWindow::makeNewGame(int sideLength,int unitSize){
     connect(passButton, SIGNAL(clicked()),screenboard,SLOT(pass()));
     QPushButton *scoreButton=this->findChild<QPushButton*>("scoreButton");
     connect(scoreButton, SIGNAL(clicked()),screenboard,SLOT(score()));
+    QPushButton *esButton=this->findChild<QPushButton*>("estimateScoreButton");
+    connect(esButton, SIGNAL(clicked()),screenboard,SLOT(estimatescore()));
     QPushButton *amButton=this->findChild<QPushButton*>("autoMarkButton");
     connect(amButton, SIGNAL(clicked()),screenboard,SLOT(autoMark()));
     diagramScene->clear();

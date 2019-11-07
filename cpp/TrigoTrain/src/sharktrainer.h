@@ -26,11 +26,12 @@ public:
     void makeData(std::string inputfile);
     void makeSimulationsData(std::string inputfile);
     RegressionDataset loadData(const std::string& dataFile,const std::string& labelFile);
-    RegressionDataset dataset;
+    RegressionDataset examplesdataset;
+    RegressionDataset simulationsdataset;
     void start();
     ConcatenatedModel<RealVector> model;
     void makeModel();
-    void trainModel();
+    void trainModel(RegressionDataset dataset);
     void init();
     double evaluateMove(Board b,Triangle move);
 

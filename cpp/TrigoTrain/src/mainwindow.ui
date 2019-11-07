@@ -58,6 +58,13 @@
          </widget>
         </item>
         <item>
+         <widget class="QPushButton" name="estimateScoreButton">
+          <property name="text">
+           <string>Estimate score</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QPushButton" name="autoMarkButton">
           <property name="text">
            <string>Mark dead stones</string>

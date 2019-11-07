@@ -4,6 +4,13 @@
 #include <string>
 #include <vector>
 #include "trianglegrid.h"
+#include <array>
+
+struct InfluenceTriangle{
+    double border=0;
+    double green=0;
+    double blue=0;
+};
 
 class Board
 {
@@ -36,6 +43,15 @@ public:
     int stones[2];
     int captures[2];
     int territory[2];
+    double komi;
+
+    std::vector<std::vector<InfluenceTriangle>> influence;
+    void initInfluence();
+    void resetInfluence();
+    void normalizeInfluence();
+    void spreadInfluence(Triangle tri,int range=3);
+    void spreadInfluence(int range=3);
+    std::array<double,2> estimateScore(bool reset=true,int range=3);
 private:
     void removeCapturedBy(const Triangle tri);
 };

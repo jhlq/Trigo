@@ -187,17 +187,32 @@ void SharkTrainer::makeSimulationsData(std::string inputfile){
     std::string line;
     std::vector< RealVector > arrays;
     std::vector<double> labels;
-    std::setlocale(LC_ALL, "C"); // C uses "." as decimal-point separator
+    //std::setlocale(LC_ALL, "C"); // C uses "." as decimal-point separator //handled in loadGame
+    int lineit=0;
     if (file.is_open()){
+        double target;
         while (getline(file,line)){
-            double target;
-            target=0.5;
+            std::cout<<++lineit<<std::endl;
             Board b=loadGame(line);
             for (int i=0;i<b.moves.size();i++){
 				Triangle markedmove=b.moves.back();
 				b.undo();
-				arrays.push_back(makeEvalVector(b,markedmove));
-				labels.push_back(target);
+                if (markedmove.isPass()){
+                    target=-0.3;
+                    for (int yi=0;yi<b.tg.triangles.size();yi++){
+                        for (int xi=0;xi<b.tg.triangles[yi].size();xi++){
+                            Triangle move(xi,yi,markedmove.player);
+                            if (b.isValidMove(move)){
+                                arrays.push_back(makeEvalVector(b,move));
+                                labels.push_back(target);
+                            }
+                        }
+                    }
+                } else {
+                    target=0.3;
+                    arrays.push_back(makeEvalVector(b,markedmove));
+                    labels.push_back(target);
+                }
 			}
         }
         file.close();
@@ -240,14 +255,14 @@ RegressionDataset SharkTrainer::loadData(const std::string& dataFile,const std::
                              ". Check paths! Current dir is " << current_working_dir << " Exception: " <<exc.what()<< std::endl;
             exit(EXIT_FAILURE);
         }
-        dataset=RegressionDataset(inputs,labels);
-        return dataset;
+        auto _dataset=RegressionDataset(inputs,labels);
+        return _dataset;
 }
 void SharkTrainer::makeModel(){
     int hidden1=700;
     int hidden2=500;
     int hidden3=300;
-    auto l1=std::make_shared<DenseLayer>(dataset.inputShape(),hidden1,true);
+    auto l1=std::make_shared<DenseLayer>(examplesdataset.inputShape(),hidden1,true);
     auto l2=std::make_shared<DenseLayer>(l1->outputShape(),hidden2);
     auto l3=std::make_shared<DenseLayer>(l2->outputShape(),hidden3);
     auto o=std::make_shared<LinearModel<RealVector>>(l3->outputShape(),1);
@@ -258,9 +273,10 @@ void SharkTrainer::makeModel(){
     model=*l1>>*l2>>*l3>>*o;
     initRandomNormal(model,0.001);
 }
-void SharkTrainer::trainModel(){
+void SharkTrainer::trainModel(RegressionDataset dataset){
+    std::cout<<"Traioing model..."<<std::endl;
     SquaredLoss<> loss;
-    ErrorFunction<> errorFunction(dataset, &model, &loss);//, true);//enable minibatch training
+    ErrorFunction<> errorFunction(dataset, &model, &loss, true);//enable minibatch training
     //CG<> optimizer;
     Adam<> optimizer;
     optimizer.setEta(0.001);//learning rate of the algorithm
@@ -278,10 +294,18 @@ void SharkTrainer::init(){
     if (!(f.good())){
 		std::cout<<"No training data found. Copy the file trainingData.txt into your build directory or save some example moves and reinitialize."<<std::endl;
 	} else {
-		makeData("trainingData.txt");
-		loadData("inputs.csv","labels.csv");
+        std::cout<<"Compiling examples..."<<std::endl;
+        makeData("trainingData.txt");   //Change to ../trainingData.txt? Saving moves saves to build, which seems proper
+        examplesdataset=loadData("inputs.csv","labels.csv");
 		makeModel();
-		trainModel();
+        trainModel(examplesdataset);
+        //std::cout<<"Compiling simulations..."<<std::endl;
+        //makeSimulationsData("../../../data/simulations.txt");
+        std::ifstream f2("simulationsinputs.csv");
+        if (f.good()){
+            simulationsdataset=loadData("simulationsinputs.csv","simulationslabels.csv");
+            trainModel(simulationsdataset);
+        }
 	}
 }
 void SharkTrainer::start(){

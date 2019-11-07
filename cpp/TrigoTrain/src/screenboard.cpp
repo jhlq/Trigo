@@ -79,6 +79,12 @@ void ScreenBoard::score(){
     board.score();
     emit modifiedscore();
 }
+void ScreenBoard::estimatescore(){
+    auto r=board.estimateScore();
+    board.territory[0]=r[0];    //workaround to display scoreestimate...
+    board.territory[1]=r[1];
+    emit modifiedscore();
+}
 void ScreenBoard::autoMark(){
     board.autoMarkDeadStones();
     emit modifiedmoves();

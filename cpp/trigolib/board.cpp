@@ -4,6 +4,8 @@
 #include <stdlib.h>     /* srand, rand */
 #include <time.h>       /* time */
 
+#include <math.h>
+
 
 Board::Board(int sideLength) : tg(sideLength)
 {
@@ -15,6 +17,7 @@ Board::Board(int sideLength) : tg(sideLength)
     captures[1]=0;
     territory[0]=0;
     territory[1]=0;
+    komi=7;
 }
 void Board::reset(){
     tg=TriangleGrid(tg.sideLength);
@@ -290,4 +293,108 @@ void Board::autoMarkDeadStones(){
     for (auto cluster:tobemarked){
         markDeadStones(cluster);
     }
+}
+
+
+void Board::initInfluence(){
+    for (int y=0;y<this->tg.triangles.size();y++){
+        std::vector<InfluenceTriangle> v;
+        for (int x=0;x<this->tg.triangles[y].size();x++){
+            InfluenceTriangle vt;
+            if (y==0 || x<2 || x>(this->tg.triangles[y].size()-3)) vt.border=1;	//add decreasing border influence
+            v.push_back(vt);
+        }
+        this->influence.push_back(v);
+    }
+}
+void Board::resetInfluence(){
+    if (this->influence.empty()){										//interesting topic, what are the performance gains of forcing the caller to keep track of initialization?
+        this->initInfluence();
+    } else {
+        for (int y=0;y<this->influence.size();y++){
+            for (int x=0;x<this->influence[y].size();x++){
+                this->influence[y][x].green=0;
+                this->influence[y][x].blue=0;
+            }
+        }
+    }
+}
+void Board::normalizeInfluence(){
+    for (int y=0;y<this->influence.size();y++){
+        for (int x=0;x<this->influence[y].size();x++){
+            this->influence[y][x].green=tanh(this->influence[y][x].green);
+            this->influence[y][x].blue=tanh(this->influence[y][x].blue);
+        }
+    }
+}
+void Board::spreadInfluence(Triangle tri,int range){
+    if (tri.isPass()) return;
+    std::vector<Triangle> visited;
+    std::vector<Triangle> fringe;
+    fringe.push_back(tri);
+    int _player=tri.player;
+    for (int r=0;r<=range;r++){
+        std::vector<Triangle> newfringe;
+        for (int fi=0;fi<fringe.size();fi++){
+            Triangle t=fringe[fi];
+            if (_player==1){
+                this->influence[t.y][t.x].green+=(double)1/(r+1);
+            } else if (_player==2){
+                this->influence[t.y][t.x].blue+=(double)1/(r+1);
+            }
+            auto adj=this->tg.adjacent(t);
+            for (int adji=0;adji<adj.size();adji++){
+                Triangle at=adj[adji];
+                if (!contains(visited,at)){
+                    if (at.alive() && at.player!=_player){
+                        //tunnel
+                    } else {
+                        newfringe.push_back(at);
+                    }
+                }
+            }
+            visited.push_back(t);
+        }
+        fringe=newfringe;
+    }
+}
+void Board::spreadInfluence(int range){
+    this->resetInfluence();
+    for (int y=0;y<this->tg.triangles.size();y++){
+        for (int x=0;x<this->tg.triangles[y].size();x++){
+            Triangle t=this->tg.triangles[y][x];
+            if (t.alive()){
+                this->spreadInfluence(t,range);
+            }
+        }
+    }
+    this->normalizeInfluence();
+}
+std::array<double,2> Board::estimateScore(bool reset,int range){
+    double green=this->captures[0];//+this->stones[0];	//hybrid rules, both stones and captures give points
+    double blue=this->captures[1]+this->komi;//+this->stones[1]; //stones are counted from influence
+    if (reset){
+        this->spreadInfluence(range);
+    }
+    for (int y=0;y<this->influence.size();y++){
+        for (int x=0;x<this->influence[y].size();x++){
+            auto it=this->influence[y][x];
+            double infl=it.green-it.blue;
+            if (infl>0){
+                if (it.blue>0.3){
+                    green+=0.5;
+                } else {
+                    green++;
+                }
+            } else if (infl<0){
+                if (it.green>0.3){
+                    blue+=0.5;
+                } else {
+                    blue++;
+                }
+            }
+        }
+    }
+    std::array<double,2> _a={green,blue};
+    return _a;
 }

@@ -848,7 +848,7 @@ Trigo.Board.prototype.normalizeInfluence=function(){
 		}
 	}
 };
-Trigo.Board.prototype.spreadInfluence_tri=function(tri,range,tunneling){//something is wrong with tunneling
+Trigo.Board.prototype.spreadInfluence_tri=function(tri,range,tunneling){//something is wrong with tunneling. No?
 	if (tri.isPass()) return;
 	var visited=[];
 	var fringe=[[tri,false]]; //bool: tunnelled
@@ -903,7 +903,7 @@ Trigo.Board.prototype.spreadInfluence=function(range,tunneling){
 Trigo.Board.prototype.estimateScore=function(reset,range,tunneling){
 	//todo: symbiosis mode, more equal points=higher score
 	if (reset===undefined) reset=true;
-	if (range===undefined) range=5;
+	if (range===undefined) range=3;
 	if (tunneling===undefined) tunneling=false;
 	var green=this.captures[0];//+this.stones[0];	//hybrid rules, both stones and captures give points
 	var blue=this.captures[1]+this.komi;//+this.stones[1]; //stones are counted from influence
@@ -916,13 +916,13 @@ Trigo.Board.prototype.estimateScore=function(reset,range,tunneling){
 			var it=this.influence[y][x];
 			var infl=it.green-it.blue;
 			if (infl>0){
-				if (it.blue>0.5){
+				if (it.blue>0.3){
 					green+=0.5;
 				} else {
 					green++;
 				}
 			} else if (infl<0){
-				if (it.green>0.5){
+				if (it.green>0.3){
 					blue+=0.5;
 				} else {
 					blue++;

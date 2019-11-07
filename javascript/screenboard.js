@@ -181,8 +181,8 @@ Trigo.CanvasDrawer.prototype.circle=function(x,y,col,r){
 
 Trigo.ScreenBoard.prototype.plotInfluence=function(player,range,tunneling){
 	if (player==undefined) player=0;
-	if (range==undefined) range=5;
-	if (tunneling==undefined) tunneling=true;
+	if (range==undefined) range=3;
+	if (tunneling==undefined) tunneling=false;
 	this.board.resetInfluence();
 	this.board.spreadInfluence(range,tunneling);
 	for (let y=0;y<this.board.influence.length;y++){
