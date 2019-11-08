@@ -39,6 +39,8 @@ private slots:
     void saveTrainingExample();
     void evaluateMove();
     void plotAllEvaluations();
+    void trainOnExamples();
+    void trainOnSimulations();
     void reinitializest();
 
 private:

@@ -45,6 +45,10 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(emButton, SIGNAL(clicked()),this,SLOT(evaluateMove()));
     QPushButton *paeButton=this->findChild<QPushButton*>("plotAllEvaluationsButton");
     connect(paeButton, SIGNAL(clicked()),this,SLOT(plotAllEvaluations()));
+    QPushButton *etButton=this->findChild<QPushButton*>("examplesTrain");
+    connect(etButton, SIGNAL(clicked()),this,SLOT(trainOnExamples()));
+    QPushButton *stButton=this->findChild<QPushButton*>("simulationsTrain");
+    connect(stButton, SIGNAL(clicked()),this,SLOT(trainOnSimulations()));
     QPushButton *reinitButton=this->findChild<QPushButton*>("reinitButton");
     connect(reinitButton, SIGNAL(clicked()),this,SLOT(reinitializest()));
 
@@ -217,6 +221,12 @@ void MainWindow::plotAllEvaluations(){
             }
         }
     }
+}
+void MainWindow::trainOnExamples(){
+    st.trainModel(st.examplesdataset);
+}
+void MainWindow::trainOnSimulations(){
+    st.trainModel(st.simulationsdataset);
 }
 void MainWindow::reinitializest(){
     st.init();

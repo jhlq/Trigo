@@ -62,7 +62,7 @@ SharkTrainer::SharkTrainer()
 }*/
 RealVector SharkTrainer::makeEvalVector(Board board,Triangle move){
     //assumes board.spreadInfluence() has been called
-    std::vector<Triangle> inds=board.tg.adjacentIndsSpread(move,1);
+    std::vector<Triangle> inds=board.tg.adjacentIndsSpread(move,5);
     int inputlength=inds.size()*7+2;
     RealVector input(inputlength,0);
     if (move.isPass()) return input;
@@ -210,7 +210,7 @@ void SharkTrainer::makeSimulationsData(std::string inputfile){
         double target;
         while (getline(file,line)){
             std::cout<<++lineit<<std::endl;
-            if (lineit>1) break;
+            //if (lineit>1) break;
             Board b=loadGame(line);
             b.spreadInfluence();
             int nm=b.moves.size();
@@ -280,12 +280,12 @@ RegressionDataset SharkTrainer::loadData(const std::string& dataFile,const std::
         return _dataset;
 }
 void SharkTrainer::makeModel(){
-    int hidden1=700;
-    int hidden2=500;
-    int hidden3=300;
+    int hidden1=examplesdataset.inputShape().numElements()/2;
+    int hidden2=hidden1/3;
+    int hidden3=9;
     auto l1=std::make_shared<DenseLayer>(examplesdataset.inputShape(),hidden1,true);
-    auto l2=std::make_shared<DenseLayer>(l1->outputShape(),hidden2);
-    auto l3=std::make_shared<DenseLayer>(l2->outputShape(),hidden3);
+    auto l2=std::make_shared<DenseLayer>(l1->outputShape(),hidden2,true);
+    auto l3=std::make_shared<DenseLayer>(l2->outputShape(),hidden3,true);
     auto o=std::make_shared<LinearModel<RealVector>>(l3->outputShape(),1);
     layers.push_back(l1);
     layers.push_back(l2);
@@ -320,8 +320,8 @@ void SharkTrainer::init(){
         examplesdataset=loadData("inputs.csv","labels.csv");
 		makeModel();
         trainModel(examplesdataset);
-        std::cout<<"Compiling simulations..."<<std::endl;
-        makeSimulationsData("../../../data/simulations.txt");
+        //std::cout<<"Compiling simulations..."<<std::endl;
+        //makeSimulationsData("../../../data/simulations.txt");
         std::ifstream f2("simulationsinputs.csv");
         if (f.good()){
             simulationsdataset=loadData("simulationsinputs.csv","simulationslabels.csv");

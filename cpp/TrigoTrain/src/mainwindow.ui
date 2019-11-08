@@ -148,6 +148,20 @@
          </widget>
         </item>
         <item>
+         <widget class="QPushButton" name="examplesTrain">
+          <property name="text">
+           <string>Train on examples</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="simulationsTrain">
+          <property name="text">
+           <string>Train on simulations</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QPushButton" name="reinitButton">
           <property name="text">
            <string>Reinitialize</string>
