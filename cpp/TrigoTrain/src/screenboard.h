@@ -16,6 +16,8 @@ public:
     int unitSize;
     int offsetX;
     int offsetY;
+    double h;
+    double l;
 
     ScreenTriangle makeTriangle(int x,int y);
     void setUpGrid();
@@ -30,6 +32,7 @@ private slots:
     void score();
     void estimatescore();
     void autoMark();
+    void random();
 };
 
 #endif // SCREENBOARD_H

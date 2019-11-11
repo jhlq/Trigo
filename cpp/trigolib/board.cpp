@@ -5,7 +5,7 @@
 #include <time.h>       /* time */
 
 #include <math.h>
-
+#include <boost/algorithm/string.hpp>
 
 Board::Board(int sideLength) : tg(sideLength)
 {
@@ -136,14 +136,15 @@ bool Board::placeMove(int x,int y,int p){
         }
     }*/
     history.push_back(tg.historyString());
-    moves.push_back(tri);
+    //moves.push_back(tri);
+    moves.push_back(Triangle(x,y,p));
     stones[p-1]+=1;
     return true;
 }
 std::string Board::state(){
     std::string s=std::to_string(tg.sideLength)+";";
     for (Triangle move : moves){
-        s+=std::to_string(move.x)+","+std::to_string(move.y)+","+std::to_string(move.player)+";";
+        s+=std::to_string(move.x)+","+std::to_string(move.y)+":"+std::to_string(move.player)+";";
     }
     return s;
 }
@@ -397,4 +398,82 @@ std::array<double,2> Board::estimateScore(bool reset,int range){
     }
     std::array<double,2> _a={green,blue};
     return _a;
+}
+std::vector<std::vector<std::string>> Board::loadGame(std::string movesstring){
+    std::setlocale(LC_ALL, "C"); // C uses "." as decimal-point separator
+    std::vector<Triangle> _moves;
+    std::vector<std::string> strs;
+    std::vector<std::vector<std::string>> remainder;
+    boost::split(strs,movesstring,boost::is_any_of(";"));
+    int sideLength=std::stoi(strs[0]);
+    for (std::size_t i = 1; i < strs.size()-1; i++){
+        std::vector<std::string> strs2;
+        boost::split(strs2,strs[i],boost::is_any_of(":"));
+        std::vector<std::string> loc;
+        boost::split(loc,strs2[0],boost::is_any_of(","));
+        if (loc.size()<2){
+            //std::array<std::string,2> a={strs2[0],strs2[1]}
+            remainder.push_back(strs2);
+            continue;
+        }
+        Triangle t=Triangle(std::stoi(loc[0]),std::stoi(loc[1]),std::stoi(strs2[1]));
+        _moves.push_back(t);
+    }
+    //Board board(sideLength);
+    tg.sideLength=sideLength;
+    reset();
+    moves=_moves;
+    player=otherPlayer(moves.back().player);
+    placeMoves();
+    return remainder;
+}
+bool Board::isEye(Triangle loc){
+    if (tg.get(loc.x,loc.y).alive()) return false;
+    auto adj=tg.adjacent(loc);
+    bool adjallsame=true;
+    for (auto a:adj){
+        //if (!move.sameTenantAs(a)){
+        if (player!=a.player){
+            adjallsame=false;
+            break;
+        }
+    }
+    if (adjallsame){
+        auto adjg=tg.getGroup(adj[0]);
+        bool adjconnected=true;
+        for (int adji=1;adji<adj.size();adji++){
+            if (!contains(adjg,adj[adji])){
+                adjconnected=false;
+                break;
+            }
+        }
+        if (adjconnected) return true;
+    }
+    return false;
+}
+bool Board::placeRandomMove(){
+    std::vector<Triangle> m2c;
+    for (int yi=0;yi<tg.triangles.size();yi++){
+        for (int xi=0;xi<tg.triangles[yi].size();xi++){
+            Triangle m(xi,yi,player);
+            if (isValidMove(m) && !isEye(m)){
+                m2c.push_back(m);
+            }
+        }
+    }
+    if (m2c.empty()){
+        placeMove(-1,-1);
+        return false;
+    }
+    int r=rand()%m2c.size();
+    return placeMove(m2c[r].x,m2c[r].y);
+}
+void Board::playRandomToEnd(){
+    bool ppm=true;
+    bool pm=true;
+    for (int i=0;i<tg.sideLength*tg.sideLength*tg.sideLength;i++){
+        pm=placeRandomMove();
+        if (!ppm && !pm) return;
+        ppm=pm;
+    }
 }

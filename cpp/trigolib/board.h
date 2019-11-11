@@ -52,6 +52,10 @@ public:
     void spreadInfluence(Triangle tri,int range=3);
     void spreadInfluence(int range=3);
     std::array<double,2> estimateScore(bool reset=true,int range=3);
+    std::vector<std::vector<std::string>> loadGame(std::string movesstring);
+    bool isEye(Triangle loc);
+    bool placeRandomMove();
+    void playRandomToEnd();
 private:
     void removeCapturedBy(const Triangle tri);
 };

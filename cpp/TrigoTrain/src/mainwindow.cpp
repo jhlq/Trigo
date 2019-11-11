@@ -20,7 +20,7 @@ MainWindow::MainWindow(QWidget *parent) :
     diagramScene = new DiagramScene();
     diagramScene->setSceneRect(QRect(0, 0, 700, 600));
 
-    //connect all screenboard, remember to add changes in makeNewGame also
+    //connect all screenboard
     connect(diagramScene, SIGNAL(released(int,int)),this->screenboard,SLOT(clickevent(int,int)));
     connect(screenboard, SIGNAL(modifiedmoves()),this,SLOT(placemoves()));
     connect(screenboard, SIGNAL(modifiedscore()),this,SLOT(updatescore()));
@@ -34,6 +34,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(esButton, SIGNAL(clicked()),screenboard,SLOT(estimatescore()));
     QPushButton *amButton=this->findChild<QPushButton*>("autoMarkButton");
     connect(amButton, SIGNAL(clicked()),screenboard,SLOT(autoMark()));
+    QPushButton *rButton=this->findChild<QPushButton*>("randomButton");
+    connect(rButton, SIGNAL(clicked()),screenboard,SLOT(random()));
 
 
     QPushButton *ngButton=this->findChild<QPushButton*>("newGameButton");
@@ -150,7 +152,11 @@ void MainWindow::newGameButtonClicked(){
     newGameDialog->show();
 }
 void MainWindow::makeNewGame(int sideLength,int unitSize){
-    delete screenboard; //this should be updated to modify the existing board
+    screenboard->board.tg.sideLength=sideLength;
+    screenboard->board.reset();
+    screenboard->unitSize=unitSize;
+    screenboard->setUpGrid();
+    /*delete screenboard; //this should be updated to modify the existing board
     screenboard=new ScreenBoard(sideLength,unitSize);
     connect(diagramScene, SIGNAL(released(int,int)),this->screenboard,SLOT(clickevent(int,int)));
     connect(screenboard, SIGNAL(modifiedmoves()),this,SLOT(placemoves()));
@@ -164,7 +170,7 @@ void MainWindow::makeNewGame(int sideLength,int unitSize){
     QPushButton *esButton=this->findChild<QPushButton*>("estimateScoreButton");
     connect(esButton, SIGNAL(clicked()),screenboard,SLOT(estimatescore()));
     QPushButton *amButton=this->findChild<QPushButton*>("autoMarkButton");
-    connect(amButton, SIGNAL(clicked()),screenboard,SLOT(autoMark()));
+    connect(amButton, SIGNAL(clicked()),screenboard,SLOT(autoMark()));*/
     diagramScene->clear();
     drawGrid();
     updatescore();
@@ -188,8 +194,12 @@ void MainWindow::saveTrainingExample(){
 }
 void MainWindow::evaluateMove(){
     if (screenboard->board.moves.empty()) return;
-    screenboard->board.spreadInfluence();
-    double e=st.evaluateMove(screenboard->board,screenboard->board.moves.back());
+    Board b(screenboard->board);
+    Triangle m=b.moves.back();
+    b.undo();
+    //screenboard->board.spreadInfluence();
+    b.spreadInfluence();
+    double e=st.evaluateMove(b,m);
     QLabel *elabel=this->findChild<QLabel*>("evaluationLabel");
     elabel->setText(QString::fromStdString(std::to_string(e)));
 }
@@ -223,6 +233,8 @@ void MainWindow::plotAllEvaluations(){
     }
 }
 void MainWindow::trainOnExamples(){
+    st.makeData("trainingData.txt");
+    st.examplesdataset=st.loadData("inputs.csv","labels.csv");
     st.trainModel(st.examplesdataset);
 }
 void MainWindow::trainOnSimulations(){

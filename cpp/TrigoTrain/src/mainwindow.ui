@@ -72,6 +72,13 @@
          </widget>
         </item>
         <item>
+         <widget class="QPushButton" name="randomButton">
+          <property name="text">
+           <string>Random</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="Line" name="line">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>

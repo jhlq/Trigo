@@ -8,7 +8,7 @@ ScreenBoard::ScreenBoard(int sideLength, int _unitSize, int _offsetX, int _offse
 {
     unitSize=_unitSize;
     offsetX=_offsetX;
-    offsetY=_offsetY;
+    offsetY=_offsetY;  
     setUpGrid();
 }
 
@@ -17,9 +17,7 @@ ScreenTriangle ScreenBoard::makeTriangle(int x,int y){
     double oy=offsetY;
     int remainder=x%2;
     int ex=x-remainder;
-    double h=unitSize*cos(PI/3);
-    double l=2*unitSize*cos(PI/6);
-    if (remainder==1){
+    if (remainder==1){ //this is off...
         ox+=l/2+(x/2)*l+(l/2)*y;
         oy+=h+(unitSize+h)*y;
     } else {
@@ -29,7 +27,10 @@ ScreenTriangle ScreenBoard::makeTriangle(int x,int y){
     return ScreenTriangle(x,y,ox,oy);
 }
 void ScreenBoard::setUpGrid(){
+    h=unitSize*cos(PI/3);
+    l=2*unitSize*cos(PI/6);
     int sideLength=board.tg.sideLength;
+    triangles.clear();
     for (int yt = 0; yt < sideLength; yt++) {
         std::vector<ScreenTriangle> v;
         for (int xt = 0; xt <= 2*sideLength-2*yt-2; xt++) {
@@ -87,5 +88,9 @@ void ScreenBoard::estimatescore(){
 }
 void ScreenBoard::autoMark(){
     board.autoMarkDeadStones();
+    emit modifiedmoves();
+}
+void ScreenBoard::random(){
+    board.playRandomToEnd();
     emit modifiedmoves();
 }

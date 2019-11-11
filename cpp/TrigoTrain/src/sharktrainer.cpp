@@ -117,7 +117,7 @@ RealVector SharkTrainer::makeEvalVector(Board board,Triangle move){
     }*/
     return input;
 }
-Board SharkTrainer::loadGame(std::string movesstring){		//should be moved to trigolib
+Board SharkTrainer::loadGame(std::string movesstring){		//should be moved to trigolib. Moved, deprecated
 	std::setlocale(LC_ALL, "C"); // C uses "." as decimal-point separator
 	std::vector<Triangle> moves;
 	std::vector<std::string> strs;
@@ -149,14 +149,14 @@ void SharkTrainer::makeData(std::string inputfile){
     std::setlocale(LC_ALL, "C"); // C uses "." as decimal-point separator
     if (file.is_open()){
         while (getline(file,line)){
-            std::vector<Triangle> moves;
+            //std::vector<Triangle> moves;
             double target;
             std::vector<std::string> strs;
             boost::split(strs,line,boost::is_any_of(";"));
-            int sideLength=std::stoi(strs[0]);
+            //int sideLength=std::stoi(strs[0]);
             target=std::stod(strs[strs.size()-2]);
-            labels.push_back(target);
-            for (std::size_t i = 1; i < strs.size()-2; i++){
+            //labels.push_back(target);
+            /*for (std::size_t i = 1; i < strs.size()-2; i++){
                 std::vector<std::string> strs2;
                 boost::split(strs2,strs[i],boost::is_any_of(","));
                 Triangle t=Triangle(std::stoi(strs2[0]),std::stoi(strs2[1]),std::stoi(strs2[2]));
@@ -167,9 +167,27 @@ void SharkTrainer::makeData(std::string inputfile){
             Board board(sideLength);
             board.moves=moves;
             board.player=markedmove.player;
-            board.placeMoves();
+            board.placeMoves();*/
+            Board board(0);
+            board.loadGame(line);
+            Triangle markedmove=board.moves.back();
+            board.undo();
             board.spreadInfluence();
-            arrays.push_back(makeEvalVector(board,markedmove));
+            if (markedmove.isPass() && target>0){
+                target=-target;
+                for (int yi=0;yi<board.tg.triangles.size();yi++){
+                    for (int xi=0;xi<board.tg.triangles[yi].size();xi++){
+                        Triangle move(xi,yi,markedmove.player);
+                        if (board.isValidMove(move)){
+                            arrays.push_back(makeEvalVector(board,move));
+                            labels.push_back(target);
+                        }
+                    }
+                }
+            } else {
+                arrays.push_back(makeEvalVector(board,markedmove));
+                labels.push_back(target);
+            }
         }
         file.close();
     }
@@ -217,8 +235,8 @@ void SharkTrainer::makeSimulationsData(std::string inputfile){
             for (int i=0;i<nm;i++){
 				Triangle markedmove=b.moves.back();
 				b.undo();
-				if (markedmove.isPass()){
-                    target=-0.3;
+                if (i<3 && markedmove.isPass()){
+                    target=-0.5;
                     for (int yi=0;yi<b.tg.triangles.size();yi++){
                         for (int xi=0;xi<b.tg.triangles[yi].size();xi++){
                             Triangle move(xi,yi,markedmove.player);
@@ -311,6 +329,7 @@ void SharkTrainer::trainModel(RegressionDataset dataset){
     model.setParameterVector(optimizer.solution().point);
 }
 void SharkTrainer::init(){
+    srand(time(NULL)); //for random moves
 	std::ifstream f("trainingData.txt");
     if (!(f.good())){
 		std::cout<<"No training data found. Copy the file trainingData.txt into your build directory or save some example moves and reinitialize."<<std::endl;
@@ -324,6 +343,7 @@ void SharkTrainer::init(){
         //makeSimulationsData("../../../data/simulations.txt");
         std::ifstream f2("simulationsinputs.csv");
         if (f.good()){
+            std::cout<<"Loading simulations..."<<std::endl;
             simulationsdataset=loadData("simulationsinputs.csv","simulationslabels.csv");
             trainModel(simulationsdataset);
         }
@@ -357,3 +377,43 @@ double SharkTrainer::evaluateMove(Board b,Triangle move){ //remember to spread i
     RealVector rv=makeEvalVector(b,move);
     return model(rv)[0];
 }
+/*bool SharkTrainer::isEye(Board b,Triangle move){
+    auto adj=b.tg.adjacent(move);
+    bool adjallsame=true;
+    for (auto a:adj){
+        //if (!move.sameTenantAs(a)){
+        if (move.player!=a.player){
+            adjallsame=false;
+            break;
+        }
+    }
+    if (adjallsame){
+        auto adjg=b.tg.getGroup(adj[0]);
+        bool adjconnected=true;
+        for (int adji=1;adji<adj.size();adji++){
+            if (!contains(adjg,adj[adji])){
+                adjconnected=false;
+                break;
+            }
+        }
+        if (adjconnected) return true;
+    }
+    return false;
+}
+bool SharkTrainer::makeRandomMove(Board b){
+    std::vector<Triangle> m2c;
+    for (int yi=0;yi<b.tg.triangles.size();yi++){
+        for (int xi=0;xi<b.tg.triangles[yi].size();xi++){
+            Triangle m(xi,yi,b.player);
+            if (b.isValidMove(m) && !isEye(b,m)){
+                m2c.push_back(m);
+            }
+        }
+    }
+    if (m2c.empty()){
+        b.placeMove(-1,-1);
+        return false;
+    }
+    int r=rand()%m2c.size();
+    return b.placeMove(m2c[r].x,m2c[r].y);
+}*/
