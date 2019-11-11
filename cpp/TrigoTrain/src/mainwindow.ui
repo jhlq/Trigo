@@ -134,6 +134,13 @@
          </widget>
         </item>
         <item>
+         <widget class="QPushButton" name="laipButton">
+          <property name="text">
+           <string>Let AI play</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QPushButton" name="evalMoveButton">
           <property name="text">
            <string>Evaluate move</string>

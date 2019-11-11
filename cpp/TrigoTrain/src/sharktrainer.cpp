@@ -248,7 +248,7 @@ void SharkTrainer::makeSimulationsData(std::string inputfile){
                     }
                 } else {
 					b.spreadInfluence();
-                    target=0.3;
+                    target=0.5;
                     arrays.push_back(makeEvalVector(b,markedmove));
                     labels.push_back(target);
                 }
@@ -399,14 +399,21 @@ double SharkTrainer::evaluateMove(Board b,Triangle move){ //remember to spread i
         if (adjconnected) return true;
     }
     return false;
-}
-bool SharkTrainer::makeRandomMove(Board b){
+}*/
+bool SharkTrainer::placeMove(Board &b){
     std::vector<Triangle> m2c;
+    b.spreadInfluence();
     for (int yi=0;yi<b.tg.triangles.size();yi++){
         for (int xi=0;xi<b.tg.triangles[yi].size();xi++){
             Triangle m(xi,yi,b.player);
-            if (b.isValidMove(m) && !isEye(b,m)){
-                m2c.push_back(m);
+            if (b.isValidMove(m) && !b.isEye(m)){
+                double ev=evaluateMove(b,m);
+                if (ev>=0.1){
+                    int n=ev*10;
+                    for (int i=0;i<n;i++){
+                        m2c.push_back(m);
+                    }
+                }
             }
         }
     }
@@ -416,4 +423,4 @@ bool SharkTrainer::makeRandomMove(Board b){
     }
     int r=rand()%m2c.size();
     return b.placeMove(m2c[r].x,m2c[r].y);
-}*/
+}

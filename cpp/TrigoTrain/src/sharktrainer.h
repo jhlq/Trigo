@@ -34,6 +34,7 @@ public:
     void trainModel(RegressionDataset dataset);
     void init();
     double evaluateMove(Board b,Triangle move);
+    bool placeMove(Board &b);
 
 
 

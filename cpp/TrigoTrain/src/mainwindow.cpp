@@ -22,7 +22,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //connect all screenboard
     connect(diagramScene, SIGNAL(released(int,int)),this->screenboard,SLOT(clickevent(int,int)));
-    connect(screenboard, SIGNAL(modifiedmoves()),this,SLOT(placemoves()));
+    connect(screenboard, SIGNAL(modifiedmoves()),this,SLOT(placeMoves()));
     connect(screenboard, SIGNAL(modifiedscore()),this,SLOT(updatescore()));
     QPushButton *undoButton=this->findChild<QPushButton*>("undoButton");
     connect(undoButton, SIGNAL(clicked()),screenboard,SLOT(undo()));
@@ -42,6 +42,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ngButton, SIGNAL(clicked()),this,SLOT(newGameButtonClicked()));
     QPushButton *markButton=this->findChild<QPushButton*>("markButton");
     connect(markButton, SIGNAL(clicked()),this,SLOT(saveTrainingExample()));
+    QPushButton *laipButton=this->findChild<QPushButton*>("laipButton");
+    connect(laipButton, SIGNAL(clicked()),this,SLOT(letAIPlay()));
 
     QPushButton *emButton=this->findChild<QPushButton*>("evalMoveButton");
     connect(emButton, SIGNAL(clicked()),this,SLOT(evaluateMove()));
@@ -111,7 +113,7 @@ void MainWindow::updatescore(){
     QLabel *scorelabel=this->findChild<QLabel*>("scoreLabel");
     scorelabel->setText(QString::fromStdString(s));
 }
-void MainWindow::placemoves(){
+void MainWindow::placeMoves(){
     diagramScene->clear();
     drawGrid();
     double s=screenboard->unitSize/2;
@@ -150,6 +152,10 @@ void MainWindow::newGameButtonClicked(){
     newGameDialog = new NewGameDialog(this);
     connect(newGameDialog, SIGNAL(makenewgame(int,int)),this,SLOT(makeNewGame(int,int)));
     newGameDialog->show();
+}
+void MainWindow::letAIPlay(){
+    st.placeMove(screenboard->board);
+    placeMoves();
 }
 void MainWindow::makeNewGame(int sideLength,int unitSize){
     screenboard->board.tg.sideLength=sideLength;
