@@ -24,6 +24,7 @@ void Board::reset(){
     player=1;
     history.clear();
     moves.clear();
+    influence.clear();
     stones[0]=0;
     stones[1]=0;
     captures[0]=0;
