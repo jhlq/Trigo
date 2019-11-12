@@ -1,5 +1,6 @@
 #include "screenboard.h"
 #include <math.h>
+#include <iostream>
 
 #define PI 3.14159265
 
@@ -91,6 +92,16 @@ void ScreenBoard::autoMark(){
     emit modifiedmoves();
 }
 void ScreenBoard::random(){
-    board.playRandomToEnd();
-    emit modifiedmoves();
+    //board.playRandomToEnd();
+    //emit modifiedmoves();
+    double scoresum=0;
+    for (int i=0;i<100;i++){
+        Board bc(board);
+        bc.playRandomToEnd();
+        bc.score();
+        double score=bc.captures[0]+bc.stones[0]+bc.territory[0]-(bc.captures[1]+bc.stones[1]+bc.territory[1]+bc.komi);
+        std::cout<<i<<": "<<score<<std::endl;
+        scoresum+=score;
+    }
+    std::cout<<scoresum/100<<std::endl;
 }

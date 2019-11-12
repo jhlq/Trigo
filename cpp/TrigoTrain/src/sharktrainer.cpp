@@ -229,7 +229,9 @@ void SharkTrainer::makeSimulationsData(std::string inputfile){
         while (getline(file,line)){
             std::cout<<++lineit<<std::endl;
             //if (lineit>1) break;
-            Board b=loadGame(line);
+            //Board b=loadGame(line);
+            Board b(0);
+            b.loadGame(line);
             b.spreadInfluence();
             int nm=b.moves.size();
             for (int i=0;i<nm;i++){
@@ -312,16 +314,16 @@ void SharkTrainer::makeModel(){
     model=*l1>>*l2>>*l3>>*o;
     initRandomNormal(model,0.001);
 }
-void SharkTrainer::trainModel(RegressionDataset dataset){
+void SharkTrainer::trainModel(RegressionDataset dataset, int iterations,double learningrate){
     std::cout<<"Training model..."<<std::endl;
     SquaredLoss<> loss;
     ErrorFunction<> errorFunction(dataset, &model, &loss, true);//enable minibatch training
     //CG<> optimizer;
     Adam<> optimizer;
-    optimizer.setEta(0.001);//learning rate of the algorithm
+    optimizer.setEta(learningrate);//learning rate of the algorithm
     errorFunction.init();
     optimizer.init(errorFunction);
-    for(int i = 0; i < 100; ++i)
+    for(int i = 0; i < iterations; ++i)
     {
             optimizer.step(errorFunction);
             std::cout<<i<<" "<<optimizer.solution().value<<std::endl;
@@ -338,16 +340,38 @@ void SharkTrainer::init(){
         makeData("trainingData.txt");   //Change to ../trainingData.txt? Saving moves saves to build, which seems proper
         examplesdataset=loadData("inputs.csv","labels.csv");
 		makeModel();
-        trainModel(examplesdataset);
-        //std::cout<<"Compiling simulations..."<<std::endl;
-        //makeSimulationsData("../../../data/simulations.txt");
+        loadModel();
+        //trainModel(examplesdataset);
+        std::cout<<"Compiling simulations..."<<std::endl;
+        makeSimulationsData("../../../data/simulations.txt");
         std::ifstream f2("simulationsinputs.csv");
         if (f.good()){
             std::cout<<"Loading simulations..."<<std::endl;
             simulationsdataset=loadData("simulationsinputs.csv","simulationslabels.csv");
-            trainModel(simulationsdataset);
+            testdataset=splitAtElement(simulationsdataset,static_cast<std::size_t>(0.9*simulationsdataset.numberOfElements()));
+            //trainModel(simulationsdataset);
         }
 	}
+}
+void SharkTrainer::testModel(){
+    SquaredLoss<> loss;
+    Data<RealVector> predictions = model(testdataset.inputs());
+    double testError = loss.eval(testdataset.labels(),predictions);
+    std::cout<<"Test error: "<<testError<<std::endl;
+}
+void SharkTrainer::saveModel(){
+    std::ofstream ofs("ann.model");
+    boost::archive::polymorphic_text_oarchive oa(ofs);
+    model.write(oa);
+    ofs.close();
+}
+bool SharkTrainer::loadModel(){
+    std::ifstream ifs("ann.model");
+    if (!ifs.good()) return false;
+    boost::archive::polymorphic_text_iarchive ia(ifs);
+    model.read(ia);
+    ifs.close();
+    return true;
 }
 void SharkTrainer::start(){
     /*

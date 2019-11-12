@@ -53,6 +53,10 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(etButton, SIGNAL(clicked()),this,SLOT(trainOnExamples()));
     QPushButton *stButton=this->findChild<QPushButton*>("simulationsTrain");
     connect(stButton, SIGNAL(clicked()),this,SLOT(trainOnSimulations()));
+    QPushButton *tmButton=this->findChild<QPushButton*>("testModelButton");
+    connect(tmButton, SIGNAL(clicked()),this,SLOT(testModel()));
+    QPushButton *smButton=this->findChild<QPushButton*>("saveModelButton");
+    connect(smButton, SIGNAL(clicked()),this,SLOT(saveModel()));
     QPushButton *reinitButton=this->findChild<QPushButton*>("reinitButton");
     connect(reinitButton, SIGNAL(clicked()),this,SLOT(reinitializest()));
 
@@ -239,12 +243,22 @@ void MainWindow::plotAllEvaluations(){
     }
 }
 void MainWindow::trainOnExamples(){
+    int iterations=ui->iterationsSpinBox->value();
+    double learningrate=ui->learningrateSpinBox->value();
     st.makeData("trainingData.txt");
     st.examplesdataset=st.loadData("inputs.csv","labels.csv");
-    st.trainModel(st.examplesdataset);
+    st.trainModel(st.examplesdataset,iterations,learningrate);
 }
 void MainWindow::trainOnSimulations(){
-    st.trainModel(st.simulationsdataset);
+    int iterations=ui->iterationsSpinBox->value();
+    double learningrate=ui->learningrateSpinBox->value();
+    st.trainModel(st.simulationsdataset,iterations,learningrate);
+}
+void MainWindow::testModel(){
+    st.testModel();
+}
+void MainWindow::saveModel(){
+    st.saveModel();
 }
 void MainWindow::reinitializest(){
     st.init();

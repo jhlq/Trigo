@@ -42,6 +42,8 @@ private slots:
     void plotAllEvaluations();
     void trainOnExamples();
     void trainOnSimulations();
+    void testModel();
+    void saveModel();
     void reinitializest();
 
 private:

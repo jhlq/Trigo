@@ -28,10 +28,14 @@ public:
     RegressionDataset loadData(const std::string& dataFile,const std::string& labelFile);
     RegressionDataset examplesdataset;
     RegressionDataset simulationsdataset;
+    RegressionDataset testdataset;
     void start();
     ConcatenatedModel<RealVector> model;
     void makeModel();
-    void trainModel(RegressionDataset dataset);
+    void trainModel(RegressionDataset dataset, int iterations=100, double learningrate=0.001);
+    void testModel();
+    void saveModel();
+    bool loadModel();
     void init();
     double evaluateMove(Board b,Triangle move);
     bool placeMove(Board &b);
