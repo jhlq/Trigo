@@ -887,9 +887,8 @@ Trigo.Board.prototype.spreadInfluence_tri=function(tri,range,tunneling){//someth
 Trigo.Board.prototype.spreadInfluence=function(range,tunneling){
 	//if (this.influence.length==0) this.initInfluence(); //merged into resetInfluence
 	this.resetInfluence();
-	//for (let mi=0;mi<this.moves.length;mi++){							//this is problematic, we need the move to be linked to tg but then player info is overwritten...
-	//	var t=this.tg.get(this.moves[mi].x,this.moves[mi].y);			//also this will spread double influence from recaptured moves...
-	//	if (this.moves[mi].alive()){
+	if (range===undefined) range=3;
+	if (tunneling===undefined) tunneling=false;
 	for (let y=0;y<this.tg.triangles.length;y++){
 		for (let x=0;x<this.tg.triangles[y].length;x++){
 			var t=this.tg.triangles[y][x];
@@ -955,7 +954,7 @@ Trigo.Board.prototype.loadGame=function(movesstring){
 
 Trigo.AI=function(board){
 	this.board=board;
-	this.estimates=[]; //form moveindex: score (negative for blue lead). 
+	this.estimates=[]; //form moveindex=score (negative for blue lead). 
 };
 Trigo.AI.prototype.findEdge=function(){
 	var edge=[];
@@ -974,25 +973,6 @@ Trigo.AI.prototype.findEdge=function(){
 		}
 	}
 	return edge;
-};
-Trigo.AI.prototype.findCapturable=function(){
-	var checked=[];
-	var capturing=[];
-	for (let mi=0;mi<this.board.moves.length;mi++){
-		if (this.board.moves[mi].isPass()) continue;
-		var t=this.board.tg.get(this.board.moves[mi].x,this.board.moves[mi].y);
-		if (!checked.includes(t)){
-			var group=this.board.tg.getGroup(t);
-			var libinds=this.board.tg.libertiesInds(group);
-			if (libinds.length==1){
-				capturing.push(libinds[0]);
-			}
-			for (let gi=0;gi<group.length;gi++){
-				checked.push(group[gi]);
-			}
-		}
-	}
-	return capturing;
 };
 Trigo.AI.prototype.findReductions=function(){
 	//this should be merged with findEdge since they both iterate of inluence
@@ -1014,6 +994,77 @@ Trigo.AI.prototype.findReductions=function(){
 	}
 	return reds;
 };
+Trigo.AI.prototype.findFromInfluence=function(){
+	var moves=[];
+	for (let y=0;y<this.board.influence.length;y++){
+		for (let x=0;x<this.board.influence[y].length;x++){
+			if (this.board.tg.get(x,y).player!=0) continue;					//no support for marked dead stones!
+			var it=this.board.influence[y][x];
+			var infl=0;	//lint complained that var infl var declared twice in mutually exclusive if-else branches
+			if (it.green==0 && it.blue==0){
+				if (it.border<0.5) moves.push(this.board.tg.get(x,y));
+			} else if (this.board.player==1){
+				infl=it.green-it.blue;
+				if (infl<0.5 && it.green>0 && it.blue>0){
+					moves.push(this.board.tg.get(x,y)); //reduction
+				} else if (infl<0.4 && infl>0){
+					moves.push(this.board.tg.get(x,y)); //edge
+				}
+			} else if (this.board.player==2){
+				infl=it.blue-it.green;
+				if (infl<0.5 && it.blue>0 && it.green>0){
+					moves.push(this.board.tg.get(x,y)); //reduction
+				} else if (infl<0.4 && infl>0){
+					moves.push(this.board.tg.get(x,y)); //edge
+				}
+			}
+		}
+	}
+	return moves;
+};
+Trigo.AI.prototype.findLibertyShortages=function(){
+	var checked=[];
+	var capturing=[];
+	var ataris=[];
+	//another for 3 libs?
+	for (let mi=0;mi<this.board.moves.length;mi++){
+		if (this.board.moves[mi].isPass()) continue;
+		var t=this.board.tg.get(this.board.moves[mi].x,this.board.moves[mi].y);
+		if (!checked.includes(t)){
+			var group=this.board.tg.getGroup(t);
+			var libinds=this.board.tg.libertiesInds(group);
+			if (libinds.length==1){
+				capturing.push(libinds[0]);
+			} else if (libinds.length==2){
+				ataris.push(libinds[0]);
+				ataris.push(libinds[1]);
+			}
+			for (let gi=0;gi<group.length;gi++){
+				checked.push(group[gi]);
+			}
+		}
+	}
+	return [capturing,ataris];
+};
+Trigo.AI.prototype.findCapturing=function(){
+	var checked=[];
+	var capturing=[];
+	for (let mi=0;mi<this.board.moves.length;mi++){
+		if (this.board.moves[mi].isPass()) continue;
+		var t=this.board.tg.get(this.board.moves[mi].x,this.board.moves[mi].y);
+		if (!checked.includes(t)){
+			var group=this.board.tg.getGroup(t);
+			var libinds=this.board.tg.libertiesInds(group);
+			if (libinds.length==1){
+				capturing.push(libinds[0]);
+			}
+			for (let gi=0;gi<group.length;gi++){
+				checked.push(group[gi]);
+			}
+		}
+	}
+	return capturing;
+};
 Trigo.AI.prototype.canBeCaptured=function(x,y){						//this will be useful
 	//must take KOs etc into account. Why is it called 4 times? Fixed, another linking problem
 	var bc=this.board.copy();
@@ -1022,7 +1073,29 @@ Trigo.AI.prototype.canBeCaptured=function(x,y){						//this will be useful
 	if (captures<1 && bc.tg.liberties_arr(bc.tg.getGroup(x,y))==1) return true;
 	return false; //add code for ladders/nets
 };
+Trigo.AI.prototype.canCapture=function(x,y){
+	var bc=this.board.copy();
+	bc.placeMove(-1,-1); //pass
+	var captures=bc.placeMoveCountCaptures(x,y);
+	if (captures<0) return true; //suicide/invalid
+	if (captures<1 && bc.tg.liberties_arr(bc.tg.getGroup(x,y))==1) return true;
+	return false;
+};
 Trigo.AI.prototype.indexOfMax=function(arr){												//util
+    if (arr.length === 0) {
+        return -1;
+    }
+    var max = arr[0];
+    var maxIndex = 0;
+    for (let i = 1; i < arr.length; i++) {
+        if (arr[i] > max) {
+            maxIndex = i;
+            max = arr[i];
+        }
+    }
+    return maxIndex; //get all inds, randomize pick. Deterministic is better for debugging
+};
+Trigo.AI.prototype.indicesOfMax=function(arr){												//util
     if (arr.length === 0) {
         return -1;
     }
@@ -1049,9 +1122,71 @@ Trigo.AI.prototype.placeSmartMove=function(reset){
 	if (reset){
 		this.board.spreadInfluence(3,false);
 	}
+	var short=this.findLibertyShortages();
+	var moves2consider=[];
+	var inflm=this.findFromInfluence();
+	var moves2consider0=inflm.concat(short[0]);
+	for (let si=0;si<short[1].length;si++){
+		var sm=short[1][si];
+		if (!this.canCapture(sm.x,sm.y)){
+			moves2consider0.push(sm);
+		}
+	}
+	for (let m2c0i=0;m2c0i<moves2consider0.length;m2c0i++){
+		var m=moves2consider0[m2c0i];
+		if (!this.canBeCaptured(m.x,m.y)){	//add check for KO
+			moves2consider.push(m);
+		}
+	}
+	var se=this.board.estimateScore();
+	this.estimates.push([this.board.moves.length-1,se[0]-se[1]]);
+	var locvalues=[];
+	var player=this.board.player;
+	var bc=this.board.copy();
+	for (let m2ci=0;m2ci<moves2consider.length;m2ci++){
+		//if (m2ci>0) bc.undo();
+		var placedmove=bc.placeMove(moves2consider[m2ci]);
+		if (!placedmove){
+			locvalues.push(-1);
+			//bc.placeMove(-1,-1);
+		} else {
+			var se2=bc.estimateScore();
+			var locvalue=se2[player-1]-se[player-1]+se[this.board.otherPlayer(player)-1]-se2[this.board.otherPlayer(player)-1];
+			bc.undo();
+			var pcm=bc.placeCustomMove(moves2consider[m2ci].x,moves2consider[m2ci].y,this.board.otherPlayer(player));
+			if (pcm){
+				var se3=bc.estimateScore();
+				locvalue+=se3[this.board.otherPlayer(player)-1]-se[this.board.otherPlayer(player)-1]+se[player-1]-se3[player-1];
+				bc.undo(); //this isn't necessary on last iteration...
+			}
+			locvalues.push(locvalue);
+			//if (moves2consider[m2ci].x==2&&moves2consider[m2ci].y==2) console.log("2,2: "+locvalue);
+			//if (moves2consider[m2ci].x==2&&moves2consider[m2ci].y==2) console.log(locvalue);
+		}
+	}
+	var mi=this.indexOfMax(locvalues);
+	if (mi==-1 || locvalues[mi]<0){ 
+		this.board.placeMove(-1,-1);
+	} else {
+		this.board.placeMove(moves2consider[mi]);
+	}
+};
+Trigo.AI.prototype.placeSmartMove_old=function(reset){
+	if (this.board.moves.length<2){
+		for (let i=0;i<30;i++){
+			var ry=Math.floor(Math.random()*(this.board.tg.sideLength-3))+1;
+			var xmax=this.board.tg.triangles[ry].length;
+			var rx=Math.floor(Math.random()*(xmax-4))+2;
+			if (this.board.placeMove(rx,ry)) return;
+		}
+	}
+	if (reset===undefined) reset=true;	
+	if (reset){
+		this.board.spreadInfluence(3,false);
+	}
 	//merge into findFromInfluence, or?
 	var edge=this.findEdge();
-	var capturing=this.findCapturable();
+	var capturing=this.findCapturing();
 	//this.spreadInfluence(3,false);
 	var reductions=this.findReductions();
 	var moves2consider0=(edge.concat(capturing)).concat(reductions);
@@ -1096,7 +1231,7 @@ Trigo.AI.prototype.placeSmartMove=function(reset){
 	}
 };
 Trigo.AI.prototype.playGame=function(){
-	for (let mi=0;mi<this.board.tg.sideLength*this.board.tg.sideLength*3;mi++){	//avoid while loop
+	for (let mi=0;mi<this.board.tg.sideLength*this.board.tg.sideLength*10;mi++){	//avoid while loop
 		this.placeSmartMove();
 		var nm=this.board.moves.length;
 		if (this.board.moves[nm-1].isPass() && this.board.moves[nm-2].isPass()){
