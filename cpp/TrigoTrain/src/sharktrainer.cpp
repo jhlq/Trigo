@@ -232,24 +232,28 @@ void SharkTrainer::makeSimulationsData(std::string inputfile){
             //Board b=loadGame(line);
             Board b(0);
             b.loadGame(line);
-            b.spreadInfluence();
+            //b.spreadInfluence();
             int nm=b.moves.size();
             for (int i=0;i<nm;i++){
 				Triangle markedmove=b.moves.back();
 				b.undo();
-                if (i<3 && markedmove.isPass()){
-                    target=-0.5;
-                    for (int yi=0;yi<b.tg.triangles.size();yi++){
-                        for (int xi=0;xi<b.tg.triangles[yi].size();xi++){
-                            Triangle move(xi,yi,markedmove.player);
-                            if (b.isValidMove(move)){
-                                arrays.push_back(makeEvalVector(b,move));
-                                labels.push_back(target);
+                //b.spreadInfluence();
+                if (markedmove.isPass()){
+                    if (i<3){
+                        b.spreadInfluence();
+                        target=-0.5;
+                        for (int yi=0;yi<b.tg.triangles.size();yi++){
+                            for (int xi=0;xi<b.tg.triangles[yi].size();xi++){
+                                Triangle move(xi,yi,markedmove.player);
+                                if (b.isValidMove(move)){
+                                    arrays.push_back(makeEvalVector(b,move));
+                                    labels.push_back(target);
+                                }
                             }
                         }
                     }
                 } else {
-					b.spreadInfluence();
+                    b.spreadInfluence();
                     target=0.5;
                     arrays.push_back(makeEvalVector(b,markedmove));
                     labels.push_back(target);
