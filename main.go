@@ -8,7 +8,8 @@ import (
 	"flag"
 	"log"
 	"net/http"
-	"bytes"
+	//"bytes"
+	"io/ioutil"
 	
 	"html/template"
 	
@@ -31,29 +32,19 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 }
 type BoardData struct {
     Key string
-    Header string
-    Chat string
+    Header interface{}
+    Chat interface{}
 }
 func serveBoard(w http.ResponseWriter, r *http.Request) {
 	log.Println(r.URL)
 	vars := mux.Vars(r)
-	headertemplate := template.Must(template.ParseFiles("templates/chat.header.template"))
-	var tpl bytes.Buffer
-	if err := headertemplate.Execute(&tpl, struct{}); err != nil {
-		log.Println(err)
-	}
-	header := tpl.String()
-	chattemplate := template.Must(template.ParseFiles("templates/chat.html.template"))
-	var tpl2 bytes.Buffer
-	if err := headertemplate.Execute(&tpl2, struct{}); err != nil {
-		log.Println(err)
-	}
-	chat := tpl2.String()
+	headertemplate,_ := ioutil.ReadFile("templates/chat.header.template")
+	chattemplate,_ := ioutil.ReadFile("templates/chat.html.template")
 	boardtemplate := template.Must(template.ParseFiles("templates/board.html.template"))
 	data := BoardData{
 		Key: vars["key"],
-		Header: header,
-		Chat: chat,
+		Header: template.HTML(headertemplate),
+		Chat: template.HTML(chattemplate),
 	}
 	err:=boardtemplate.Execute(w, data)
 	if (err!=nil){ log.Println(err) }
@@ -65,6 +56,7 @@ func main() {
 	go hub.run()
 	//http.HandleFunc("/", serveHome)
 	http.Handle("/javascript/", http.StripPrefix("/javascript/", http.FileServer(http.Dir("javascript"))))
+	//http.Handle("/h/", http.StripPrefix("/h/", http.FileServer(http.Dir("html"))))
 	//http.HandleFunc("/board/", serveBoard)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		serveWs(hub, w, r)
@@ -74,9 +66,14 @@ func main() {
 		serveWs(hub, w, r)
 	})
 	router.HandleFunc("/board/{key}",serveBoard)
-	fileServer := http.FileServer(http.Dir("./html/"))
-	router.Handle("/", http.StripPrefix("/", fileServer))
-	http.Handle("/", router)
+	//fileServer := http.FileServer(http.Dir("html"))
+	//router.Handle("/",fileServer)// http.StripPrefix("/", fileServer))
+	//router.Handle("/html/", http.StripPrefix("/html/", http.FileServer(http.Dir("html"))))
+	//router.Handle("/html/", http.StripPrefix("/html/", http.FileServer(http.Dir("html"))))
+	//router.Handle("/h/", http.StripPrefix("/h/", http.FileServer(http.Dir("html"))))
+	router.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("html"))))
+	//http.Handle("/", http.StripPrefix("/", fileServer))
+	http.Handle("/",router)
 	err := http.ListenAndServe(*addr, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
