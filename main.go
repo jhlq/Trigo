@@ -59,11 +59,12 @@ func main() {
 	//http.Handle("/h/", http.StripPrefix("/h/", http.FileServer(http.Dir("html"))))
 	//http.HandleFunc("/board/", serveBoard)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		serveWs(hub, w, r)
+		serveWs(hub, w, r, "")
 	})
 	router := mux.NewRouter()
 	router.HandleFunc("/ws/{key}", func(w http.ResponseWriter, r *http.Request) {
-		serveWs(hub, w, r)
+		vars := mux.Vars(r)
+		serveWs(hub, w, r, vars["key"])
 	})
 	router.HandleFunc("/board/{key}",serveBoard)
 	//fileServer := http.FileServer(http.Dir("html"))

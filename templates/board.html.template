@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<title>Board {{.Key}}</title>
+<title>Trigo! Board {{.Key}}</title>
 {{.Header}}
 </head>
 <body>
 	<h1>Trigo!</h1>
+	<h2>Board {{.Key}}</h2>
 		
 		<input type="number" id="x" onchange="crosshair()" value=1>
 	<input type="number" id="y" onchange="crosshair()" value=1>
@@ -56,7 +57,7 @@
 <script>
 var sb=new Trigo.ScreenBoard("TriCanvas",9,30,50,50);
 sb.drawGrid();
-sb.setupWS();
+sb.setupWS({{.Key}});
 var ai=new Trigo.AI(sb.board);
 
 function letAIPlay(){
