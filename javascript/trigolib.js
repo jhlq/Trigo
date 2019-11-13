@@ -429,10 +429,10 @@ Trigo.Board.prototype.removeCapturedBy=function(tri){
 		}
 	}
 };
-Trigo.Board.prototype.invalidMoveType=function(x,y,player){
+Trigo.Board.prototype.invalidMoveType=function(x,y,player){				//rewrite to avoid Triangle conversion?
 	if (y===undefined) return this.invalidMoveType_tri(x);
 	var t=new Trigo.Triangle(x,y,player);
-	return this.invalidMoveType(t);
+	return this.invalidMoveType_tri(t);
 };
 Trigo.Board.prototype.invalidMoveType_tri=function(t){
 	if (!this.tg.has(t.x,t.y)){
@@ -445,8 +445,8 @@ Trigo.Board.prototype.invalidMoveType_tri=function(t){
 	var bc=this.copy(); //JSON.parse(JSON.stringify(this)); //JSON misses functions etc
 	bc.tg.set(t.x,t.y,t.player);
 	var tri=bc.tg.get(t.x,t.y);
-	//bc.removeCapturedBy(tri);
-	var adj=bc.tg.adjacent(tri);
+	bc.removeCapturedBy(tri); //why not this?
+	/*var adj=bc.tg.adjacent(tri);
 	for (let a=0;a<adj.length;a++){
 			if (adj[a].alive()&&adj[a].player!=tri.player){
 			var g=bc.tg.getGroup(adj[a]);
@@ -454,10 +454,10 @@ Trigo.Board.prototype.invalidMoveType_tri=function(t){
 				bc.tg.removeGroup(g);
 			}
 		}
-	}
+	}*/
 	var group=bc.tg.getGroup(tri);
 	if (bc.tg.liberties(group)==0){
-		bc=null;
+		bc=null; //not necessary?
 		return 2;
 	}
 	var h=bc.tg.historyString();
@@ -479,13 +479,6 @@ Trigo.Board.prototype.isValidMove_tri=function(t){
 	}
 	return true;
 };
-/*Trigo.Board.prototype.otherPlayer=function(){
-	if (this.player==1){
-		return 2;
-	} else {
-		return 1;
-	}
-};*/
 Trigo.Board.prototype.otherPlayer=function(p){
 	if (p===undefined) p=this.player;
 	if (p==1){
@@ -954,7 +947,7 @@ Trigo.Board.prototype.loadGame=function(movesstring){
 
 Trigo.AI=function(board){
 	this.board=board;
-	this.estimates=[]; //form moveindex=score (negative for blue lead). 
+	this.estimates=[]; //form moveindex=score, (negative for blue lead). 
 };
 Trigo.AI.prototype.findEdge=function(){
 	var edge=[];
@@ -1100,17 +1093,22 @@ Trigo.AI.prototype.indicesOfMax=function(arr){												//util
         return -1;
     }
     var max = arr[0];
-    var maxIndex = 0;
     for (let i = 1; i < arr.length; i++) {
         if (arr[i] > max) {
-            maxIndex = i;
             max = arr[i];
         }
     }
-    return maxIndex; //get all inds, randomize pick. Deterministic is better for debugging
+    var maxIndices=[];
+    for (let i = 1; i < arr.length; i++) {
+        if (arr[i] == max) {
+            maxIndices.push(i);
+        }
+    }
+    
+    return maxIndices; 
 };
-Trigo.AI.prototype.placeSmartMove=function(reset){
-	if (this.board.moves.length<2){
+Trigo.AI.prototype.placeSmartMove=function(thinklong,reset){
+	if (this.board.moves.length<1){
 		for (let i=0;i<30;i++){
 			var ry=Math.floor(Math.random()*(this.board.tg.sideLength-3))+1;
 			var xmax=this.board.tg.triangles[ry].length;
@@ -1118,6 +1116,7 @@ Trigo.AI.prototype.placeSmartMove=function(reset){
 			if (this.board.placeMove(rx,ry)) return;
 		}
 	}
+	if (thinklong!=true) thinklong=false;
 	if (reset===undefined) reset=true;	
 	if (reset){
 		this.board.spreadInfluence(3,false);
@@ -1134,34 +1133,60 @@ Trigo.AI.prototype.placeSmartMove=function(reset){
 	}
 	for (let m2c0i=0;m2c0i<moves2consider0.length;m2c0i++){
 		var m=moves2consider0[m2c0i];
-		if (!this.canBeCaptured(m.x,m.y)){	//add check for KO
+		if (!moves2consider.includes(m) && !this.canBeCaptured(m.x,m.y)){	//add check for KO
 			moves2consider.push(m);
 		}
+	}
+	if (moves2consider.length==0){ 
+		this.board.placeMove(-1,-1);
+		return;
 	}
 	var se=this.board.estimateScore();
 	this.estimates.push([this.board.moves.length-1,se[0]-se[1]]);
 	var locvalues=[];
 	var player=this.board.player;
-	var bc=this.board.copy();
-	for (let m2ci=0;m2ci<moves2consider.length;m2ci++){
-		//if (m2ci>0) bc.undo();
-		var placedmove=bc.placeMove(moves2consider[m2ci]);
-		if (!placedmove){
-			locvalues.push(-1);
-			//bc.placeMove(-1,-1);
-		} else {
-			var se2=bc.estimateScore();
-			var locvalue=se2[player-1]-se[player-1]+se[this.board.otherPlayer(player)-1]-se2[this.board.otherPlayer(player)-1];
-			bc.undo();
-			var pcm=bc.placeCustomMove(moves2consider[m2ci].x,moves2consider[m2ci].y,this.board.otherPlayer(player));
-			if (pcm){
-				var se3=bc.estimateScore();
-				locvalue+=se3[this.board.otherPlayer(player)-1]-se[this.board.otherPlayer(player)-1]+se[player-1]-se3[player-1];
-				bc.undo(); //this isn't necessary on last iteration...
+	if (thinklong){
+		var aic=new Trigo.AI(this.board.copy());
+		aic.board.placeMove(-1,-1)
+		console.log("Computing baseline.");
+		var r=aic.playGame();
+		var baseline=r[1][player-1]-r[1][this.board.otherPlayer(player)-1];
+		console.log(baseline);
+		for (let m2ci=0;m2ci<moves2consider.length;m2ci++){
+			console.log("Evaluating move "+m2ci+" of "+moves2consider.length);
+			aic=new Trigo.AI(this.board.copy());
+			var placedmove=aic.board.placeMove(moves2consider[m2ci]);
+			if (!placedmove){
+				locvalues.push(-1);
+			} else {
+				r=aic.playGame();
+				var res=r[1][player-1]-r[1][this.board.otherPlayer(player)-1];
+				console.log(res);
+				locvalues.push(res-baseline);
 			}
-			locvalues.push(locvalue);
-			//if (moves2consider[m2ci].x==2&&moves2consider[m2ci].y==2) console.log("2,2: "+locvalue);
-			//if (moves2consider[m2ci].x==2&&moves2consider[m2ci].y==2) console.log(locvalue);
+		}
+	} else {
+		var bc=this.board.copy();
+		for (let m2ci=0;m2ci<moves2consider.length;m2ci++){
+			//if (m2ci>0) bc.undo();
+			var placedmove=bc.placeMove(moves2consider[m2ci]);
+			if (!placedmove){
+				locvalues.push(-1);
+				//bc.placeMove(-1,-1);
+			} else {
+				var se2=bc.estimateScore();
+				var locvalue=se2[player-1]-se[player-1]+se[this.board.otherPlayer(player)-1]-se2[this.board.otherPlayer(player)-1];
+				bc.undo();
+				var pcm=bc.placeCustomMove(moves2consider[m2ci].x,moves2consider[m2ci].y,this.board.otherPlayer(player));
+				if (pcm){
+					var se3=bc.estimateScore();
+					locvalue+=se3[this.board.otherPlayer(player)-1]-se[this.board.otherPlayer(player)-1]+se[player-1]-se3[player-1];
+					bc.undo(); //this isn't necessary on last iteration...
+				}
+				locvalues.push(locvalue);
+				//if (moves2consider[m2ci].x==2&&moves2consider[m2ci].y==2) console.log("2,2: "+locvalue);
+				//if (moves2consider[m2ci].x==2&&moves2consider[m2ci].y==2) console.log(locvalue);
+			}
 		}
 	}
 	var mi=this.indexOfMax(locvalues);
@@ -1171,7 +1196,7 @@ Trigo.AI.prototype.placeSmartMove=function(reset){
 		this.board.placeMove(moves2consider[mi]);
 	}
 };
-Trigo.AI.prototype.placeSmartMove_old=function(reset){
+/*Trigo.AI.prototype.placeSmartMove_old=function(reset){
 	if (this.board.moves.length<2){
 		for (let i=0;i<30;i++){
 			var ry=Math.floor(Math.random()*(this.board.tg.sideLength-3))+1;
@@ -1229,7 +1254,7 @@ Trigo.AI.prototype.placeSmartMove_old=function(reset){
 	} else {
 		this.board.placeMove(moves2consider[mi]);
 	}
-};
+};*/
 Trigo.AI.prototype.playGame=function(){
 	for (let mi=0;mi<this.board.tg.sideLength*this.board.tg.sideLength*10;mi++){	//avoid while loop
 		this.placeSmartMove();

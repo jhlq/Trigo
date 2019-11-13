@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html>
-	<head>
-    <title>Trigo</title>
-	<meta charset="utf-8"/>
-	</head>
-  <body>
-	  <h1>Trigo!</h1>
-	  
-  	<input type="number" id="x" onchange="crosshair()" value=1>
+<html lang="en">
+<head>
+<title>Board {{.Key}}</title>
+{{.Header}}
+</head>
+<body>
+	<h1>Trigo!</h1>
+		
+		<input type="number" id="x" onchange="crosshair()" value=1>
 	<input type="number" id="y" onchange="crosshair()" value=1>
 	<br>
 	<button onclick="letAIPlay()">Let AI play!</button>
@@ -20,9 +20,10 @@
 	<button onclick="sb.board.reset();sb.placeMoves()">Reset.</button>
 	<br>
 	<canvas id="TriCanvas" width=600 height="540"></canvas>
+	{{.Chat}}
 	<p id="scores"></p>
 	<label for="shortcuts">Enable keyboard shortcuts (w a s d and e to enter): </label>
-	<input type="checkbox" id="shortcuts" checked="true">
+	<input type="checkbox" id="shortcuts">
 	<br>
 	
 	<p>Canvas size: 
@@ -34,34 +35,35 @@
 	<button onclick="changesize()">Change.</button>
 	</p>
 	
-    Game record: <input type="text" id="board_moves" value='9;'>
-  <button class="btn btn-primary" onclick="sb.loadGame()">Load game record (paste first).</button>
- 
-
+		Game record: <input type="text" id="board_moves" value='9;'>
+	<button class="btn btn-primary" onclick="sb.loadGame()">Load game record (paste first).</button>
 <footer class="footer">
-  <small>
-    Go is fun!
-  </small>
-  <nav>
-    <ul>
-      <li><a href="/about">About</a></li>
-      <li><a href="/contact">Contact</a></li>
-    </ul>
-  </nav>
-</footer>
-<script type="text/javascript" src="javascript/trigolib.js"></script>
-<script type="text/javascript" src="javascript/screenboard.js"></script>
+	<small>
+		Go is fun!
+	</small>
+	<nav>
+		<ul>
+			<li><a href="/board.html">Board</a></li>
+			<li><a href="/about.html">About</a></li>
+			<li><a href="/contact.html">Contact</a></li>
+		</ul>
+	</nav>
+</footer> 
+
+<script type="text/javascript" src="/javascript/trigolib.js"></script>
+<script type="text/javascript" src="/javascript/screenboard.js"></script>
 
 <script>
 var sb=new Trigo.ScreenBoard("TriCanvas",9,30,50,50);
 sb.drawGrid();
+sb.setupWS();
 var ai=new Trigo.AI(sb.board);
 
 function letAIPlay(){
 	ai.placeSmartMove();
-	var nmoves=sb.board.moves.length
+	var nmoves=sb.board.moves.length;
 	if (sb.board.moves[nmoves-1].isPass() && sb.board.moves[nmoves-2].isPass()){
-		//sb.board.autoMarkDeadStones();
+		sb.board.autoMarkDeadStones();
 		sb.placeMoves();
 		sb.updateScore();
 	} else {
@@ -86,7 +88,7 @@ function keyDown(e) {
 			return;
 		} else if (k==68){ //d
 			document.getElementById("x").value=parseInt(document.getElementById("x").value)+1;
-		} else if (k==69){ //e,  || k==13 conflicts with enter for buttons
+		} else if (k==69){ //e,	|| k==13 conflicts with enter for buttons
 			var docx=parseInt(document.getElementById("x").value);
 			var docy=parseInt(document.getElementById("y").value);
 			sb.placeMove(docx,docy);
@@ -117,16 +119,13 @@ function changesize(){
 	sb.unitSize=us;
 	var sl=parseInt(document.getElementById("sidelength").value);
 	if (sl!=sb.board.tg.sideLength){
-		//sb.board=new Trigo.Board(sl);
 		sb.board.tg.sideLength=sl;
 		sb.board.reset();
 	}
 	sb.updateParams();
 	sb.placeMoves();
-}
+};
 
 </script>
-
-  </body>
+</body>
 </html>
- 

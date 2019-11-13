@@ -89,7 +89,16 @@ Trigo.ScreenBoard.prototype.clickEvent = function (e) {
                     if (success){
                         this.placeMoves();	//maybe unnecessary to place all moves...
                         this.send("placeMove "+tri.x+","+tri.y);
-                    }
+                    } else {
+						var imt=this.board.invalidMoveType(tri.x,tri.y,this.player);
+						if (imt==4){
+							alert("That move is outside the board.");
+						} else if (imt==3){
+							alert("That move would recreate a previous board position, KO!");
+						} else if (imt==2){
+							alert("That move would be suicide.");
+						}
+					}
                     break;
                 } else {
                     this.board.markDeadStones(tri.x,tri.y);
@@ -245,9 +254,11 @@ Trigo.ScreenBoard.prototype.loadGame=function(){
 	}
 	this.placeMoves();
 };
-Trigo.ScreenBoard.prototype.setupWS=function(){
+Trigo.ScreenBoard.prototype.setupWS=function(id){
 	if (window["WebSocket"]) {
-        this.ws = new WebSocket("ws://" + document.location.host + "/ws");
+		var wsid="/ws";
+		if (id) wsid+="/"+id;
+        this.ws = new WebSocket("ws://" + document.location.host + wsid);
         this.ws.onclose = function (evt) {
             console.log("Connection closed.");
         };

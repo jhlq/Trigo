@@ -1,0 +1,7 @@
+	<div id="chat">
+		<div id="log"></div>
+		<form id="form">
+			<input type="text" id="msg" size="16"/>
+			<input type="submit" value="Send" />
+		</form>
+	</div>
