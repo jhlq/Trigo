@@ -370,6 +370,7 @@ Trigo.Board=function(sideLength){
 	
 	this.influence=[];													//new
 	this.komi=7;
+	this.ruleset="hybrid" //supports "japanese" and "chinese"
 };
 Trigo.Board.prototype.copy=function(){
 	var bc=new Trigo.Board(this.tg.sideLength);
@@ -378,6 +379,7 @@ Trigo.Board.prototype.copy=function(){
 		var nt=new Trigo.Triangle(m.x,m.y,m.player);
 		if (!m.isPass() && this.tg.get(m.x,m.y).player==m.player){
 			bc.tg.triangles[nt.y][nt.x]=nt;
+			bc.tg.triangles[nt.y][nt.x].markedDead=this.tg.triangles[nt.y][nt.x].markedDead;
 		}
 		bc.moves.push(new Trigo.Triangle(nt.x,nt.y,nt.player));
 	}
@@ -597,10 +599,14 @@ Trigo.Board.prototype.score=function(){
 	}
 	this.territory[0]=scores[0];
 	this.territory[1]=scores[1];
-	scores[0]+=this.stones[0];
-	scores[1]+=this.stones[1];
-	scores[0]+=this.captures[0];
-	scores[1]+=this.captures[1];
+	if (this.ruleset=="hybrid" || this.ruleset=="chinese"){
+		scores[0]+=this.stones[0];
+		scores[1]+=this.stones[1];
+	}
+	if (this.ruleset=="hybrid" || this.ruleset=="japanese"){
+		scores[0]+=this.captures[0];
+		scores[1]+=this.captures[1];
+	}
 	scores[1]+=this.komi;
 	return scores;
 };

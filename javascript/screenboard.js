@@ -87,8 +87,8 @@ Trigo.ScreenBoard.prototype.clickEvent = function (e) {
                 if (this.board.tg.get(tri.x,tri.y).player==0){
                     var success=this.board.placeMove(tri.x,tri.y);
                     if (success){
+						this.send("placeMove "+tri.x+","+tri.y);
                         this.placeMoves();	//maybe unnecessary to place all moves...
-                        this.send("placeMove "+tri.x+","+tri.y);
                     } else {
 						var imt=this.board.invalidMoveType(tri.x,tri.y,this.player);
 						if (imt==4){
@@ -101,8 +101,10 @@ Trigo.ScreenBoard.prototype.clickEvent = function (e) {
 					}
                     break;
                 } else {
-                    this.board.markDeadStones(tri.x,tri.y);
-                    this.placeMoves();
+                    if (!this.send("markDeadStones "+tri.x+","+tri.y)){
+						this.board.markDeadStones(tri.x,tri.y);
+                        this.placeMoves();
+					}
                 }
             }
         }
@@ -255,6 +257,7 @@ Trigo.ScreenBoard.prototype.loadGame=function(){
 	this.placeMoves();
 };
 Trigo.ScreenBoard.prototype.setupWS=function(id){
+	if (id=="noWS") return;
 	if (window["WebSocket"]) {
 		var wsid="/ws";
 		if (id) wsid+="/"+id;
@@ -274,7 +277,13 @@ Trigo.ScreenBoard.prototype.setupWS=function(id){
 				} else if (arr[0]=="loadGame"){
 					document.getElementById("board_moves").value=arr[1];
 					_this.loadGame();
-					_this.placeMoves();
+					//_this.placeMoves();
+				} else if (arr[0]=="markDeadStones"){
+					var lp=arr[1].split(':');
+					var loc=lp[0].split(',');
+					_this.board.markDeadStones(parseInt(loc[0]),parseInt(loc[1]));
+                    _this.placeMoves();
+					
 				}
             }
         };
@@ -287,6 +296,7 @@ Trigo.ScreenBoard.prototype.send=function(string){
 	if (!string) {
 		return false;
 	}
+	if (this.ws.readyState !== WebSocket.OPEN) return false;
 	this.ws.send(string);
 	return true;
 };
