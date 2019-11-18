@@ -13,6 +13,7 @@ import (
 	"html/template"
 	
 	"github.com/gorilla/mux"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 var addr = flag.String("addr", ":8080", "http service address")
@@ -124,6 +125,11 @@ func serveBoard(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	dbclient:=getClient()
+	insert(dbclient,bson.M{"name": "pi", "value": 3.14159})
+	ping(dbclient)
+	printAll(dbclient)
+	findOne(dbclient)
 	flag.Parse()
 	hub := newHub()
 	go hub.run()
