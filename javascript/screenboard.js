@@ -90,7 +90,7 @@ Trigo.ScreenBoard.prototype.clickEvent = function (e) {
 						this.send("placeMove "+tri.x+","+tri.y);
                         this.placeMoves();	//maybe unnecessary to place all moves...
                     } else {
-						var imt=this.board.invalidMoveType(tri.x,tri.y,this.player);
+						var imt=this.board.invalidMoveType(tri.x,tri.y,this.board.player);
 						if (imt==4){
 							alert("That move is outside the board.");
 						} else if (imt==3){

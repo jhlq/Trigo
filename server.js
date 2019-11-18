@@ -4,7 +4,7 @@ var fs = require('fs');
 eval(fs.readFileSync('javascript/trigolib.js')+'');    //this is bad practice but seems early to turn it into a module
 var b=new Trigo.Board(9);
 var ai=new Trigo.AI(b);
-var r=ai.playNGames(50,true);
+var r=ai.playNGames(500,true);
 console.log(r[0]);
 fs.appendFile("data/simulations.txt", r[1], function(err) {
     if(err) {
