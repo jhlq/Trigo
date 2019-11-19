@@ -1113,7 +1113,21 @@ Trigo.AI.prototype.indicesOfMax=function(arr){												//util
     
     return maxIndices; 
 };
-Trigo.AI.prototype.placeSmartMove=function(thinklong,reset){
+Trigo.AI.prototype.markDeadByPlaying=function(){
+	var bc=this.board.copy();
+	var ob=this.board;
+	this.board=bc;
+	this.playGame();
+	for (let y=0;y<this.board.tg.triangles.length;y++){
+		for (let x=0;x<this.board.tg.triangles[y].length;x++){
+			if (ob.tg.get(x,y).player>0 && this.board.tg.get(x,y).player!=ob.tg.get(x,y).player){
+				ob.tg.triangles[y][x].markedDead=true;
+			}
+		}
+	}
+	this.board=ob;
+};
+Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong,reset){
 	if (this.board.moves.length<1){
 		for (let i=0;i<30;i++){
 			var ry=Math.floor(Math.random()*(this.board.tg.sideLength-3))+1;
@@ -1124,6 +1138,23 @@ Trigo.AI.prototype.placeSmartMove=function(thinklong,reset){
 	}
 	if (thinklong!=true) thinklong=false;
 	if (reset===undefined) reset=true;	
+	var board=this.board;
+	if (markdead){
+		this.board=board.copy();
+		this.markDeadByPlaying();
+		//console.log("Playing to end...");
+		/*this.playGame();
+		var mboard=board.copy();
+		for (let y=0;y<this.board.tg.triangles.length;y++){
+			for (let x=0;x<this.board.tg.triangles[y].length;x++){
+				if (this.board.tg.get(x,y).player==0){
+					mboard.tg.triangles[y][x].markedDead=true;
+				}
+			}
+		}
+		this.board=mboard;*/
+		//console.log("Marked stones");
+	}
 	if (reset){
 		this.board.spreadInfluence(3,false);
 	}
@@ -1144,7 +1175,12 @@ Trigo.AI.prototype.placeSmartMove=function(thinklong,reset){
 		}
 	}
 	if (moves2consider.length==0){ 
-		this.board.placeMove(-1,-1);
+		if (markdead || dontmarkdead){
+			this.board=board;
+			this.board.placeMove(-1,-1);
+		} else {
+			this.placeSmartMove(true);
+		}
 		return;
 	}
 	var se=this.board.estimateScore();
@@ -1182,18 +1218,32 @@ Trigo.AI.prototype.placeSmartMove=function(thinklong,reset){
 			} else {
 				var se2=bc.estimateScore();
 				var locvalue=se2[player-1]-se[player-1]+se[this.board.otherPlayer(player)-1]-se2[this.board.otherPlayer(player)-1];
-				bc.undo();
+				//bc.undo();
+				bc=this.board.copy();
 				var pcm=bc.placeCustomMove(moves2consider[m2ci].x,moves2consider[m2ci].y,this.board.otherPlayer(player));
 				if (pcm){
 					var se3=bc.estimateScore();
 					locvalue+=se3[this.board.otherPlayer(player)-1]-se[this.board.otherPlayer(player)-1]+se[player-1]-se3[player-1];
-					bc.undo(); //this isn't necessary on last iteration...
+					//bc.undo(); //this isn't necessary on last iteration...
+					bc=this.board.copy();
 				}
 				locvalues.push(locvalue);
 				//if (moves2consider[m2ci].x==2&&moves2consider[m2ci].y==2) console.log("2,2: "+locvalue);
 				//if (moves2consider[m2ci].x==2&&moves2consider[m2ci].y==2) console.log(locvalue);
 			}
 		}
+	}
+	if (markdead){
+		for (let m2ci=0;m2ci<moves2consider.length;m2ci++){
+			this.board=board.copy();
+			var t=moves2consider[m2ci];
+			this.board.placeMove(t);
+			this.markDeadByPlaying();
+			if (this.board.tg.get(t.x,t.y).markedDead==true){
+				locvalues[m2ci]=-1;
+			}
+		}
+		this.board=board;
 	}
 	var mi=this.indexOfMax(locvalues);
 	if (mi==-1 || locvalues[mi]<0){ 
@@ -1263,7 +1313,7 @@ Trigo.AI.prototype.placeSmartMove=function(thinklong,reset){
 };*/
 Trigo.AI.prototype.playGame=function(){
 	for (let mi=0;mi<this.board.tg.sideLength*this.board.tg.sideLength*10;mi++){	//avoid while loop
-		this.placeSmartMove();
+		this.placeSmartMove(false,true);
 		var nm=this.board.moves.length;
 		if (this.board.moves[nm-1].isPass() && this.board.moves[nm-2].isPass()){
 			break;

@@ -92,7 +92,8 @@ function keyDown(e) {
 		} else if (k==69){ //e,	|| k==13 conflicts with enter for buttons
 			var docx=parseInt(document.getElementById("x").value);
 			var docy=parseInt(document.getElementById("y").value);
-			sb.placeMove(docx,docy);
+			//sb.placeMove(docx,docy);
+			sb.handleClick(docx,docy);
 		} else if (k==87){ //w
 			document.getElementById("y").value=parseInt(document.getElementById("y").value)-1;
 			document.getElementById("x").value=parseInt(document.getElementById("x").value)+1;

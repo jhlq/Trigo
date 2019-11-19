@@ -69,6 +69,32 @@ Trigo.ScreenBoard.prototype.drawGrid=function(){
         }
     }
 };
+Trigo.ScreenBoard.prototype.handleClick=function(x,y){
+	var tri=x;
+	if (y!==undefined) tri=new Trigo.Triangle(x,y);
+	var imt=this.board.invalidMoveType(tri.x,tri.y,this.board.player);
+	if (imt==4){
+		alert("That move is outside the board.");
+	} else if (imt==3){
+		alert("That move would recreate a previous board position, KO!");
+	} else if (imt==2){
+		alert("That move would be suicide.");
+	} else if (imt==0){
+		if (this.ws){
+			this.send("placeMove "+tri.x+","+tri.y);
+		} else {
+			this.board.placeMove(tri.x,tri.y);
+			this.placeMoves();	//maybe unnecessary to place all moves... Needed for the dot on last move
+		}
+	} else if (imt==1){
+		if (this.ws){
+			this.send("markDeadStones "+tri.x+","+tri.y)
+		} else {
+			this.board.markDeadStones(tri.x,tri.y);
+			this.placeMoves();
+		}
+	}
+}
 Trigo.ScreenBoard.prototype.clickEvent = function (e) {
 	var mouseX = e.pageX;
 	var mouseY = e.pageY;
@@ -83,12 +109,15 @@ Trigo.ScreenBoard.prototype.clickEvent = function (e) {
             var tri=this.triangles[yt][xt];
             var distance=Math.sqrt(Math.pow(tri.pixX-localX,2)+Math.pow(tri.pixY-localY,2));
             if (distance<this.unitSize/2){
-                breakLoop=true;
-                if (this.board.tg.get(tri.x,tri.y).player==0){
+                //breakLoop=true;
+                this.handleClick(tri);
+                //break;
+                return;
+                /*if (this.board.tg.get(tri.x,tri.y).player==0){
                     var success=this.board.placeMove(tri.x,tri.y);
                     if (success){
 						this.send("placeMove "+tri.x+","+tri.y);
-                        this.placeMoves();	//maybe unnecessary to place all moves...
+                        this.placeMoves();	//maybe unnecessary to place all moves... Needed for the dot on last move
                     } else {
 						var imt=this.board.invalidMoveType(tri.x,tri.y,this.board.player);
 						if (imt==4){
@@ -105,12 +134,12 @@ Trigo.ScreenBoard.prototype.clickEvent = function (e) {
 						this.board.markDeadStones(tri.x,tri.y);
                         this.placeMoves();
 					}
-                }
+                }*/
             }
         }
-        if (breakLoop){
+        /*if (breakLoop){
             break;
-        }
+        }*/
     }
 };
 Trigo.ScreenBoard.prototype.placeMoves=function(){
@@ -224,13 +253,14 @@ Trigo.ScreenBoard.prototype.placeMove=function(x,y,player){
 	}
 };
 Trigo.ScreenBoard.prototype.updateScore=function(){
-	this.board.score();
-	var hybridsum=this.board.stones[0]+this.board.captures[0]+this.board.territory[0]-this.board.stones[1]-this.board.captures[1]-this.board.territory[1]-this.board.komi;
-	var result="Hybrid rules sum gives final result: ";
-	if (hybridsum>0){
-		result+="Green by "+hybridsum+" points.";
-	} else if (hybridsum<0){
-		result+="Blue by "+Math.abs(hybridsum)+" points.";
+	var s=this.board.score();
+	//var hybridsum=this.board.stones[0]+this.board.captures[0]+this.board.territory[0]-this.board.stones[1]-this.board.captures[1]-this.board.territory[1]-this.board.komi;
+	var sum=s[0]-s[1];
+	var result="Ruleset "+this.board.ruleset+" gives final result: ";
+	if (sum>0){
+		result+="Green by "+sum+" points.";
+	} else if (sum<0){
+		result+="Blue by "+Math.abs(sum)+" points.";
 	} else {
 		result+="Draw!";
 	}
@@ -283,7 +313,8 @@ Trigo.ScreenBoard.prototype.setupWS=function(id){
 					var loc=lp[0].split(',');
 					_this.board.markDeadStones(parseInt(loc[0]),parseInt(loc[1]));
                     _this.placeMoves();
-					
+				} else if (arr[0]=="undo"){
+					_this.undo();
 				}
             }
         };
