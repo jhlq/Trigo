@@ -1096,7 +1096,7 @@ Trigo.AI.prototype.indexOfMax=function(arr){												//util
 };
 Trigo.AI.prototype.indicesOfMax=function(arr){												//util
     if (arr.length === 0) {
-        return -1;
+        return [];
     }
     var max = arr[0];
     for (let i = 1; i < arr.length; i++) {
@@ -1105,7 +1105,7 @@ Trigo.AI.prototype.indicesOfMax=function(arr){												//util
         }
     }
     var maxIndices=[];
-    for (let i = 1; i < arr.length; i++) {
+    for (let i = 0; i < arr.length; i++) {
         if (arr[i] == max) {
             maxIndices.push(i);
         }
@@ -1245,7 +1245,13 @@ Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong,reset
 		}
 		this.board=board;
 	}
-	var mi=this.indexOfMax(locvalues);
+	//var mi=this.indexOfMax(locvalues);
+	var ma=this.indicesOfMax(locvalues);
+	if (ma.length==0){ 
+		this.board.placeMove(-1,-1);
+		return;
+	}
+	var mi=ma[Math.floor(Math.random()*(ma.length))];
 	if (mi==-1 || locvalues[mi]<0){ 
 		this.board.placeMove(-1,-1);
 	} else {
