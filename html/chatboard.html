@@ -75,13 +75,13 @@ window.onload = function () {
 	<input type="number" id="y" onchange="crosshair()" value=1>
 	<br>
 	<button onclick="letAIPlay()">Let AI play!</button>
-	<button onclick="sb.board.pass();sb.placeMoves()">Pass.</button>
-	<button onclick="sb.board.undo();sb.placeMoves()">Undo.</button>
+	<button onclick="sb.pass()">Pass.</button>
+	<button onclick="sb.undo()">Undo.</button>
 	<button onclick="sb.updateScore()">Score.</button>
 	<br>
 	<button onclick="sb.plotInfluence()">Plot influence.</button>
 	<button onclick="sb.board.autoMarkDeadStones();sb.placeMoves()">Mark dead stones.</button>
-	<button onclick="sb.board.reset();sb.placeMoves()">Reset.</button>
+	<button onclick="sb.reset()">Reset.</button>
 	<br>
 	<canvas id="TriCanvas" width=600 height="540"></canvas>
 	<div id="chat">
@@ -126,15 +126,15 @@ window.onload = function () {
 <script>
 var sb=new Trigo.ScreenBoard("TriCanvas",9,30,50,50);
 sb.drawGrid();
-sb.setupWS("chatboard");
+sb.setupWS("boards/chatboard");
 var ai=new Trigo.AI(sb.board);
 
 function letAIPlay(){
 	ai.placeSmartMove();
 	var nmoves=sb.board.moves.length;
 	if (sb.board.moves[nmoves-1].isPass() && sb.board.moves[nmoves-2].isPass()){
-		sb.board.autoMarkDeadStones();
-		sb.placeMoves();
+		//sb.board.autoMarkDeadStones();
+		//sb.placeMoves();
 		sb.updateScore();
 	} else {
 		sb.placeMoves();

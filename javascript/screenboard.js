@@ -315,6 +315,9 @@ Trigo.ScreenBoard.prototype.setupWS=function(id){
                     _this.placeMoves();
 				} else if (arr[0]=="undo"){
 					_this.undo();
+				} else if (arr[0]=="reset"){
+					_this.board.reset();
+					_this.placeMoves();
 				}
             }
         };
@@ -327,7 +330,34 @@ Trigo.ScreenBoard.prototype.send=function(string){
 	if (!string) {
 		return false;
 	}
-	if (this.ws.readyState !== WebSocket.OPEN) return false;
+	if (this.ws.readyState !== WebSocket.OPEN) {
+		alert("WebSocket is not open, try refreshing the page. If the problem persists please file an issue.");
+		return false;
+	}
 	this.ws.send(string);
 	return true;
+};
+Trigo.ScreenBoard.prototype.pass=function(){
+	if (this.ws){
+		this.send("placeMove -1,-1")
+	} else {
+		this.board.pass();
+		this.placeMoves();
+	}
+};
+Trigo.ScreenBoard.prototype.undo=function(){
+	if (this.ws){
+		this.send("undo")
+	} else {
+		this.board.undo();
+		this.placeMoves();
+	}
+};
+Trigo.ScreenBoard.prototype.reset=function(){
+	if (this.ws){
+		this.send("reset")
+	} else {
+		this.board.reset();
+		this.placeMoves();
+	}
 };

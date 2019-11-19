@@ -4,7 +4,13 @@
 
 package main
 
+import (
+	"go.mongodb.org/mongo-driver/bson"
+	//"log"
+)
+
 type Door struct {
+	collection string
 	key string
 	message []byte
 }
@@ -36,18 +42,31 @@ func newHub() *Hub {
 }
 
 func (h *Hub) run() {
+	dbclient:=getClient()
 	for {
 		select {
 		case client := <-h.register:
 			h.clients[client] = true
+			if client.collection=="" && client.key==""{
+				go func(){
+					msgs:=getN(dbclient,5)
+					for i:=range msgs {
+						//log.Println(msg)
+						client.send<-[]byte(msgs[len(msgs)-i-1])
+					}
+				}()
+			}
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
 				close(client.send)
 			}
 		case message := <-h.broadcast:
+			if message.collection=="" && message.key==""{
+				go addChatMessage(dbclient,bson.M{"message": string(message.message)})
+			}
 			for client := range h.clients {
-				if message.key==client.key {
+				if message.collection==client.collection && message.key==client.key {
 					select {
 					case client.send <- message.message:
 					default:

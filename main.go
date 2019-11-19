@@ -13,7 +13,7 @@ import (
 	"html/template"
 	
 	"github.com/gorilla/mux"
-	"go.mongodb.org/mongo-driver/bson"
+	//"go.mongodb.org/mongo-driver/bson"
 )
 
 var addr = flag.String("addr", ":8080", "http service address")
@@ -126,10 +126,11 @@ func serveBoard(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	dbclient:=getClient()
-	insert(dbclient,bson.M{"name": "pi", "value": 3.14159})
+	/*insert(dbclient,bson.M{"name": "pi", "value": 3.14159})
 	ping(dbclient)
 	printAll(dbclient)
-	findOne(dbclient)
+	findOne(dbclient)*/
+	printAll(dbclient)
 	flag.Parse()
 	hub := newHub()
 	go hub.run()
@@ -139,12 +140,12 @@ func main() {
 	//http.Handle("/h/", http.StripPrefix("/h/", http.FileServer(http.Dir("html"))))
 	//http.HandleFunc("/board/", serveBoard)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		serveWs(hub, w, r, "")
+		serveWs(hub, w, r,"","")
 	})
 	router := mux.NewRouter()
-	router.HandleFunc("/ws/{key}", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/ws/{collection}/{key}", func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		serveWs(hub, w, r, vars["key"])
+		serveWs(hub, w, r, vars["collection"],vars["key"])
 	})
 	router.HandleFunc("/board/{key}",serveBoard)
 	//fileServer := http.FileServer(http.Dir("html"))

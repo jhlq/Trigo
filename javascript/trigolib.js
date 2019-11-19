@@ -22,7 +22,7 @@ Trigo.Triangle.prototype.isPass=function(){
 Trigo.Triangle.prototype.alive=function(){
     return this.player>0 && !this.markedDead;
 };
-Trigo.Triangle.prototype.sameTenantAs=function(t){ //rewrite with ifs?	Fixed bug
+Trigo.Triangle.prototype.sameTenantAs=function(t){ //rewrite with ifs?	Fixed bug. Propagated to cpp
     return (this.player==t.player&&!this.markedDead&&!t.markedDead) || ((this.markedDead||this.player==0)&&(t.markedDead||t.player==0));
 };
 Trigo.Triangle.prototype.equals=function(t){
@@ -37,7 +37,7 @@ Trigo.TriangleGrid=function(sideLength){
 	this.setUpGrid();
 };
 Trigo.TriangleGrid.prototype.setUpGrid=function(){
-	if (this.triangles.length!=0) this.triangles=[];					//added check
+	if (this.triangles.length!=0) this.triangles=[];					//added check. Propagated
 	for (let yt = 0; yt < this.sideLength; yt++) {
 		var v=[];
 		for (let xt = 0; xt <= 2*this.sideLength-2*yt-2; xt++) {
@@ -492,7 +492,7 @@ Trigo.Board.prototype.otherPlayer=function(p){
 Trigo.Board.prototype.switchPlayer=function(){
 	this.player=this.otherPlayer();
 };
-Trigo.Board.prototype.placeMove=function(x,y){							//add _tri version? Ambiguous if we want board.player ot tri.player... 
+Trigo.Board.prototype.placeMove=function(x,y){							//add _tri version? Ambiguous if we want board.player or tri.player... 
 	var p=this.player;
 	var xt=x;
 	var yt=y;
@@ -689,7 +689,7 @@ Trigo.Board.prototype.surrounds=function(cluster){						//efficient
 	}
 	return surrounded;
 };
-Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connect danglers?
+Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connect danglers? AI.markDeadByPlaying
 	if (cluster.length==0) return false;								//added checks
 	var surrounded=this.surrounds(cluster);
 	if (surrounded.length>5) return false;
@@ -707,7 +707,6 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connec
 	//if (verb) console.log(totalstones);
 	var clusterstones=cluster.length;
 	var stonelimit=totalstones-clusterstones*0.7;
-	//srand(time(NULL));
 	var nwin=0;
 	var stonechange=0;
 	for (let i=0;i<maxit;i++){
@@ -955,7 +954,7 @@ Trigo.AI=function(board){
 	this.board=board;
 	this.estimates=[]; //form moveindex=score, (negative for blue lead). 
 };
-Trigo.AI.prototype.findEdge=function(){
+/*Trigo.AI.prototype.findEdge=function(){
 	var edge=[];
 	for (let y=0;y<this.board.influence.length;y++){
 		for (let x=0;x<this.board.influence[y].length;x++){
@@ -992,7 +991,7 @@ Trigo.AI.prototype.findReductions=function(){
 		}
 	}
 	return reds;
-};
+};*/
 Trigo.AI.prototype.findFromInfluence=function(){
 	var moves=[];
 	for (let y=0;y<this.board.influence.length;y++){
@@ -1142,18 +1141,6 @@ Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong,reset
 	if (markdead){
 		this.board=board.copy();
 		this.markDeadByPlaying();
-		//console.log("Playing to end...");
-		/*this.playGame();
-		var mboard=board.copy();
-		for (let y=0;y<this.board.tg.triangles.length;y++){
-			for (let x=0;x<this.board.tg.triangles[y].length;x++){
-				if (this.board.tg.get(x,y).player==0){
-					mboard.tg.triangles[y][x].markedDead=true;
-				}
-			}
-		}
-		this.board=mboard;*/
-		//console.log("Marked stones");
 	}
 	if (reset){
 		this.board.spreadInfluence(3,false);
@@ -1235,16 +1222,12 @@ Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong,reset
 	}
 	if (markdead){
 		for (let m2ci=0;m2ci<moves2consider.length;m2ci++){
-			this.board=board.copy();
 			var t=moves2consider[m2ci];
-			if (t.x==6&&t.y==0){ console.log(this.canBeCaptured(t));
-				console.log(this.board.player);
-			}
-			if (this.canBeCaptured(t)){
-				//why does this not work for 9;5,4:1;3,1:2;11,1:1;6,2:2;3,5:1;2,3:2;9,2:1;3,0:2;8,1:1;2,4:2;1,6:1;6,1:2;13,0:1;7,3:2;6,4:1;6,3:2;9,3:1;2,5:2;7,0:1;5,1:2;1,7:1;1,0:2;15,0:1;1,5:2;8,2:1;3,4:2;5,0:1;5,3:2;4,1:1;2,2:2;4,2:1;7,1:2;9,0:1;5,2:2;0,6:1;3,2:2;7,2:1;4,0:2;8,3:1;6,0:2;5,0:1;4,4:2;7,4:1;4,1:2; ?
+			if (this.canBeCaptured(t.x,t.y)){
 				locvalues[m2ci]=-1;
 				continue;
 			}
+			this.board=board.copy();
 			this.board.placeMove(t);
 			this.markDeadByPlaying();
 			if (this.board.tg.get(t.x,t.y).markedDead==true){

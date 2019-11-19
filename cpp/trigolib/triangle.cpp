@@ -24,7 +24,8 @@ bool Triangle::alive(){
     return player>0 && !markedDead;
 }
 bool Triangle::sameTenantAs(const Triangle &t){
-    return this->player==t.player || ((this->markedDead||this->player==0)&&(t.markedDead||t.player==0));
+    //return this->player==t.player || ((this->markedDead||this->player==0)&&(t.markedDead||t.player==0));
+    return (this->player==t.player&&!this->markedDead&&!t.markedDead) || ((this->markedDead||this->player==0)&&(t.markedDead||t.player==0));
 }
 
 bool Triangle::operator==(const Triangle& t)

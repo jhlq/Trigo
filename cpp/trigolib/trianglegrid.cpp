@@ -9,6 +9,7 @@ TriangleGrid::TriangleGrid(int sideLength)
     this->setUpGrid();
 }
 void TriangleGrid::setUpGrid(){
+	if (this->triangles.size()!=0) this->triangles.clear();
     for (int yt = 0; yt < sideLength; yt++) {
         std::vector<Triangle> v;
         for (int xt = 0; xt <= 2*sideLength-2*yt-2; xt++) {
