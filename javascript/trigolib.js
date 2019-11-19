@@ -1237,6 +1237,14 @@ Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong,reset
 		for (let m2ci=0;m2ci<moves2consider.length;m2ci++){
 			this.board=board.copy();
 			var t=moves2consider[m2ci];
+			if (t.x==6&&t.y==0){ console.log(this.canBeCaptured(t));
+				console.log(this.board.player);
+			}
+			if (this.canBeCaptured(t)){
+				//why does this not work for 9;5,4:1;3,1:2;11,1:1;6,2:2;3,5:1;2,3:2;9,2:1;3,0:2;8,1:1;2,4:2;1,6:1;6,1:2;13,0:1;7,3:2;6,4:1;6,3:2;9,3:1;2,5:2;7,0:1;5,1:2;1,7:1;1,0:2;15,0:1;1,5:2;8,2:1;3,4:2;5,0:1;5,3:2;4,1:1;2,2:2;4,2:1;7,1:2;9,0:1;5,2:2;0,6:1;3,2:2;7,2:1;4,0:2;8,3:1;6,0:2;5,0:1;4,4:2;7,4:1;4,1:2; ?
+				locvalues[m2ci]=-1;
+				continue;
+			}
 			this.board.placeMove(t);
 			this.markDeadByPlaying();
 			if (this.board.tg.get(t.x,t.y).markedDead==true){
