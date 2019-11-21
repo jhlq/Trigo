@@ -1,4 +1,4 @@
-//'use strict';
+//'use strict'; //didn't play well with node...
 
 var Trigo = {};
 	
@@ -86,7 +86,7 @@ Trigo.TriangleGrid.prototype.adjacent_tri=function(triangle){
 	}
 	if (!this.has(triangle)) return [];
 	var adj=[];
-	var leny=this.triangles.length;//this.sideLength;
+	var leny=this.triangles.length;//this.sideLength; //faster but... is there a downside?
 	var lenx=this.triangles[triangle.y].length;
 	if (triangle.x%2==1){
 		if (triangle.x+1<lenx){
@@ -169,7 +169,7 @@ Trigo.TriangleGrid.prototype.adjacentIndsSpread=function(triangle,spread){
 	for (let sp=0;sp<spread;sp++){
 		for (let ai=0;ai<adji.length;ai++){
 			var a=adji[ai];
-			if (!(a==triangle)){// && !adjis.includes(a)){
+			if (!(a==triangle)){
 				adjis.push(a);
 			}
 		}
@@ -210,7 +210,7 @@ Trigo.TriangleGrid.prototype.adjacentPieces_arr=function(group){
 Trigo.TriangleGrid.prototype.getConnected=function(tri){
 	var group=[];
 	group.push(tri);
-	var recentlyAdded=this.adjacentPieces(tri);	//why is this used also for empty space?
+	var recentlyAdded=this.adjacentPieces(tri);	//why is this used also for empty space? Good question...
 	while (!(recentlyAdded.length==0)){
 		var rai=recentlyAdded.length;
 		for (let i=0;i<rai;i++){
@@ -384,17 +384,6 @@ Trigo.Board.prototype.copy=function(){
 		}
 		bc.moves.push(new Trigo.Triangle(nt.x,nt.y,nt.player));
 	}
-	//bc.placeMoves(true);												//setting this to false causes too many recursions... Too many recursions also if true, place moves calls copy which calls place moves... Maybe the speedup made it too many function calls per second
-	/*this.tg.set(x,y,p);		this is how placeMove links the triangles, caused quite a hassle when the triangle in moves wasn't equal... 
-	var tri=this.tg.get(x,y);	shouldn't be this way though, overrides player info in moves
-	this.moves.push(tri);*/
-	/*for (let yi=0;yi<this.tg.triangles.length;yi++){		no longer needed, yay unexpected benefit
-		for (let xi=0;xi<this.tg.triangles[yi].length;xi++){	or is this better?
-			var ot=this.tg.triangles[yi][xi];
-			bc.tg.triangles[yi][xi].player=ot.player;
-			bc.tg.triangles[yi][xi].markedDead=ot.markedDead;
-		}
-	}*/
 	for (let hi=0;hi<this.history.length;hi++){
 		bc.history.push(this.history[hi]);
 	}
@@ -407,8 +396,7 @@ Trigo.Board.prototype.copy=function(){
 	return bc;
 };
 Trigo.Board.prototype.reset=function(){
-	//this.tg=new Trigo.TriangleGrid(this.tg.sideLength);					//this may be called unnecessarily in placeMoves, add boolean reset? Done. See problem above... Too many recursions why? ALl fixed?
-	this.tg.setUpGrid();												//changed to this
+	this.tg.setUpGrid();
 	this.history=[];
 	this.moves=[];
 	this.player=1;
@@ -418,7 +406,6 @@ Trigo.Board.prototype.reset=function(){
 	this.influence=[];
 };
 Trigo.Board.prototype.removeCapturedBy=function(tri){
-	//Triangle tri=tg.get(x,y);
 	var adj=this.tg.adjacent(tri);
 	for (let a=0;a<adj.length;a++){
 		var ap=adj[a].player;
@@ -444,20 +431,10 @@ Trigo.Board.prototype.invalidMoveType_tri=function(t){
 	if (this.tg.get(t.x,t.y).player!=0){
 		return 1;
 	}
-	//Board bc=Board(*this);
-	var bc=this.copy(); //JSON.parse(JSON.stringify(this)); //JSON misses functions etc
+	var bc=this.copy();
 	bc.tg.set(t.x,t.y,t.player);
 	var tri=bc.tg.get(t.x,t.y);
-	bc.removeCapturedBy(tri); //why not this?
-	/*var adj=bc.tg.adjacent(tri);
-	for (let a=0;a<adj.length;a++){
-			if (adj[a].alive()&&adj[a].player!=tri.player){
-			var g=bc.tg.getGroup(adj[a]);
-			if (bc.tg.liberties(g)==0){
-				bc.tg.removeGroup(g);
-			}
-		}
-	}*/
+	bc.removeCapturedBy(tri);
 	var group=bc.tg.getGroup(tri);
 	if (bc.tg.liberties(group)==0){
 		bc=null; //not necessary?
@@ -540,14 +517,14 @@ Trigo.Board.prototype.state=function(){
 	return s;
 };
 Trigo.Board.prototype.placeMoves=function(reset){
-	if (reset===undefined) reset=true;									//doesn't seem necessary?
+	if (reset===undefined) reset=true;									//doesn't seem necessary? Why not?
 	var m=this.moves;
 	//var p=this.player; //why unused? Better to have the player default to next after last move
 	if (reset) this.reset();											//add conditional reset? If tg doesn't need to be reinitialized, when board was just created. Yea
 	for (let movei=0;movei<m.length;movei++){
 		var move=m[movei];
-		this.placeMove(new Trigo.Triangle(move.x,move.y,move.player));	//why isn't it possible to undo after placeCustomMove here?
-		//this.placeCustomMove(move.x,move.y,move.player);				//because the triangle in moves is linked to the trianglegrid, player info is overwritten... In C++ this is not a problem because the == operator is overloaded, array.includes is dependant on linking
+		//this.placeMove(new Trigo.Triangle(move.x,move.y,move.player));	//why isn't it possible to undo after placeCustomMove here?
+		this.placeCustomMove(move.x,move.y,move.player);				//because the triangle in moves is linked to the trianglegrid, player info is overwritten... In C++ this is not a problem because the == operator is overloaded, array.includes is dependant on linking
 	}
 	if (this.moves.length>0){
 		this.player=this.otherPlayer(this.moves[this.moves.length-1].player);
@@ -569,7 +546,7 @@ Trigo.Board.prototype.pass=function(){
 };
 
 Trigo.Board.prototype.score=function(){
-	if (this.moves.length==0) return;
+	if (this.moves.length==0) return [0,this.komi];
 	var checked=[];
 	var scores=[0,0];
 	for (let y=0;y<this.tg.triangles.length;y++){
@@ -660,8 +637,6 @@ Trigo.Board.prototype.twoSuicideMovesInSpace=function(space,player){	//added, mu
 Trigo.Board.prototype.surrounds=function(cluster){						//efficient
 	var checked=[];
 	var surrounded=[];
-	//for (let y=0;y<this.tg.triangles.length;y++){
-	//	for (let x=0;x<this.tg.triangles[y].length;x++){
 	var adjc=this.tg.adjacent(cluster);
 	for (let adjci=0;adjci<adjc.length;adjci++){
 		var tri=adjc[adjci];
@@ -781,9 +756,6 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connec
 Trigo.Board.prototype.autoMarkDeadStones=function(){
 	var tried=[];
 	var tobemarked=[];
-	//for (let mi=0;mi<this.moves.length;mi++){							//changed, iterating over moves caused linking troubles and in endgame number of moves is comparable to number of triangles
-	//	var m=this.moves[mi];
-	//	if (!tried.includes(m) && !m.isPass()){
 	for (let yi=0;yi<this.tg.triangles.length;yi++){
 		for (let xi=0;xi<this.tg.triangles[yi].length;xi++){
 			var t=this.tg.get(xi,yi);
@@ -819,7 +791,6 @@ Trigo.Board.prototype.initInfluence=function(){
 	for (let y=0;y<this.tg.triangles.length;y++){
 		var v=[];
 		for (let x=0;x<this.tg.triangles[y].length;x++){
-			//var tri=this.tg.triangles[y][x];
 			var vt=new Trigo.InfluenceTriangle();
 			if (y==0 || x<2 || x>(this.tg.triangles[y].length-3)) vt.border=1;	//add decreasing border influence
 			v.push(vt);
@@ -884,7 +855,6 @@ Trigo.Board.prototype.spreadInfluence_tri=function(tri,range,tunneling){//someth
 	}
 };
 Trigo.Board.prototype.spreadInfluence=function(range,tunneling){
-	//if (this.influence.length==0) this.initInfluence(); //merged into resetInfluence
 	this.resetInfluence();
 	if (range===undefined) range=3;
 	if (tunneling===undefined) tunneling=false;
@@ -906,7 +876,6 @@ Trigo.Board.prototype.estimateScore=function(reset,range,tunneling){
 	var green=this.captures[0];//+this.stones[0];	//hybrid rules, both stones and captures give points
 	var blue=this.captures[1]+this.komi;//+this.stones[1]; //stones are counted from influence
 	if (reset){
-		//this.resetInfluence(); //merged with spreadInfluence, dosn't make much sence spreading without? Indeed
 		this.spreadInfluence(range,tunneling);
 	}
 	for (let y=0;y<this.influence.length;y++){
@@ -935,8 +904,6 @@ Trigo.Board.prototype.loadGame=function(movesstring){
 	var sl=parseInt(arr[0]);
 	if (sl>0 && sl!=this.tg.sideLength){
 		this.tg.sideLength=sl;
-		//this.tg.setUpGrid();
-		//this.reset(); //gets called anyhow in placemoves
 	} 
 	this.moves=[];
 	for (let arri=1;arri<arr.length-1;arri++){
@@ -953,46 +920,8 @@ Trigo.Board.prototype.loadGame=function(movesstring){
 
 Trigo.AI=function(board){
 	this.board=board;
-	this.estimates=[]; //form moveindex=score, (negative for blue lead). 
+	this.estimates=[]; //form moveindex=score, (negative for blue lead). Use case is making simulation data for neural networks.
 };
-/*Trigo.AI.prototype.findEdge=function(){
-	var edge=[];
-	for (let y=0;y<this.board.influence.length;y++){
-		for (let x=0;x<this.board.influence[y].length;x++){
-			if (this.board.tg.get(x,y).player!=0) continue;					//no support for marked dead stones!
-			var it=this.board.influence[y][x];
-			var infl=it.border;
-			if (this.board.player==1){
-				infl+=it.green-it.blue;
-				if (infl<0.5 && infl>0 && it.green>0) edge.push(this.board.tg.get(x,y));
-			} else if (this.board.player==2){
-				infl+=it.blue-it.green;
-				if (infl<0.5 && infl>0 && it.blue>0) edge.push(this.board.tg.get(x,y));
-			}
-		}
-	}
-	return edge;
-};
-Trigo.AI.prototype.findReductions=function(){
-	//this should be merged with findEdge since they both iterate of inluence
-	//however they may require different influence spread...
-	var reds=[];
-	for (let y=0;y<this.board.influence.length;y++){
-		for (let x=0;x<this.board.influence[y].length;x++){
-			if (this.board.tg.get(x,y).player!=0) continue;					//no support for marked dead stones!
-			var it=this.board.influence[y][x];
-			var infl=0;	//lint complained that var infl var declared twice in mutually exclusive if-else branches
-			if (this.board.player==1){
-				infl=it.green-it.blue;
-				if (infl<0.5 && it.green>0 && it.blue>0) reds.push(this.board.tg.get(x,y));
-			} else if (this.board.player==2){
-				infl=it.blue-it.green;
-				if (infl<0.5 && it.blue>0 && it.green>0) reds.push(this.board.tg.get(x,y));
-			}
-		}
-	}
-	return reds;
-};*/
 Trigo.AI.prototype.findFromInfluence=function(){
 	var moves=[];
 	for (let y=0;y<this.board.influence.length;y++){
@@ -1065,7 +994,6 @@ Trigo.AI.prototype.findCapturing=function(){
 	return capturing;
 };
 Trigo.AI.prototype.canBeCaptured=function(x,y){						//this will be useful
-	//must take KOs etc into account. Why is it called 4 times? Fixed, another linking problem
 	var bc=this.board.copy();
 	var captures=bc.placeMoveCountCaptures(x,y);
 	if (captures<0) return true; //suicide/invalid
@@ -1198,26 +1126,20 @@ Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong,reset
 	} else {
 		var bc=this.board.copy();
 		for (let m2ci=0;m2ci<moves2consider.length;m2ci++){
-			//if (m2ci>0) bc.undo();
 			var placedmove=bc.placeMove(moves2consider[m2ci]);
 			if (!placedmove){
 				locvalues.push(-1);
-				//bc.placeMove(-1,-1);
 			} else {
 				var se2=bc.estimateScore();
 				var locvalue=se2[player-1]-se[player-1]+se[this.board.otherPlayer(player)-1]-se2[this.board.otherPlayer(player)-1];
-				//bc.undo();
 				bc=this.board.copy();
 				var pcm=bc.placeCustomMove(moves2consider[m2ci].x,moves2consider[m2ci].y,this.board.otherPlayer(player));
 				if (pcm){
 					var se3=bc.estimateScore();
 					locvalue+=se3[this.board.otherPlayer(player)-1]-se[this.board.otherPlayer(player)-1]+se[player-1]-se3[player-1];
-					//bc.undo(); //this isn't necessary on last iteration...
-					bc=this.board.copy();
+					bc=this.board.copy(); //this isn't necessary on last iteration...
 				}
 				locvalues.push(locvalue);
-				//if (moves2consider[m2ci].x==2&&moves2consider[m2ci].y==2) console.log("2,2: "+locvalue);
-				//if (moves2consider[m2ci].x==2&&moves2consider[m2ci].y==2) console.log(locvalue);
 			}
 		}
 	}
@@ -1237,7 +1159,7 @@ Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong,reset
 		}
 		this.board=board;
 	}
-	//var mi=this.indexOfMax(locvalues);
+	//var mi=this.indexOfMax(locvalues); //if need be deterministic
 	var ma=this.indicesOfMax(locvalues);
 	if (ma.length==0){ 
 		this.board.placeMove(-1,-1);
@@ -1250,65 +1172,6 @@ Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong,reset
 		this.board.placeMove(moves2consider[mi]);
 	}
 };
-/*Trigo.AI.prototype.placeSmartMove_old=function(reset){
-	if (this.board.moves.length<2){
-		for (let i=0;i<30;i++){
-			var ry=Math.floor(Math.random()*(this.board.tg.sideLength-3))+1;
-			var xmax=this.board.tg.triangles[ry].length;
-			var rx=Math.floor(Math.random()*(xmax-4))+2;
-			if (this.board.placeMove(rx,ry)) return;
-		}
-	}
-	if (reset===undefined) reset=true;	
-	if (reset){
-		this.board.spreadInfluence(3,false);
-	}
-	//merge into findFromInfluence, or?
-	var edge=this.findEdge();
-	var capturing=this.findCapturing();
-	//this.spreadInfluence(3,false);
-	var reductions=this.findReductions();
-	var moves2consider0=(edge.concat(capturing)).concat(reductions);
-	var moves2consider=[];
-	for (let m2c0i=0;m2c0i<moves2consider0.length;m2c0i++){
-		var m=moves2consider0[m2c0i];
-		if (!this.canBeCaptured(m.x,m.y)){
-			moves2consider.push(m);
-		}
-	}
-	var se=this.board.estimateScore();
-	this.estimates.push([this.board.moves.length-1,se[0]-se[1]]);
-	var locvalues=[];
-	var player=this.board.player;
-	var bc=this.board.copy();
-	for (let m2ci=0;m2ci<moves2consider.length;m2ci++){
-		//if (m2ci>0) bc.undo();
-		var placedmove=bc.placeMove(moves2consider[m2ci]);
-		if (!placedmove){
-			locvalues.push(-1);
-			//bc.placeMove(-1,-1);
-		} else {
-			var se2=bc.estimateScore();
-			var locvalue=se2[player-1]-se[player-1]+se[this.board.otherPlayer(player)-1]-se2[this.board.otherPlayer(player)-1];
-			bc.undo();
-			var pcm=bc.placeCustomMove(moves2consider[m2ci].x,moves2consider[m2ci].y,this.board.otherPlayer(player));
-			if (pcm){
-				var se3=bc.estimateScore();
-				locvalue+=se3[this.board.otherPlayer(player)-1]-se[this.board.otherPlayer(player)-1]+se[player-1]-se3[player-1];
-				bc.undo(); //this isn't necessary on last iteration...
-			}
-			locvalues.push(locvalue);
-			//if (moves2consider[m2ci].x==2&&moves2consider[m2ci].y==2) console.log("2,2: "+locvalue);
-			//if (moves2consider[m2ci].x==2&&moves2consider[m2ci].y==2) console.log(locvalue);
-		}
-	}
-	var mi=this.indexOfMax(locvalues);
-	if (mi==-1 || locvalues[mi]<0){ 
-		this.board.placeMove(-1,-1);
-	} else {
-		this.board.placeMove(moves2consider[mi]);
-	}
-};*/
 Trigo.AI.prototype.playGame=function(){
 	for (let mi=0;mi<this.board.tg.sideLength*this.board.tg.sideLength*10;mi++){	//avoid while loop
 		this.placeSmartMove(false,true);

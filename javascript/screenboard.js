@@ -265,7 +265,7 @@ Trigo.ScreenBoard.prototype.setupWS=function(id){
         this.ws.onmessage = function (evt) {
             var messages = evt.data.split('\n');
             for (var i = 0; i < messages.length; i++) {
-                var arr=messages[i].split(' ');
+				var arr=messages[i].split(' ');
                 if (arr[0]=="placeMove"){
 					var lp=arr[1].split(':');
 					var loc=lp[0].split(',');
