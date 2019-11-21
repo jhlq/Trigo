@@ -130,7 +130,10 @@ func main() {
 	ping(dbclient)
 	printAll(dbclient)
 	findOne(dbclient)*/
-	printAll(dbclient)
+	//printAll(dbclient)
+	addBoard(dbclient,"test",9)
+	ops:=getOps(dbclient,"test1")
+	log.Println(ops)
 	flag.Parse()
 	hub := newHub()
 	go hub.run()

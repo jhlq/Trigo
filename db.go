@@ -4,11 +4,12 @@ import (
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/mongo/readpref"
     "go.mongodb.org/mongo-driver/mongo/options"
-    
+    "go.mongodb.org/mongo-driver/bson"
+    "go.mongodb.org/mongo-driver/bson/primitive"
     "context"
     "time"
     "log"
-    "go.mongodb.org/mongo-driver/bson"
+    "strconv"
     "fmt"
 )
 
@@ -38,6 +39,36 @@ func addChatMessage(client *mongo.Client,message bson.M){
 	_, err := collection.InsertOne(ctx, message)
 	if (err!=nil){ log.Println(err) }
 }
+func addBoard(client *mongo.Client,key string,size int){
+	collection := client.Database("testing").Collection("boards")
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	_, err := collection.InsertOne(ctx, bson.M{"key": key, "size":size})
+	if (err!=nil){ log.Println(err) }
+	addOp(client,key,"loadGame "+strconv.Itoa(size)+";")
+}
+func addOp(client *mongo.Client,key string,op string){
+	collection := client.Database("testing").Collection("boards")
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	filter := bson.M{"key": bson.M{"$eq": key}}
+	update := bson.M{"$push": bson.M{"ops": op}}
+	_, err := collection.UpdateOne(ctx,filter,update)
+	if (err!=nil){ log.Println(err) }
+}
+func getOps(client *mongo.Client,key string) []string {
+	collection := client.Database("testing").Collection("boards")
+	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	var result struct {
+		Ops primitive.A
+	}
+	err := collection.FindOne(ctx, bson.M{"key":key}).Decode(&result)
+	if err != nil { log.Println(err) }
+	var ops []string
+	for _,op := range(result.Ops){
+		sop := fmt.Sprintf("%v", op)
+		ops=append(ops,sop)
+	}
+	return ops
+}
 func printAll(client *mongo.Client){
 	collection := client.Database("testing").Collection("chat")
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
@@ -58,9 +89,6 @@ func printAll(client *mongo.Client){
 func getN(client *mongo.Client, n int64) []string {
 	collection := client.Database("testing").Collection("chat")
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
-	//var opts []findopt.Find
-	//opts = append(opts, findopt.Limit(n))
-	//opts = append(opts, findopt.Skip(m)))
 	findOptions := options.Find()
 	findOptions.SetLimit(n)
 	findOptions.SetSort(bson.D{{"_id", -1}})
