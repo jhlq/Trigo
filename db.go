@@ -33,18 +33,26 @@ func insert(client *mongo.Client,item bson.M){
 	id := res.InsertedID
 	log.Println(id,err)
 }
-func addChatMessage(client *mongo.Client,message bson.M){
+func addChatMessage(client *mongo.Client,msg string){
+	message:=bson.M{"message": msg}
 	collection := client.Database("testing").Collection("chat")
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	_, err := collection.InsertOne(ctx, message)
 	if (err!=nil){ log.Println(err) }
 }
-func addBoard(client *mongo.Client,key string,size int){
+func boardExists(client *mongo.Client,key string) bool{
 	collection := client.Database("testing").Collection("boards")
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-	_, err := collection.InsertOne(ctx, bson.M{"key": key, "size":size})
+	res := collection.FindOne(ctx, bson.M{"key":key})
+	if (res.Err()!=nil){ return false }
+	return true
+}
+func addBoard(client *mongo.Client,key string){
+	collection := client.Database("testing").Collection("boards")
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	_, err := collection.InsertOne(ctx, bson.M{"key": key})
 	if (err!=nil){ log.Println(err) }
-	addOp(client,key,"loadGame "+strconv.Itoa(size)+";")
+	//addOp(client,key,"loadGame "+strconv.Itoa(size)+";")
 }
 func addOp(client *mongo.Client,key string,op string){
 	collection := client.Database("testing").Collection("boards")

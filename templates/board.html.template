@@ -11,16 +11,15 @@
 		<input type="number" id="x" onchange="crosshair()" value=1>
 	<input type="number" id="y" onchange="crosshair()" value=1>
 	<br>
-	<button onclick="letAIPlay()">Let AI play!</button>
+	<button onclick="sb.letAIPlay()">Let AI play!</button>
 	<button onclick="sb.pass()">Pass.</button>
 	<button onclick="sb.undo()">Undo.</button>
 	<button onclick="sb.updateScore()">Score.</button>
 	<br>
 	<button onclick="sb.plotInfluence()">Plot influence.</button>
-	<button onclick="sb.board.autoMarkDeadStones();sb.placeMoves()">Mark dead stones.</button>
 	<button onclick="sb.reset()">Reset.</button>
 	<br>
-	<canvas id="TriCanvas" width=600 height="540"></canvas>
+	<canvas id="TriCanvas" width=700 height="630"></canvas>
 	{{.Chat}}
 	<p id="scores"></p>
 	<label for="shortcuts">Enable keyboard shortcuts (w a s d and e to enter): </label>
@@ -28,16 +27,14 @@
 	<br>
 	
 	<p>Canvas size: 
-	<input type="number" id="canvassize" step="100" value=600>
-	Unit size: 
-	<input type="number" id="unitsize" step="5" value=25>
-	Side length (y rows): 
+	<input type="number" id="canvassize" step="100" value=700>
+	Side length: 
 	<input type="number" id="sidelength" step="1" value=13>
-	<button onclick="changesize()">Change.</button>
+	<button onclick="sb.changesize()">Change.</button>
 	</p>
 	
-		Game record: <input type="text" id="board_moves" value='9;'>
-	<button class="btn btn-primary" onclick="sb.loadGame()">Load game record (paste first).</button>
+	<p>	Game record: <input type="text" id="board_moves" value='9;'> 
+	<button class="btn btn-primary" onclick="sb.loadGame()">Load game record (paste first).</button> </p>
 <footer class="footer">
 	<small>
 		Go is fun!
@@ -55,22 +52,12 @@
 <script type="text/javascript" src="/javascript/screenboard.js"></script>
 
 <script>
-var sb=new Trigo.ScreenBoard("TriCanvas",9,30,50,50);
+var sb=new Trigo.ScreenBoard("TriCanvas",9);
 sb.drawGrid();
 sb.setupWS("boards/{{.Key}}");
 var ai=new Trigo.AI(sb.board);
+sb.ai=ai;
 
-function letAIPlay(){
-	ai.placeSmartMove();
-	var nmoves=sb.board.moves.length;
-	if (sb.board.moves[nmoves-1].isPass() && sb.board.moves[nmoves-2].isPass()){
-		sb.board.autoMarkDeadStones();
-		sb.placeMoves();
-		sb.updateScore();
-	} else {
-		sb.placeMoves();
-	}
-};
 document.body.addEventListener("keydown", keyDown, false);
 function keyDown(e) {
 	if (document.getElementById("shortcuts")==null || typeof(document.getElementById("shortcuts"))=="undefined"){
@@ -112,20 +99,6 @@ function crosshair(){
 		sb.drawer.line(st.pixX-sb.unitSize,st.pixY,st.pixX+sb.unitSize,st.pixY,"#909",5);
 		sb.drawer.line(st.pixX,st.pixY-sb.unitSize,st.pixX,st.pixY+sb.unitSize,"#909",5);
 	}
-};
-function changesize(){
-	var s=parseInt(document.getElementById("canvassize").value);
-	sb.drawer.canvas.width=s;
-	sb.drawer.canvas.height=s*0.9;
-	var us=parseInt(document.getElementById("unitsize").value);
-	sb.unitSize=us;
-	var sl=parseInt(document.getElementById("sidelength").value);
-	if (sl!=sb.board.tg.sideLength){
-		sb.board.tg.sideLength=sl;
-		sb.board.reset();
-	}
-	sb.updateParams();
-	sb.placeMoves();
 };
 
 </script>

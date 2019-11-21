@@ -74,7 +74,7 @@ window.onload = function () {
 		<input type="number" id="x" onchange="crosshair()" value=1>
 	<input type="number" id="y" onchange="crosshair()" value=1>
 	<br>
-	<button onclick="letAIPlay()">Let AI play!</button>
+	<button onclick="sb.letAIPlay()">Let AI play!</button>
 	<button onclick="sb.pass()">Pass.</button>
 	<button onclick="sb.undo()">Undo.</button>
 	<button onclick="sb.updateScore()">Score.</button>
@@ -128,18 +128,8 @@ var sb=new Trigo.ScreenBoard("TriCanvas",9,30,50,50);
 sb.drawGrid();
 sb.setupWS("boards/chatboard");
 var ai=new Trigo.AI(sb.board);
+sb.ai=ai;
 
-function letAIPlay(){
-	ai.placeSmartMove();
-	var nmoves=sb.board.moves.length;
-	if (sb.board.moves[nmoves-1].isPass() && sb.board.moves[nmoves-2].isPass()){
-		//sb.board.autoMarkDeadStones();
-		//sb.placeMoves();
-		sb.updateScore();
-	} else {
-		sb.placeMoves();
-	}
-};
 document.body.addEventListener("keydown", keyDown, false);
 function keyDown(e) {
 	if (document.getElementById("shortcuts")==null || typeof(document.getElementById("shortcuts"))=="undefined"){

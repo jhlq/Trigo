@@ -9,37 +9,31 @@ Trigo.ScreenTriangle=function(_x,_y,_pixX,_pixY){
     this.pixY=_pixY;
 };
 
-Trigo.ScreenBoard=function(drawAreaID,sideLength,_unitSize,_offsetX,_offsetY){
+Trigo.ScreenBoard=function(drawAreaID,sideLength){
 	this.drawer=new Trigo.CanvasDrawer(drawAreaID,3);
 	this.drawer.canvas.addEventListener("mousedown", this.clickEvent.bind(this), false);
 	this.board=new Trigo.Board(sideLength);
-    this.unitSize=_unitSize;
-    this.offsetX=_offsetX;
-    this.offsetY=_offsetY;
-    this.h=this.unitSize*Math.cos(Math.PI/3);							//stored these as member variables
-    this.l=2*this.unitSize*Math.cos(Math.PI/6);
-    this.triangles=[];
-    this.setUpGrid();
+    this.updateParams();
     this.ws=false;
 };
 Trigo.ScreenBoard.prototype.updateParams=function(){					//added
+	this.drawer.updateParams();
+	this.unitSize=(this.drawer.canvas.width)/(2*this.board.tg.sideLength)/Math.cos(Math.PI/6);
 	this.h=this.unitSize*Math.cos(Math.PI/3);
     this.l=2*this.unitSize*Math.cos(Math.PI/6);
     this.triangles=[];
     this.setUpGrid();
-    this.drawer.updateParams();
 };
 Trigo.ScreenBoard.prototype.makeTriangle=function(x,y){
-    var ox=this.offsetX;
-    var oy=this.offsetY;
+    var ox=this.unitSize;
+    var oy=this.unitSize;
     var remainder=x%2;
     if (remainder==1){
-		//ox+=l/2+(x/2)*l+(l/2)*y;										//what? C++ code discards 0.5
+		//ox+=l/2+(x/2)*l+(l/2)*y;										//what? C++ code discards 0.5. Fix that
         ox+=(x/2)*this.l+(this.l/2)*y;
         oy+=this.h+(this.unitSize+this.h)*y;
     } else {
-		var ex=x-remainder;												//moved, this should be changed because remainder subtraction is in wrong place...
-        ox+=(ex/2)*this.l+y*(this.l/2);
+		ox+=(x/2)*this.l+y*(this.l/2);
         oy+=(this.unitSize+this.h)*y;
     }
     return new Trigo.ScreenTriangle(x,y,ox,oy);
@@ -84,7 +78,7 @@ Trigo.ScreenBoard.prototype.handleClick=function(x,y){
 			this.send("placeMove "+tri.x+","+tri.y);
 		} else {
 			this.board.placeMove(tri.x,tri.y);
-			this.placeMoves();	//maybe unnecessary to place all moves... Needed for the dot on last move
+			this.placeMoves();
 		}
 	} else if (imt==1){
 		if (this.ws){
@@ -100,7 +94,6 @@ Trigo.ScreenBoard.prototype.clickEvent = function (e) {
 	var mouseY = e.pageY;
 	var localX = mouseX - this.drawer.canvasOriginX;
 	var localY = mouseY - this.drawer.canvasOriginY;
-	//this.drawer.circle(localX,localY,"#0f0",this.unitSize/2);
 	var leny=this.triangles.length;
     var breakLoop=false;
     for (let yt=0;yt<leny;yt++){
@@ -109,38 +102,11 @@ Trigo.ScreenBoard.prototype.clickEvent = function (e) {
             var tri=this.triangles[yt][xt];
             var distance=Math.sqrt(Math.pow(tri.pixX-localX,2)+Math.pow(tri.pixY-localY,2));
             if (distance<this.unitSize/2){
-                //breakLoop=true;
                 this.handleClick(tri);
-                //break;
                 return;
-                /*if (this.board.tg.get(tri.x,tri.y).player==0){
-                    var success=this.board.placeMove(tri.x,tri.y);
-                    if (success){
-						this.send("placeMove "+tri.x+","+tri.y);
-                        this.placeMoves();	//maybe unnecessary to place all moves... Needed for the dot on last move
-                    } else {
-						var imt=this.board.invalidMoveType(tri.x,tri.y,this.board.player);
-						if (imt==4){
-							alert("That move is outside the board.");
-						} else if (imt==3){
-							alert("That move would recreate a previous board position, KO!");
-						} else if (imt==2){
-							alert("That move would be suicide.");
-						}
-					}
-                    break;
-                } else {
-                    if (!this.send("markDeadStones "+tri.x+","+tri.y)){
-						this.board.markDeadStones(tri.x,tri.y);
-                        this.placeMoves();
-					}
-                }*/
             }
         }
-        /*if (breakLoop){
-            break;
-        }*/
-    }
+	}
 };
 Trigo.ScreenBoard.prototype.placeMoves=function(){
 	this.drawer.context.clearRect(0, 0, this.drawer.canvas.width, this.drawer.canvas.height);
@@ -254,7 +220,6 @@ Trigo.ScreenBoard.prototype.placeMove=function(x,y,player){
 };
 Trigo.ScreenBoard.prototype.updateScore=function(){
 	var s=this.board.score();
-	//var hybridsum=this.board.stones[0]+this.board.captures[0]+this.board.territory[0]-this.board.stones[1]-this.board.captures[1]-this.board.territory[1]-this.board.komi;
 	var sum=s[0]-s[1];
 	var result="Ruleset "+this.board.ruleset+" gives final result: ";
 	if (sum>0){
@@ -279,15 +244,16 @@ Trigo.ScreenBoard.prototype.updateScore=function(){
 	alert(ssa);
 };
 Trigo.ScreenBoard.prototype.loadGame=function(){
-	var sl=this.board.tg.sideLength;
-	this.board.loadGame(document.getElementById("board_moves").value);
-	if (sl!=this.board.tg.sideLength){
-		this.setUpGrid();
+	if (this.ws){
+		this.send("loadGame "+document.getElementById("board_moves").value);
+	} else {
+		this.board.loadGame(document.getElementById("board_moves").value);
+		this.updateParams();
+		this.placeMoves();
 	}
-	this.placeMoves();
 };
 Trigo.ScreenBoard.prototype.setupWS=function(id){
-	if (id=="noWS") return;
+	if (id=="boards/noWS") return;
 	if (window["WebSocket"]) {
 		var wsid="/ws";
 		if (id) wsid+="/"+id;
@@ -306,15 +272,18 @@ Trigo.ScreenBoard.prototype.setupWS=function(id){
 					_this.placeMove(parseInt(loc[0]),parseInt(loc[1]),parseInt(lp[1]));
 				} else if (arr[0]=="loadGame"){
 					document.getElementById("board_moves").value=arr[1];
-					_this.loadGame();
-					//_this.placeMoves();
+					_this.board.loadGame(arr[1]);
+					_this.updateParams();
+					_this.placeMoves();
+					document.getElementById("sidelength").value=_this.board.tg.sideLength;
 				} else if (arr[0]=="markDeadStones"){
 					var lp=arr[1].split(':');
 					var loc=lp[0].split(',');
 					_this.board.markDeadStones(parseInt(loc[0]),parseInt(loc[1]));
                     _this.placeMoves();
 				} else if (arr[0]=="undo"){
-					_this.undo();
+					_this.board.undo();
+					_this.placeMoves();
 				} else if (arr[0]=="reset"){
 					_this.board.reset();
 					_this.placeMoves();
@@ -358,6 +327,31 @@ Trigo.ScreenBoard.prototype.reset=function(){
 		this.send("reset")
 	} else {
 		this.board.reset();
+		this.placeMoves();
+	}
+};
+Trigo.ScreenBoard.prototype.letAIPlay=function(){
+	this.ai.placeSmartMove();
+	var nmoves=this.board.moves.length;
+	this.send("placeMove "+this.board.moves[nmoves-1].x+","+this.board.moves[nmoves-1].y);
+	if (this.board.moves[nmoves-1].isPass() && this.board.moves[nmoves-2].isPass()){
+		//sb.board.autoMarkDeadStones(); //return this when automarking improves
+		//sb.placeMoves();
+		this.updateScore();
+	} else {
+		this.placeMoves();
+	}
+};
+Trigo.ScreenBoard.prototype.changesize=function(){
+	var s=parseInt(document.getElementById("canvassize").value);
+	sb.drawer.canvas.width=s;
+	sb.drawer.canvas.height=s*0.9;
+	var sl=parseInt(document.getElementById("sidelength").value);
+	if (sl!=sb.board.tg.sideLength){
+		document.getElementById("board_moves").value=sl+";";
+		this.loadGame();
+	} else {
+		this.updateParams();
 		this.placeMoves();
 	}
 };

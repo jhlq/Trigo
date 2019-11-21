@@ -110,7 +110,8 @@ type BoardData struct {
     Chat interface{}
 }
 func serveBoard(w http.ResponseWriter, r *http.Request) {
-	log.Println(r.URL)
+	//log.Println(r.URL)
+	w.Header().Set("Cache-Control", "max-age:10800, public")
 	vars := mux.Vars(r)
 	headertemplate,_ := ioutil.ReadFile("templates/chat.header.template")
 	chattemplate,_ := ioutil.ReadFile("templates/chat.html.template")
@@ -131,8 +132,11 @@ func main() {
 	printAll(dbclient)
 	findOne(dbclient)*/
 	//printAll(dbclient)
-	addBoard(dbclient,"test",9)
-	ops:=getOps(dbclient,"test1")
+	//addBoard(dbclient,"test",9)
+	log.Println(boardExists(dbclient,"test"))
+	addOp(dbclient,"test","placeMove 1,1")
+	addOp(dbclient,"test1","placeMove 1,2")
+	ops:=getOps(dbclient,"test")
 	log.Println(ops)
 	flag.Parse()
 	hub := newHub()

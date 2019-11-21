@@ -5,7 +5,7 @@
 package main
 
 import (
-	"go.mongodb.org/mongo-driver/bson"
+	//"go.mongodb.org/mongo-driver/bson"
 	//"log"
 )
 
@@ -55,6 +55,17 @@ func (h *Hub) run() {
 						client.send<-[]byte(msgs[len(msgs)-i-1])
 					}
 				}()
+			} else if client.collection=="boards"{
+				go func(){
+					if boardExists(dbclient,client.key){
+						ops:=getOps(dbclient,client.key)
+						for _,op:=range ops {
+							client.send<-[]byte(op)
+						}
+					} else {
+						addBoard(dbclient,client.key)
+					}
+				}()
 			}
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
@@ -63,7 +74,9 @@ func (h *Hub) run() {
 			}
 		case message := <-h.broadcast:
 			if message.collection=="" && message.key==""{
-				go addChatMessage(dbclient,bson.M{"message": string(message.message)})
+				go addChatMessage(dbclient,string(message.message))
+			} else if message.collection=="boards"{
+				go addOp(dbclient,message.key,string(message.message))
 			}
 			for client := range h.clients {
 				if message.collection==client.collection && message.key==client.key {

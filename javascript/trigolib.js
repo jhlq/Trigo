@@ -60,6 +60,7 @@ Trigo.TriangleGrid.prototype.has=function(x,y){
 	return true;
 };
 Trigo.TriangleGrid.prototype.has_tri=function(t){
+	if (t===undefined) return false;
 	return this.has(t.x,t.y);
 };
 Trigo.TriangleGrid.prototype.nTriangles=function(){ //this should be sideLength^2
