@@ -18,6 +18,7 @@ import (
 var addr = flag.String("addr", ":8080", "http service address")
 var templates = template.Must(template.ParseFiles("templates/templates.gohtml"))
 
+//this whole IP thing didn't work...
 //ipRange - a structure that holds the start and end of a range of ip addresses
 type ipRange struct {
     start net.IP
