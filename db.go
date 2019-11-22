@@ -24,36 +24,28 @@ func ping(client *mongo.Client){
 	err := client.Ping(ctx, readpref.Primary())
 	if (err!=nil){ log.Println(err) }
 }
-func insert(client *mongo.Client,item bson.M){
-	collection := client.Database("testing").Collection("numbers")
-	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-	res, err := collection.InsertOne(ctx, item)
-	id := res.InsertedID
-	log.Println(id,err)
-}
 func addChatMessage(client *mongo.Client,msg string){
 	message:=bson.M{"message": msg}
-	collection := client.Database("testing").Collection("chat")
+	collection := client.Database("trigo").Collection("chat")
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	_, err := collection.InsertOne(ctx, message)
 	if (err!=nil){ log.Println(err) }
 }
 func boardExists(client *mongo.Client,key string) bool{
-	collection := client.Database("testing").Collection("boards")
+	collection := client.Database("trigo").Collection("boards")
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	res := collection.FindOne(ctx, bson.M{"key":key})
 	if (res.Err()!=nil){ return false }
 	return true
 }
 func addBoard(client *mongo.Client,key string){
-	collection := client.Database("testing").Collection("boards")
+	collection := client.Database("trigo").Collection("boards")
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	_, err := collection.InsertOne(ctx, bson.M{"key": key})
 	if (err!=nil){ log.Println(err) }
-	//addOp(client,key,"loadGame "+strconv.Itoa(size)+";")
 }
 func addOp(client *mongo.Client,key string,op string){
-	collection := client.Database("testing").Collection("boards")
+	collection := client.Database("trigo").Collection("boards")
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	filter := bson.M{"key": bson.M{"$eq": key}}
 	update := bson.M{"$push": bson.M{"ops": op}}
@@ -61,7 +53,7 @@ func addOp(client *mongo.Client,key string,op string){
 	if (err!=nil){ log.Println(err) }
 }
 func getOps(client *mongo.Client,key string) []string {
-	collection := client.Database("testing").Collection("boards")
+	collection := client.Database("trigo").Collection("boards")
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 	var result struct {
 		Ops primitive.A
@@ -76,7 +68,7 @@ func getOps(client *mongo.Client,key string) []string {
 	return ops
 }
 func printAll(client *mongo.Client){
-	collection := client.Database("testing").Collection("chat")
+	collection := client.Database("trigo").Collection("chat")
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 	cur, err := collection.Find(ctx, bson.D{})
 	if err != nil { log.Println(err) }
@@ -92,8 +84,8 @@ func printAll(client *mongo.Client){
 	  log.Println(err)
 	}
 }
-func getN(client *mongo.Client, n int64) []string {
-	collection := client.Database("testing").Collection("chat")
+func getRecentMessages(client *mongo.Client, n int64) []string {
+	collection := client.Database("trigo").Collection("chat")
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 	findOptions := options.Find()
 	findOptions.SetLimit(n)
@@ -106,8 +98,6 @@ func getN(client *mongo.Client, n int64) []string {
 	   var result bson.M
 	   err := cur.Decode(&result)
 	   if err != nil { log.Println(err) }
-	   // do something with result....
-	   //log.Println(result)
 	   str := fmt.Sprintf("%v", result["message"])
 	   s=append(s,str)
 	}
@@ -115,18 +105,4 @@ func getN(client *mongo.Client, n int64) []string {
 	  log.Println(err)
 	}
 	return s
-}
-func findOne(client *mongo.Client){
-	collection := client.Database("testing").Collection("numbers")
-	var result struct {
-		Value float64
-	}
-	filter := bson.M{"name": "pi"}
-	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-	err := collection.FindOne(ctx, filter).Decode(&result)
-	if err != nil {
-		log.Fatal(err)
-	}
-	// Do something with result...
-	log.Println(result)
 }

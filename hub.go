@@ -49,9 +49,8 @@ func (h *Hub) run() {
 			h.clients[client] = true
 			if client.collection=="" && client.key==""{
 				go func(){
-					msgs:=getN(dbclient,5)
+					msgs:=getRecentMessages(dbclient,5)
 					for i:=range msgs {
-						//log.Println(msg)
 						client.send<-[]byte(msgs[len(msgs)-i-1])
 					}
 				}()

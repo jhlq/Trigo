@@ -48,7 +48,7 @@
 	<div id="chat">
 		<div id="log"></div>
 		<form id="form">
-			<input type="text" id="msg" size="16"/>
+			<input type="text" id="msg" size="32"/>
 			<input type="submit" value="Send" />
 		</form>
 	</div>
@@ -111,9 +111,9 @@ window.onload = function () {
 	width:30%; 
 }
 #log {
-	background: white;
+	background: lightblue;
 	overflow: auto;
-	height:280px; 
+	height:500px; 
 }
 #form {
 		overflow: auto;
@@ -133,6 +133,7 @@ window.onload = function () {
 <body>
 	<h1>Trigo!</h1>
 	<h2>Board {{.Key}}</h2>
+	<p>Share the URL to let others edit the board.</p>
 		
 	{{template "boardCanvas"}}
 	
@@ -153,9 +154,122 @@ function keyDown(e) {
 	if (document.getElementById("shortcuts")==null || typeof(document.getElementById("shortcuts"))=="undefined"){
 		document.removeEventListener("keydown", keyDown);
 	} else if (document.getElementById("shortcuts").checked){
-		
 		var k = e.keyCode; //enter is 13
-		//alert(k)
+		if(k==83) { //s
+			document.getElementById("y").value=parseInt(document.getElementById("y").value)+1;
+			document.getElementById("x").value=parseInt(document.getElementById("x").value)-1;
+		} else if (k==65){ //a
+			document.getElementById("x").value=parseInt(document.getElementById("x").value)-1;
+		} else if (k==80){ //p
+			sb.plotInfluence();
+			return;
+		} else if (k==68){ //d
+			document.getElementById("x").value=parseInt(document.getElementById("x").value)+1;
+		} else if (k==69){ //e,	|| k==13 conflicts with enter for buttons
+			var docx=parseInt(document.getElementById("x").value);
+			var docy=parseInt(document.getElementById("y").value);
+			//sb.placeMove(docx,docy);
+			sb.handleClick(docx,docy);
+		} else if (k==87){ //w
+			document.getElementById("y").value=parseInt(document.getElementById("y").value)-1;
+			document.getElementById("x").value=parseInt(document.getElementById("x").value)+1;
+		} else {
+			return 0;
+		}
+		crosshair();
+	}
+}
+function crosshair(){
+	sb.placeMoves();
+	var docx=parseInt(document.getElementById("x").value);
+	var docy=parseInt(document.getElementById("y").value);
+	if (sb.board.tg.has(docx,docy)){
+		var st=sb.triangles[docy][docx];
+		sb.drawer.line(st.pixX-sb.unitSize,st.pixY,st.pixX+sb.unitSize,st.pixY,"#909",5);
+		sb.drawer.line(st.pixX,st.pixY-sb.unitSize,st.pixX,st.pixY+sb.unitSize,"#909",5);
+	}
+};
+
+</script>
+</body>
+</html>
+{{end}}
+
+{{define "about"}}
+<!DOCTYPE html>
+<html lang='en'>
+    <head>
+        <meta charset='utf-8'>
+        <title>Trigo! About</title>
+    </head>
+    <body>
+        <header>
+            <h1>About</h1>
+        </header>
+       <main>
+		<p>Trigo is essentially the same as Go only played on a triangular grid. The default ruleset is a hybrid one where both territory, stones and captures count as points. The KO rule is simple, the state of the board is not allowed to repeat.</p>
+		
+		<p>Why hybrid rules? Usually Japanese rules are used due to faster counting but Chinese rules are more robust, any disagreement can simply be played out whereas the Japanese ruleset implements special cases that arguably are flawed in the presence of unremovable KO-threats. No doubt it is confusing why a group that can live via KO is considered dead when the other player can (potentially) remove all KO threats before starting the KO, removing all KO-threats costs a lot of points so why is it just dead? The answer is because the hypothetical playout ("I can capture this, therefore it is dead") emulates Chinese rules where the KO-threats can be removed at no cost. Players are used to get points for captures but China has many more players so instead of choosing one let's merge them, give points for everything! A perk is that those long running 1 point KOs at the end of the game mostly vanish.</p>
+
+		<p>The project is open source and can be found at: <a href='https://github.com/jhlq/Trigo'>github.com/jhlq/Trigo</a></p>
+        </main>
+        
+    {{template "footer"}}
+    </body>
+</html>
+{{end}}
+
+{{define "contact"}}
+<!DOCTYPE html>
+<html lang='en'>
+    <head>
+        <meta charset='utf-8'>
+        <title>Trigo! Contact</title>
+    </head>
+    <body>
+        <header>
+            <h1>Contact</h1>
+        </header>
+        <main>
+		<p>Please submit any issues you find to the github repository <a href='https://github.com/jhlq/Trigo'>github.com/jhlq/Trigo</a>. Thanks for your help!</p>
+		<p>You can also reach out to me on my blog: <a href='https://jhlq.wordpress.com/'>jhlq.wordpress.com</a>. Or send an email to marcus.appelros at gmail dot com.</p>
+
+        </main>
+		{{template "footer"}}
+    </body>
+</html>
+{{end}}
+
+{{define "home"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Trigo!</title>
+{{template "chatHeader"}}
+</head>
+<body>
+	<h1>Trigo!</h1>
+		
+	{{template "boardCanvas"}}
+	
+	{{template "footer"}}
+
+<script type="text/javascript" src="/javascript/trigolib.js"></script>
+<script type="text/javascript" src="/javascript/screenboard.js"></script>
+
+<script>
+var sb=new Trigo.ScreenBoard("TriCanvas",9);
+sb.drawGrid();
+var ai=new Trigo.AI(sb.board);
+sb.ai=ai;
+
+document.body.addEventListener("keydown", keyDown, false);
+function keyDown(e) {
+	if (document.getElementById("shortcuts")==null || typeof(document.getElementById("shortcuts"))=="undefined"){
+		document.removeEventListener("keydown", keyDown);
+	} else if (document.getElementById("shortcuts").checked){		
+		var k = e.keyCode; //enter is 13
 		if(k==83) { //s
 			document.getElementById("y").value=parseInt(document.getElementById("y").value)+1;
 			document.getElementById("x").value=parseInt(document.getElementById("x").value)-1;

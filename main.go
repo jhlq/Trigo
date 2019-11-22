@@ -8,7 +8,6 @@ import (
 	"net"
 	"bytes"
 	"strings"
-	"io/ioutil"
 	
 	"html/template"
 	
@@ -17,6 +16,7 @@ import (
 )
 
 var addr = flag.String("addr", ":8080", "http service address")
+var templates = template.Must(template.ParseFiles("templates/templates.gohtml"))
 
 //ipRange - a structure that holds the start and end of a range of ip addresses
 type ipRange struct {
@@ -93,15 +93,9 @@ func serveIP(w http.ResponseWriter, r *http.Request){
 	fmt.Fprintf(w, "IP from header: "+getIPAdress(r)+"\nRemoteAddr: "+r.RemoteAddr)
 }
 func serveHome(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		http.Error(w, "Not found", http.StatusNotFound)
-		return
-	}
-	if r.Method != "GET" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	http.ServeFile(w, r, "html/home.html")
+	w.Header().Set("Cache-Control", "max-age:10800, public")
+	err:=templates.ExecuteTemplate(w, "home",struct{}{})
+	if (err!=nil){ log.Println(err) }
 }
 type BoardData struct {
 	Key string
@@ -109,56 +103,27 @@ type BoardData struct {
 func serveBoard(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "max-age:10800, public")
 	vars := mux.Vars(r)
-	/*headertemplate,_ := ioutil.ReadFile("templates/chat.header.template")
-	chattemplate,_ := ioutil.ReadFile("templates/chat.template")
-	_board,_ := ioutil.ReadFile("templates/board.template")
-	boardtemplate := template.Must(template.ParseFiles("templates/board.html.template"))
-	footertemplate,_ := ioutil.ReadFile("templates/footer.template")
-	data0 := struct{Board interface{}}{
-		Board: template.HTML(_board),
-	}
-	var tpl bytes.Buffer
-	if err := boardtemplate.Execute(&tpl, data0); err != nil {
-		log.Println(err)
-	}
-	boardtemplate,_ = boardtemplate.Parse(tpl.String())//template.Must(template.Parse(tpl))
-	data := BoardData{
-		Key: vars["key"],
-		Header: template.HTML(headertemplate),
-		Chat: template.HTML(chattemplate),
-		Footer: template.HTML(footertemplate),
-	}*/
-	boardtemplate := template.Must(template.ParseFiles("templates/templates.gohtml"))
 	data:=struct{Key string}{Key:vars["key"]}
-	err:=boardtemplate.ExecuteTemplate(w, "board", data)
+	err:=templates.ExecuteTemplate(w, "board", data)
 	if (err!=nil){ log.Println(err) }
 }
 func serveTimeBoard(w http.ResponseWriter, r *http.Request) {
 	t:=time.Now().Format("02-Jan-2006-15:04")
 	http.Redirect(w, r, "/board/"+t, http.StatusFound)
 }
-type NavData struct {
-    Footer interface{}
-}
 func serveAbout(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "max-age:10800, public")
-	abouttemplate := template.Must(template.ParseFiles("templates/about.html.template"))
-	footertemplate,_ := ioutil.ReadFile("templates/footer.template")
-	data := NavData{
-		Footer: template.HTML(footertemplate),
-	}
-	err:=abouttemplate.Execute(w, data)
+	err:=templates.ExecuteTemplate(w, "about",struct{}{})
 	if (err!=nil){ log.Println(err) }
 }
 func serveContact(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "max-age:10800, public")
-	contacttemplate := template.Must(template.ParseFiles("templates/contact.html.template"))
-	footertemplate,_ := ioutil.ReadFile("templates/footer.template")
-	data := NavData{
-		Footer: template.HTML(footertemplate),
-	}
-	err:=contacttemplate.Execute(w, data)
+	err:=templates.ExecuteTemplate(w, "contact",struct{}{})
 	if (err!=nil){ log.Println(err) }
+}
+func updateTemplates(w http.ResponseWriter, r *http.Request){
+	templates = template.Must(template.ParseFiles("templates/templates.gohtml"))
+	fmt.Fprintf(w, "Updated templates")
 }
 func main() {
 	flag.Parse()
@@ -174,11 +139,13 @@ func main() {
 		vars := mux.Vars(r)
 		serveWs(hub, w, r, vars["collection"],vars["key"])
 	})
+	router.HandleFunc("/", serveHome)
 	router.HandleFunc("/board/{key}",serveBoard)
 	router.HandleFunc("/board/", serveTimeBoard)
 	router.HandleFunc("/about/", serveAbout)
 	router.HandleFunc("/contact/", serveContact)
-	router.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("html"))))
+	router.HandleFunc("/update/templates/", updateTemplates)
+	//router.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("html")))) //remove folder html
 	http.Handle("/",router)
 	err := http.ListenAndServe(*addr, nil)
 	if err != nil {
