@@ -9,13 +9,11 @@ import (
     "context"
     "time"
     "log"
-    "strconv"
     "fmt"
 )
 
 
 func getClient() *mongo.Client{
-	//client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
 	if (err!=nil){ log.Println(err) }

@@ -1,0 +1,27 @@
+	<input type="number" id="x" onchange="crosshair()" value=1>
+	<input type="number" id="y" onchange="crosshair()" value=1>
+	<br>
+	<button onclick="sb.pass()">Pass.</button>
+	<button onclick="sb.undo()">Undo.</button>
+	<button onclick="sb.updateScore()">Score.</button>
+	<button onclick="sb.reset()">Reset.</button>
+	<br>
+	<button onclick="sb.plotInfluence()">Plot influence.</button>
+	<button onclick="sb.letAIPlay()">Let AI play!</button>
+	<br>
+	<canvas id="TriCanvas" width=700 height="630"></canvas>
+	{{.Chat}}
+	<p id="scores"></p>
+	<label for="shortcuts">Enable keyboard shortcuts (w a s d and e to enter): </label>
+	<input type="checkbox" id="shortcuts">
+	<br>
+	
+	<p>Canvas size: 
+	<input type="number" id="canvassize" step="100" value=700>
+	Side length: 
+	<input type="number" id="sidelength" step="1" value=13>
+	<button onclick="sb.changesize()">Change.</button>
+	</p>
+	
+	<p>	Game record: <input type="text" id="board_moves" value='9;'> 
+	<button class="btn btn-primary" onclick="sb.loadGame()">Load game record (paste first).</button> </p>

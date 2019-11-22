@@ -13,7 +13,7 @@ import (
 	"html/template"
 	
 	"github.com/gorilla/mux"
-	//"go.mongodb.org/mongo-driver/bson"
+	"time"
 )
 
 var addr = flag.String("addr", ":8080", "http service address")
@@ -59,7 +59,7 @@ var privateRanges = []ipRange{
 }
 // isPrivateSubnet - check to see if this ip is in a private subnet
 func isPrivateSubnet(ipAddress net.IP) bool {
-    // my use case is only concerned with ipv4 atm
+    // my use case is only concerned with ipv4 atm. Maybe we need to include v6?
     if ipCheck := ipAddress.To4(); ipCheck != nil {
         // iterate over all our ranges
         for _, r := range privateRanges {
@@ -92,8 +92,7 @@ func getIPAdress(r *http.Request) string {
 func serveIP(w http.ResponseWriter, r *http.Request){
 	fmt.Fprintf(w, "IP from header: "+getIPAdress(r)+"\nRemoteAddr: "+r.RemoteAddr)
 }
-/*func serveHome(w http.ResponseWriter, r *http.Request) {
-	log.Println(r.URL)
+func serveHome(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.Error(w, "Not found", http.StatusNotFound)
 		return
@@ -103,49 +102,70 @@ func serveIP(w http.ResponseWriter, r *http.Request){
 		return
 	}
 	http.ServeFile(w, r, "html/home.html")
-}*/
+}
 type BoardData struct {
-    Key string
-    Header interface{}
-    Chat interface{}
+	Key string
 }
 func serveBoard(w http.ResponseWriter, r *http.Request) {
-	//log.Println(r.URL)
 	w.Header().Set("Cache-Control", "max-age:10800, public")
 	vars := mux.Vars(r)
-	headertemplate,_ := ioutil.ReadFile("templates/chat.header.template")
-	chattemplate,_ := ioutil.ReadFile("templates/chat.html.template")
+	/*headertemplate,_ := ioutil.ReadFile("templates/chat.header.template")
+	chattemplate,_ := ioutil.ReadFile("templates/chat.template")
+	_board,_ := ioutil.ReadFile("templates/board.template")
 	boardtemplate := template.Must(template.ParseFiles("templates/board.html.template"))
+	footertemplate,_ := ioutil.ReadFile("templates/footer.template")
+	data0 := struct{Board interface{}}{
+		Board: template.HTML(_board),
+	}
+	var tpl bytes.Buffer
+	if err := boardtemplate.Execute(&tpl, data0); err != nil {
+		log.Println(err)
+	}
+	boardtemplate,_ = boardtemplate.Parse(tpl.String())//template.Must(template.Parse(tpl))
 	data := BoardData{
 		Key: vars["key"],
 		Header: template.HTML(headertemplate),
 		Chat: template.HTML(chattemplate),
-	}
-	err:=boardtemplate.Execute(w, data)
+		Footer: template.HTML(footertemplate),
+	}*/
+	boardtemplate := template.Must(template.ParseFiles("templates/templates.gohtml"))
+	data:=struct{Key string}{Key:vars["key"]}
+	err:=boardtemplate.ExecuteTemplate(w, "board", data)
 	if (err!=nil){ log.Println(err) }
 }
-
+func serveTimeBoard(w http.ResponseWriter, r *http.Request) {
+	t:=time.Now().Format("02-Jan-2006-15:04")
+	http.Redirect(w, r, "/board/"+t, http.StatusFound)
+}
+type NavData struct {
+    Footer interface{}
+}
+func serveAbout(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "max-age:10800, public")
+	abouttemplate := template.Must(template.ParseFiles("templates/about.html.template"))
+	footertemplate,_ := ioutil.ReadFile("templates/footer.template")
+	data := NavData{
+		Footer: template.HTML(footertemplate),
+	}
+	err:=abouttemplate.Execute(w, data)
+	if (err!=nil){ log.Println(err) }
+}
+func serveContact(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "max-age:10800, public")
+	contacttemplate := template.Must(template.ParseFiles("templates/contact.html.template"))
+	footertemplate,_ := ioutil.ReadFile("templates/footer.template")
+	data := NavData{
+		Footer: template.HTML(footertemplate),
+	}
+	err:=contacttemplate.Execute(w, data)
+	if (err!=nil){ log.Println(err) }
+}
 func main() {
-	dbclient:=getClient()
-	/*insert(dbclient,bson.M{"name": "pi", "value": 3.14159})
-	ping(dbclient)
-	printAll(dbclient)
-	findOne(dbclient)*/
-	//printAll(dbclient)
-	//addBoard(dbclient,"test",9)
-	log.Println(boardExists(dbclient,"test"))
-	addOp(dbclient,"test","placeMove 1,1")
-	addOp(dbclient,"test1","placeMove 1,2")
-	ops:=getOps(dbclient,"test")
-	log.Println(ops)
 	flag.Parse()
 	hub := newHub()
 	go hub.run()
-	//http.HandleFunc("/", serveHome)
 	http.HandleFunc("/ip", serveIP)
 	http.Handle("/javascript/", http.StripPrefix("/javascript/", http.FileServer(http.Dir("javascript"))))
-	//http.Handle("/h/", http.StripPrefix("/h/", http.FileServer(http.Dir("html"))))
-	//http.HandleFunc("/board/", serveBoard)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		serveWs(hub, w, r,"","")
 	})
@@ -155,13 +175,10 @@ func main() {
 		serveWs(hub, w, r, vars["collection"],vars["key"])
 	})
 	router.HandleFunc("/board/{key}",serveBoard)
-	//fileServer := http.FileServer(http.Dir("html"))
-	//router.Handle("/",fileServer)// http.StripPrefix("/", fileServer))
-	//router.Handle("/html/", http.StripPrefix("/html/", http.FileServer(http.Dir("html"))))
-	//router.Handle("/html/", http.StripPrefix("/html/", http.FileServer(http.Dir("html"))))
-	//router.Handle("/h/", http.StripPrefix("/h/", http.FileServer(http.Dir("html"))))
+	router.HandleFunc("/board/", serveTimeBoard)
+	router.HandleFunc("/about/", serveAbout)
+	router.HandleFunc("/contact/", serveContact)
 	router.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("html"))))
-	//http.Handle("/", http.StripPrefix("/", fileServer))
 	http.Handle("/",router)
 	err := http.ListenAndServe(*addr, nil)
 	if err != nil {

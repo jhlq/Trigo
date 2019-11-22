@@ -331,15 +331,22 @@ Trigo.ScreenBoard.prototype.reset=function(){
 	}
 };
 Trigo.ScreenBoard.prototype.letAIPlay=function(){
-	this.ai.placeSmartMove();
-	var nmoves=this.board.moves.length;
-	this.send("placeMove "+this.board.moves[nmoves-1].x+","+this.board.moves[nmoves-1].y);
-	if (this.board.moves[nmoves-1].isPass() && this.board.moves[nmoves-2].isPass()){
-		//sb.board.autoMarkDeadStones(); //return this when automarking improves
-		//sb.placeMoves();
-		this.updateScore();
+	if (this.ws){
+		this.ai.board=this.board.copy()
+		this.ai.placeSmartMove();
+		var nmoves=this.ai.board.moves.length;
+		this.send("placeMove "+this.ai.board.moves[nmoves-1].x+","+this.ai.board.moves[nmoves-1].y);
+		this.ai.board=this.board;
 	} else {
-		this.placeMoves();
+		this.ai.placeSmartMove();
+		var nmoves=this.board.moves.length;
+		if (this.board.moves[nmoves-1].isPass() && this.board.moves[nmoves-2].isPass()){
+			//sb.board.autoMarkDeadStones(); //return this when automarking improves
+			//sb.placeMoves();
+			this.updateScore();
+		} else {
+			this.placeMoves();
+		}
 	}
 };
 Trigo.ScreenBoard.prototype.changesize=function(){
