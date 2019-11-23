@@ -70,7 +70,7 @@ Trigo.ScreenBoard.prototype.handleClick=function(x,y){
 	if (imt==4){
 		alert("That move is outside the board.");
 	} else if (imt==3){
-		alert("That move would recreate a previous board position, KO!");
+		alert("That move would recreate a previous board position, ko!");
 	} else if (imt==2){
 		alert("That move would be suicide.");
 	} else if (imt==0){
@@ -141,15 +141,16 @@ Trigo.ScreenBoard.prototype.placeMoves=function(){
 Trigo.CanvasDrawer=function(drawAreaID,l){
 	this.canvas = document.getElementById(drawAreaID);
 	this.context = this.canvas.getContext('2d');
-
-	var rect = this.canvas.getBoundingClientRect();
-	var paddingY=(document.documentElement || document.body.parentNode || document.body).scrollTop;
-	this.canvasOriginX = rect.left;
-	this.canvasOriginY = rect.top+paddingY;
+	this.updateParams();
 };
 Trigo.CanvasDrawer.prototype.updateParams = function(){
 	var rect = this.canvas.getBoundingClientRect();
-	var paddingY=(document.documentElement || document.body.parentNode || document.body).scrollTop;
+	var paddingY=0;
+	if (window.pageYOffset!==undefined){
+		paddingY=window.pageYOffset;
+	} else {
+		paddingY=(document.documentElement || document.body.parentNode || document.body).scrollTop;
+	}
 	this.canvasOriginX = rect.left;
 	this.canvasOriginY = rect.top+paddingY;
 };

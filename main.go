@@ -77,6 +77,7 @@ func getIPAdress(r *http.Request) string {
         addresses := strings.Split(r.Header.Get(h), ",")
         // march from right to left until we get a public address
         // that will be the address right before our proxy.
+        log.Println(addresses)
         for i := len(addresses) -1 ; i >= 0; i-- {
             ip := strings.TrimSpace(addresses[i])
             // header can contain spaces too, strip those out.
@@ -131,7 +132,13 @@ func main() {
 	hub := newHub()
 	go hub.run()
 	http.HandleFunc("/ip", serveIP)
-	http.Handle("/javascript/", http.StripPrefix("/javascript/", http.FileServer(http.Dir("javascript"))))
+	changeHeaderThenServe := func(h http.Handler) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "max-age:10800, public")
+			h.ServeHTTP(w, r)
+		}
+	}
+	http.Handle("/javascript/", http.StripPrefix("/javascript/", changeHeaderThenServe(http.FileServer(http.Dir("javascript")))))
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		serveWs(hub, w, r,"","")
 	})
@@ -146,7 +153,8 @@ func main() {
 	router.HandleFunc("/about/", serveAbout)
 	router.HandleFunc("/contact/", serveContact)
 	router.HandleFunc("/update/templates/", updateTemplates)
-	//router.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("html")))) //remove folder html
+	router.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request){ http.ServeFile(w, r, "favicon.ico") })
+	//router.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("html")))) //remove folder html?
 	http.Handle("/",router)
 	err := http.ListenAndServe(*addr, nil)
 	if err != nil {
