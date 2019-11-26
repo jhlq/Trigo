@@ -81,7 +81,6 @@ func main() {
 	router.HandleFunc("/contact/", serveContact)
 	router.HandleFunc("/update/templates/", updateTemplates)
 	router.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request){ http.ServeFile(w, r, "favicon.ico") })
-	//router.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("html")))) //remove folder html?
 	http.Handle("/",router)
 	err := http.ListenAndServe(*addr, nil)
 	if err != nil {
