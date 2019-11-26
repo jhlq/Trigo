@@ -5,9 +5,6 @@ import (
 	"log"
 	"fmt"
 	"net/http"
-	"net"
-	"bytes"
-	"strings"
 	
 	"html/template"
 	
@@ -82,7 +79,12 @@ func main() {
 	router.HandleFunc("/update/templates/", updateTemplates)
 	router.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request){ http.ServeFile(w, r, "favicon.ico") })
 	http.Handle("/",router)
-	err := http.ListenAndServe(*addr, nil)
+	s := &http.Server{
+		ReadTimeout: 60 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		Addr:*addr,
+	}
+	err:=s.ListenAndServe()
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
