@@ -10,6 +10,7 @@ import (
     "time"
     "log"
     "fmt"
+    "encoding/json"
 )
 
 
@@ -105,4 +106,20 @@ func getRecentMessages(client *mongo.Client, n int64) []string {
 	  log.Println(err)
 	}
 	return s
+}
+type lobbyMessage struct{
+	Op string
+	Size int
+	Id string
+}
+func handleLobbyMessage(client *mongo.Client, message []byte,user string){
+	var lm lobbyMessage
+	json.Unmarshal(message,&lm)
+	collection := client.Database("trigo").Collection("lobby")
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	log.Println(lm)
+	if lm.Op=="addGame" {
+		_, err := collection.InsertOne(ctx, bson.M{"size": lm.Size,"id":lm.Id,"user":user})
+		if (err!=nil){ log.Println(err) }
+	}
 }

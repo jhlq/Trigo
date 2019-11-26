@@ -47,6 +47,12 @@ func serveContact(w http.ResponseWriter, r *http.Request) {
 	err:=templates.ExecuteTemplate(w, "contact",struct{}{})
 	if (err!=nil){ log.Println(err) }
 }
+func serveLobby(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "max-age:10800, public")
+	tlobby:=template.Must(template.ParseFiles("templates/templates.gohtml","templates/base.gohtml","templates/lobby.gohtml"))
+	err:=tlobby.ExecuteTemplate(w, "base",struct{}{})
+	if (err!=nil){ log.Println(err) }
+}
 func updateTemplates(w http.ResponseWriter, r *http.Request){
 	templates = template.Must(template.ParseFiles("templates/templates.gohtml"))
 	fmt.Fprintf(w, "Updated templates")
@@ -64,18 +70,22 @@ func main() {
 	}
 	http.Handle("/javascript/", http.StripPrefix("/javascript/", changeHeaderThenServe(http.FileServer(http.Dir("javascript")))))
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		serveWs(hub, w, r,"","")
+		serveWs(hub, w, r,"","",r.RemoteAddr)
 	})
 	router := mux.NewRouter()
 	router.HandleFunc("/ws/{collection}/{key}", func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		serveWs(hub, w, r, vars["collection"],vars["key"])
+		serveWs(hub, w, r, vars["collection"],vars["key"],r.RemoteAddr)
+	})
+	router.HandleFunc("/ws/lobby", func(w http.ResponseWriter, r *http.Request) {
+		serveWs(hub, w, r, "lobby","",r.RemoteAddr)
 	})
 	router.HandleFunc("/", serveHome)
 	router.HandleFunc("/board/{key}",serveBoard)
 	router.HandleFunc("/board/", serveTimeBoard)
 	router.HandleFunc("/about/", serveAbout)
 	router.HandleFunc("/contact/", serveContact)
+	router.HandleFunc("/lobby/", serveLobby)
 	router.HandleFunc("/update/templates/", updateTemplates)
 	router.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request){ http.ServeFile(w, r, "favicon.ico") })
 	http.Handle("/",router)

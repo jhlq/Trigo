@@ -5,14 +5,14 @@
 package main
 
 import (
-	//"go.mongodb.org/mongo-driver/bson"
-	//"log"
+	"log"
 )
 
 type Door struct {
 	collection string
 	key string
 	message []byte
+	user string
 }
 // Hub maintains the set of active clients and broadcasts messages to the
 // clients.
@@ -76,9 +76,12 @@ func (h *Hub) run() {
 				go addChatMessage(dbclient,string(message.message))
 			} else if message.collection=="boards"{
 				go addOp(dbclient,message.key,string(message.message))
+			} else if message.collection=="lobby"{
+				log.Println(string(message.message))
+				go handleLobbyMessage(dbclient,message.message,message.user)
 			}
 			for client := range h.clients {
-				if message.collection==client.collection && message.key==client.key {
+				if (message.collection==client.collection && message.key==client.key) || (message.collection=="lobby" && client.collection=="lobby") {
 					select {
 					case client.send <- message.message:
 					default:

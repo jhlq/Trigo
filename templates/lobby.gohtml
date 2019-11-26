@@ -1,0 +1,43 @@
+{{define "title"}} Lobby {{end}}
+{{define "header"}}
+{{template "chatHeader"}}
+{{end}}
+{{define "body"}}
+<h1>Lobby</h1>
+Size: <input type="number" id="size" step="1" value=13>
+<button onclick="addGame()">Add a game!</button>
+
+<p>Games to join:</p>
+<div id="games"></div>
+{{template "chat"}}
+{{end}}
+{{define "js"}}
+<script>
+	var lobby={};
+	console.log("Lobby");
+	lobby.ws = new WebSocket("ws://" + document.location.host + "/ws/lobby");
+	lobby.ws.onclose = function (evt) {
+		console.log("Connection closed.");
+	};
+	lobby.ws.onmessage = function (evt) {
+		var messages = evt.data.split('\n');
+		for (var i = 0; i < messages.length; i++) {
+			console.log(messages[i])
+			var obj=JSON.parse(messages[i]);
+			console.log(obj);
+		}
+	};
+	send=function(msg){
+		if (lobby.ws.readyState !== WebSocket.OPEN) {
+			alert("WebSocket is not open, try refreshing the page. If the problem persists please file an issue.");
+			return;
+		}
+		lobby.ws.send(msg);
+	}
+	function addGame(){
+		console.log("Sending");
+		send('{"Op":"addGame","Id":"'+Math.random()+'","Size":'+document.getElementById("size").value+'}');
+	}
+	
+</script>
+{{end}}
