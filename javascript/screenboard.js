@@ -354,7 +354,10 @@ Trigo.ScreenBoard.prototype.changesize=function(){
 	var s=parseInt(document.getElementById("canvassize").value);
 	sb.drawer.canvas.width=s;
 	sb.drawer.canvas.height=s*0.9;
-	var sl=parseInt(document.getElementById("sidelength").value);
+	var sl=this.board.tg.sideLength;
+	if (document.getElementById("sidelength")){
+		sl=parseInt(document.getElementById("sidelength").value);
+	}
 	if (sl!=sb.board.tg.sideLength){
 		document.getElementById("board_moves").value=sl+";";
 		this.loadGame();

@@ -11,6 +11,7 @@ import (
     "log"
     "fmt"
     "encoding/json"
+    "strconv"
 )
 
 
@@ -45,16 +46,16 @@ func addBoard(client *mongo.Client,key string){
 	_, err := collection.InsertOne(ctx, bson.M{"key": key})
 	if (err!=nil){ log.Println(err) }
 }
-func addOp(client *mongo.Client,key string,op string){
-	collection := client.Database("trigo").Collection("boards")
+func addOp(client *mongo.Client,c string,key string,op string){
+	collection := client.Database("trigo").Collection(c)
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	filter := bson.M{"key": bson.M{"$eq": key}}
 	update := bson.M{"$push": bson.M{"ops": op}}
 	_, err := collection.UpdateOne(ctx,filter,update)
 	if (err!=nil){ log.Println(err) }
 }
-func getOps(client *mongo.Client,key string) []string {
-	collection := client.Database("trigo").Collection("boards")
+func getOps(client *mongo.Client,c string,key string) []string {
+	collection := client.Database("trigo").Collection(c)
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 	var result struct {
 		Ops primitive.A
@@ -135,27 +136,60 @@ func handleLobbyMessage(client *mongo.Client, message []byte,user string){
 		addGame(client,le.Size,user,le.User)
 	}
 }
+func getLobbyEntries(client *mongo.Client) []lobbyEntry {
+	collection := client.Database("trigo").Collection("lobby")
+	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	cur, err := collection.Find(ctx, bson.D{})
+	if err != nil { log.Println(err) }
+	defer cur.Close(ctx)
+	var es []lobbyEntry
+	for cur.Next(ctx) {
+	   var result lobbyEntry
+	   err := cur.Decode(&result)
+	   if err != nil { log.Println(err) }
+	   es=append(es,result)
+	}
+	if err := cur.Err(); err != nil {
+	  log.Println(err)
+	}
+	return es
+}
 func addGame(client *mongo.Client,size int,green string,blue string){
 	collection := client.Database("trigo").Collection("games")
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	count, _ := collection.CountDocuments(ctx, bson.M{}, nil)
-	_, err := collection.InsertOne(ctx, bson.M{"key": count,"size":size,"green":green,"blue":blue,"currentUser":green,"currentColor":"green"})
+	_, err := collection.InsertOne(ctx, bson.M{"key": strconv.Itoa(int(count)),"size":size,"green":green,"blue":blue,"currentUser":green,"currentColor":"green"})
 	if (err!=nil){ log.Println(err) }
 }
 type game struct{
-	Key int
+	Key string
 	Size int
 	Green string
 	Blue string
 	CurrentUser string
 	CurrentColor string
-	Ops []string
+	//Ops []string
 }
-func getGame(client *mongo.Client,key int) (game,error){
+func getGame(client *mongo.Client,key string) (game,error){
 	var g game
 	collection := client.Database("trigo").Collection("games")
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	filter := bson.M{"key": key}
 	err := collection.FindOne(ctx, filter).Decode(&g)
 	return g,err
+}
+func userToPlay(client *mongo.Client,user string) []game{
+	var gs []game
+	collection := client.Database("trigo").Collection("games")
+	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	filter := bson.M{"currentUser": user}
+	cur, err := collection.Find(ctx, filter)
+	if err != nil { log.Println(err) }
+	for cur.Next(ctx) {
+	   var result game
+	   err = cur.Decode(&result)
+	   if err != nil { log.Println(err) }
+	   gs=append(gs,result)
+	}
+	return gs
 }

@@ -26,7 +26,7 @@
 {{define "body"}}
 <h1>Trigo!</h1>
 <h2>Game {{.Key}}</h2>
-{{template "gameCanvas"}}
+{{template "gameCanvas" .}}
 {{end}}
 {{define "js"}}
 <script type="text/javascript" src="/javascript/trigolib.js"></script>

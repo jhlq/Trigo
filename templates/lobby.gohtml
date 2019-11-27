@@ -4,17 +4,20 @@
 {{end}}
 {{define "body"}}
 <h1>Lobby</h1>
-Size: <input type="number" id="size" step="1" value=13>
-<button onclick="addGame()">Add a game!</button>
-
-<p>Games to join:</p>
-<div id="games"></div>
 {{template "chat"}}
+<h3>Your turn in the following games</h3>
+<div id="userToPlay"></div>
+
+<h3>Create game</h3>
+Size: <input type="number" id="size" step="1" value=13 min="1" max="999">
+<button onclick="addGame()">Create game!</button>
+
+<h3>Games to join</h3>
+<div id="games"></div>
 {{end}}
 {{define "js"}}
 <script>
 	var lobby={};
-	console.log("Lobby");
 	lobby.ws = new WebSocket("ws://" + document.location.host + "/ws/lobby");
 	lobby.ws.onclose = function (evt) {
 		console.log("Connection closed.");
@@ -22,17 +25,19 @@ Size: <input type="number" id="size" step="1" value=13>
 	lobby.ws.onmessage = function (evt) {
 		var messages = evt.data.split('\n');
 		for (var i = 0; i < messages.length; i++) {
-			console.log(messages[i])
 			var obj=JSON.parse(messages[i]);
-			console.log(obj);
 			if (obj.Op=="addGame"){
 				var item = document.createElement("div");
 				item.innerHTML = 'Size: '+obj.Size+' <button onclick="joinGame(\''+obj.Id+'\')">Join!</button>';
 				item.setAttribute("id", obj.Id);
 				document.getElementById("games").appendChild(item);
-			} else if (obj.Op="joinGame"){
+			} else if (obj.Op=="joinGame"){
 				var element = document.getElementById(obj.Id);
 				element.parentNode.removeChild(element);
+			} else if (obj.Op=="userToPlay"){
+				var item = document.createElement("div");
+				item.innerHTML = '<a href="/game/'+obj.Key+'">Game '+obj.Key+'</a>';
+				document.getElementById("userToPlay").appendChild(item);
 			}
 		}
 	};

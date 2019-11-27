@@ -5,6 +5,7 @@ package main
 
 import (
 	//"log"
+	"encoding/json"
 )
 
 type Door struct {
@@ -56,12 +57,36 @@ func (h *Hub) run() {
 			} else if client.collection=="boards"{
 				go func(){
 					if boardExists(dbclient,client.key){
-						ops:=getOps(dbclient,client.key)
+						ops:=getOps(dbclient,"boards",client.key)
 						for _,op:=range ops {
 							client.send<-[]byte(op)
 						}
 					} else {
 						addBoard(dbclient,client.key)
+					}
+				}()
+			} else if client.collection=="lobby"{
+				go func(){
+					var op struct{
+						Op string
+						Key string
+						Size int
+						Id string
+					}
+					gs:=userToPlay(dbclient,client.user)
+					op.Op="userToPlay"
+					for _,g:=range gs {
+						op.Key=g.Key
+						jop,_:=json.Marshal(op)
+						client.send<-jop
+					}
+					les:=getLobbyEntries(dbclient)
+					op.Op="addGame"
+					for _,le:=range les {
+						op.Size=le.Size
+						op.Id=le.Id
+						jop,_:=json.Marshal(op)
+						client.send<-jop
 					}
 				}()
 			}
@@ -74,12 +99,12 @@ func (h *Hub) run() {
 			if message.collection=="" && message.key==""{
 				go addChatMessage(dbclient,string(message.message))
 			} else if message.collection=="boards"{
-				go addOp(dbclient,message.key,string(message.message))
+				go addOp(dbclient,"boards",message.key,string(message.message))
 			} else if message.collection=="lobby"{
 				go handleLobbyMessage(dbclient,message.message,message.user)
 			}
 			for client := range h.clients {
-				if (message.collection==client.collection && message.key==client.key) || (message.collection=="lobby" && client.collection=="lobby") {
+				if (message.collection==client.collection && message.key==client.key){
 					select {
 					case client.send <- message.message:
 					default:

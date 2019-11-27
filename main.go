@@ -5,12 +5,12 @@ import (
 	"log"
 	"fmt"
 	"net/http"
+	"net"
 	
 	"html/template"
 	
 	"github.com/gorilla/mux"
 	"time"
-	"strconv"
 )
 
 var addr = flag.String("addr", ":8080", "http service address")
@@ -23,9 +23,6 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "max-age:10800, public")
 	err:=templates.ExecuteTemplate(w, "home",struct{}{})
 	if (err!=nil){ log.Println(err) }
-}
-type BoardData struct {
-	Key string
 }
 func serveBoard(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "max-age:10800, public")
@@ -58,14 +55,13 @@ func serveGame(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "max-age:10800, public")
 	vars := mux.Vars(r)
 	dbclient:=getClient()
-	key,_:=strconv.Atoi(vars["key"])
-	g,err:=getGame(dbclient,key)
+	//key,_:=strconv.Atoi(vars["key"])
+	g,err:=getGame(dbclient,vars["key"])
 	if (err!=nil){
 		fmt.Fprintf(w, "Game not found.")
 		return
 	}
-	log.Println(g)
-	tgame:=template.Must(template.ParseFiles("templates/templates.gohtml","templates/base.gohtml","templates/game.gohtml"))
+	tgame:=template.Must(template.ParseFiles("templates/game.gohtml","templates/templates.gohtml","templates/base.gohtml"))
 	err=tgame.ExecuteTemplate(w,"base",g)
 	if (err!=nil){ log.Println(err) }
 }
@@ -86,15 +82,18 @@ func main() {
 	}
 	http.Handle("/javascript/", http.StripPrefix("/javascript/", changeHeaderThenServe(http.FileServer(http.Dir("javascript")))))
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		serveWs(hub, w, r,"","",r.RemoteAddr)
+		ip,_,_:=net.SplitHostPort(r.RemoteAddr)
+		serveWs(hub, w, r,"","",ip)
 	})
 	router := mux.NewRouter()
 	router.HandleFunc("/ws/{collection}/{key}", func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		serveWs(hub, w, r, vars["collection"],vars["key"],r.RemoteAddr)
+		ip,_,_:=net.SplitHostPort(r.RemoteAddr)
+		serveWs(hub, w, r, vars["collection"],vars["key"],ip)
 	})
 	router.HandleFunc("/ws/lobby", func(w http.ResponseWriter, r *http.Request) {
-		serveWs(hub, w, r, "lobby","",r.RemoteAddr)
+		ip,_,_:=net.SplitHostPort(r.RemoteAddr)
+		serveWs(hub, w, r, "lobby","",ip)
 	})
 	router.HandleFunc("/", serveHome)
 	router.HandleFunc("/board/{key}",serveBoard)
