@@ -55,7 +55,6 @@ func serveGame(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "max-age:10800, public")
 	vars := mux.Vars(r)
 	dbclient:=getClient()
-	//key,_:=strconv.Atoi(vars["key"])
 	g,err:=getGame(dbclient,vars["key"])
 	if (err!=nil){
 		fmt.Fprintf(w, "Game not found.")
@@ -73,6 +72,8 @@ func main() {
 	flag.Parse()
 	hub := newHub()
 	go hub.run()
+	gamehub := newGameHub()
+	go gamehub.run()
 	http.HandleFunc("/ip", serveIP)
 	changeHeaderThenServe := func(h http.Handler) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
@@ -86,14 +87,19 @@ func main() {
 		serveWs(hub, w, r,"","",ip)
 	})
 	router := mux.NewRouter()
-	router.HandleFunc("/ws/{collection}/{key}", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/ws/boards/{key}", func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		ip,_,_:=net.SplitHostPort(r.RemoteAddr)
-		serveWs(hub, w, r, vars["collection"],vars["key"],ip)
+		serveWs(hub, w, r, "boards",vars["key"],ip)
+	})
+	router.HandleFunc("/ws/games/{key}", func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		ip,_,_:=net.SplitHostPort(r.RemoteAddr)
+		serveGameWs(gamehub, w, r, "games",vars["key"],ip)
 	})
 	router.HandleFunc("/ws/lobby", func(w http.ResponseWriter, r *http.Request) {
 		ip,_,_:=net.SplitHostPort(r.RemoteAddr)
-		serveWs(hub, w, r, "lobby","",ip)
+		serveGameWs(gamehub, w, r, "lobby","",ip)
 	})
 	router.HandleFunc("/", serveHome)
 	router.HandleFunc("/board/{key}",serveBoard)

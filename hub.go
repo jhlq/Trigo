@@ -21,7 +21,6 @@ type Hub struct {
 	clients map[*Client]bool
 
 	// Inbound messages from the clients.
-	//broadcast chan []byte
 	broadcast chan Door
 
 	// Register requests from the clients.
@@ -33,7 +32,6 @@ type Hub struct {
 
 func newHub() *Hub {
 	return &Hub{
-		//broadcast:  make(chan []byte),
 		broadcast:  make(chan Door),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
@@ -65,7 +63,59 @@ func (h *Hub) run() {
 						addBoard(dbclient,client.key)
 					}
 				}()
-			} else if client.collection=="lobby"{
+			}
+		case client := <-h.unregister:
+			if _, ok := h.clients[client]; ok {
+				delete(h.clients, client)
+				close(client.send)
+			}
+		case message := <-h.broadcast:
+			if message.collection=="" && message.key==""{
+				go addChatMessage(dbclient,string(message.message))
+			} else if message.collection=="boards"{
+				go addOp(dbclient,"boards",message.key,string(message.message))
+			}
+			for client := range h.clients {
+				if (message.collection==client.collection && message.key==client.key){
+					select {
+					case client.send <- message.message:
+					default:
+						close(client.send)
+						delete(h.clients, client)
+					}
+				}
+			}
+		}
+	}
+}
+
+type GameHub struct {
+	clients map[*GameClient]bool
+	toUser chan Door
+	fromUser chan Door
+	broadcast chan Door
+	register chan *GameClient
+	unregister chan *GameClient
+}
+
+func newGameHub() *GameHub {
+	return &GameHub{
+		toUser:  make(chan Door),
+		fromUser:  make(chan Door),
+		broadcast:  make(chan Door),
+		register:   make(chan *GameClient),
+		unregister: make(chan *GameClient),
+		clients:    make(map[*GameClient]bool),
+	}
+}
+
+func (h *GameHub) run() {
+	dbclient:=getClient()
+	for {
+		select {
+		case client := <-h.register:
+			h.clients[client] = true
+			if client.collection=="lobby"{
 				go func(){
 					var op struct{
 						Op string
@@ -89,6 +139,13 @@ func (h *Hub) run() {
 						client.send<-jop
 					}
 				}()
+			} else if client.collection=="games"{
+				go func(){
+					ops:=getOps(dbclient,"games",client.key)
+					for _,op:=range ops {
+						client.send<-[]byte(op)
+					}
+				}()
 			}
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
@@ -96,13 +153,6 @@ func (h *Hub) run() {
 				close(client.send)
 			}
 		case message := <-h.broadcast:
-			if message.collection=="" && message.key==""{
-				go addChatMessage(dbclient,string(message.message))
-			} else if message.collection=="boards"{
-				go addOp(dbclient,"boards",message.key,string(message.message))
-			} else if message.collection=="lobby"{
-				go handleLobbyMessage(dbclient,message.message,message.user)
-			}
 			for client := range h.clients {
 				if (message.collection==client.collection && message.key==client.key){
 					select {
@@ -112,6 +162,23 @@ func (h *Hub) run() {
 						delete(h.clients, client)
 					}
 				}
+			}
+		case message := <-h.toUser:
+			for client := range h.clients {
+				if (message.user==client.user && message.collection==client.collection && message.key==client.key){
+					select {
+					case client.send <- message.message:
+					default:
+						close(client.send)
+						delete(h.clients, client)
+					}
+				}
+			}
+		case message := <-h.fromUser:
+			if message.collection=="lobby"{
+				go handleLobbyMessage(dbclient,message.message,message.user,h)
+			} else if message.collection=="games"{
+				go handleGameMessage(dbclient,message,h)
 			}
 		}
 	}

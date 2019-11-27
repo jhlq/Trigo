@@ -12,6 +12,7 @@ import (
     "fmt"
     "encoding/json"
     "strconv"
+    "strings"
 )
 
 
@@ -118,22 +119,33 @@ type lobbyEntry struct{
 	Id string
 	User string
 }
-func handleLobbyMessage(client *mongo.Client, message []byte,user string){
+func handleLobbyMessage(client *mongo.Client, message []byte,user string,h *GameHub){
 	var lm lobbyMessage
 	json.Unmarshal(message,&lm)
 	collection := client.Database("trigo").Collection("lobby")
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	if lm.Op=="addGame" {
 		_, err := collection.InsertOne(ctx, bson.M{"size": lm.Size,"id":lm.Id,"user":user})
-		if (err!=nil){ log.Println(err) }
+		if (err!=nil){
+			log.Println(err)
+			return
+		}
+		msg:=Door{"lobby","",message,user}
+		h.broadcast<-msg
 	} else if lm.Op=="joinGame" {
 		var le lobbyEntry
 		filter := bson.M{"id": lm.Id}
 		err := collection.FindOne(ctx, filter).Decode(&le)
-		if (err!=nil){ return }
+		if (err!=nil){
+			msg:=Door{"lobby","",[]byte("{\"Op\":\"gameNotFound\"}"),user}
+			h.toUser<-msg
+			return
+		}
 		_, err = collection.DeleteOne(ctx, bson.M{"id": lm.Id})
-		if (err!=nil){ log.Println(err) }
-		addGame(client,le.Size,user,le.User)
+		if (err!=nil){ log.Println("Error deleting lobby entry. ",err) }
+		msg:=Door{"lobby","",message,user}
+		h.broadcast<-msg
+		addGame(client,le.Size,user,le.User,h)
 	}
 }
 func getLobbyEntries(client *mongo.Client) []lobbyEntry {
@@ -154,12 +166,18 @@ func getLobbyEntries(client *mongo.Client) []lobbyEntry {
 	}
 	return es
 }
-func addGame(client *mongo.Client,size int,green string,blue string){
+func addGame(client *mongo.Client,size int,green string,blue string,h *GameHub){
 	collection := client.Database("trigo").Collection("games")
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-	count, _ := collection.CountDocuments(ctx, bson.M{}, nil)
-	_, err := collection.InsertOne(ctx, bson.M{"key": strconv.Itoa(int(count)),"size":size,"green":green,"blue":blue,"currentUser":green,"currentColor":"green"})
-	if (err!=nil){ log.Println(err) }
+	count, _ := collection.CountDocuments(ctx, bson.M{}, nil) //change to get count from GameHub
+	key:=strconv.Itoa(int(count))
+	_, err := collection.InsertOne(ctx, bson.M{"key": key,"size":size,"green":green,"blue":blue,"currentUser":green,"currentColor":"green"})
+	if (err!=nil){
+		log.Println("Error adding game.",err)
+	} else {
+		msg:=Door{"lobby","",[]byte("{\"Op\":\"userToPlay\",\"Key\":\""+key+"\"}"),green}
+		h.toUser<-msg
+	}		
 }
 type game struct{
 	Key string
@@ -192,4 +210,21 @@ func userToPlay(client *mongo.Client,user string) []game{
 	   gs=append(gs,result)
 	}
 	return gs
+}
+func handleGameMessage(client *mongo.Client, message Door,h *GameHub){
+	g,err:=getGame(client,message.key)
+	if (err!=nil){
+		log.Println(err)
+		return
+	}
+	if (g.CurrentUser!=message.user){
+		msg:=Door{"games",message.key,[]byte("{\"Op\":\"notYourTurn\"}"),message.user}
+		h.toUser<-msg
+		return
+	}
+	a:=strings.Split(string(message.message)," ")
+	if (a[0]=="placeMove"){
+		addOp(client,"games",message.key,string(message.message))
+		h.broadcast<-message
+	}
 }
