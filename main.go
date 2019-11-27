@@ -10,6 +10,7 @@ import (
 	
 	"github.com/gorilla/mux"
 	"time"
+	"strconv"
 )
 
 var addr = flag.String("addr", ":8080", "http service address")
@@ -53,6 +54,21 @@ func serveLobby(w http.ResponseWriter, r *http.Request) {
 	err:=tlobby.ExecuteTemplate(w, "base",struct{}{})
 	if (err!=nil){ log.Println(err) }
 }
+func serveGame(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "max-age:10800, public")
+	vars := mux.Vars(r)
+	dbclient:=getClient()
+	key,_:=strconv.Atoi(vars["key"])
+	g,err:=getGame(dbclient,key)
+	if (err!=nil){
+		fmt.Fprintf(w, "Game not found.")
+		return
+	}
+	log.Println(g)
+	tgame:=template.Must(template.ParseFiles("templates/templates.gohtml","templates/base.gohtml","templates/game.gohtml"))
+	err=tgame.ExecuteTemplate(w,"base",g)
+	if (err!=nil){ log.Println(err) }
+}
 func updateTemplates(w http.ResponseWriter, r *http.Request){
 	templates = template.Must(template.ParseFiles("templates/templates.gohtml"))
 	fmt.Fprintf(w, "Updated templates")
@@ -86,6 +102,7 @@ func main() {
 	router.HandleFunc("/about/", serveAbout)
 	router.HandleFunc("/contact/", serveContact)
 	router.HandleFunc("/lobby/", serveLobby)
+	router.HandleFunc("/game/{key}", serveGame)
 	router.HandleFunc("/update/templates/", updateTemplates)
 	router.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request){ http.ServeFile(w, r, "favicon.ico") })
 	http.Handle("/",router)

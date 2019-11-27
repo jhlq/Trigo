@@ -112,14 +112,50 @@ type lobbyMessage struct{
 	Size int
 	Id string
 }
+type lobbyEntry struct{
+	Size int
+	Id string
+	User string
+}
 func handleLobbyMessage(client *mongo.Client, message []byte,user string){
 	var lm lobbyMessage
 	json.Unmarshal(message,&lm)
 	collection := client.Database("trigo").Collection("lobby")
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-	log.Println(lm)
 	if lm.Op=="addGame" {
 		_, err := collection.InsertOne(ctx, bson.M{"size": lm.Size,"id":lm.Id,"user":user})
 		if (err!=nil){ log.Println(err) }
+	} else if lm.Op=="joinGame" {
+		var le lobbyEntry
+		filter := bson.M{"id": lm.Id}
+		err := collection.FindOne(ctx, filter).Decode(&le)
+		if (err!=nil){ return }
+		_, err = collection.DeleteOne(ctx, bson.M{"id": lm.Id})
+		if (err!=nil){ log.Println(err) }
+		addGame(client,le.Size,user,le.User)
 	}
+}
+func addGame(client *mongo.Client,size int,green string,blue string){
+	collection := client.Database("trigo").Collection("games")
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	count, _ := collection.CountDocuments(ctx, bson.M{}, nil)
+	_, err := collection.InsertOne(ctx, bson.M{"key": count,"size":size,"green":green,"blue":blue,"currentUser":green,"currentColor":"green"})
+	if (err!=nil){ log.Println(err) }
+}
+type game struct{
+	Key int
+	Size int
+	Green string
+	Blue string
+	CurrentUser string
+	CurrentColor string
+	Ops []string
+}
+func getGame(client *mongo.Client,key int) (game,error){
+	var g game
+	collection := client.Database("trigo").Collection("games")
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	filter := bson.M{"key": key}
+	err := collection.FindOne(ctx, filter).Decode(&g)
+	return g,err
 }

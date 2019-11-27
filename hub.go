@@ -1,11 +1,10 @@
 // Copyright 2013 The Gorilla WebSocket Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// Use of this source code is governed by a BSD-style license.
 
 package main
 
 import (
-	"log"
+	//"log"
 )
 
 type Door struct {
@@ -77,7 +76,6 @@ func (h *Hub) run() {
 			} else if message.collection=="boards"{
 				go addOp(dbclient,message.key,string(message.message))
 			} else if message.collection=="lobby"{
-				log.Println(string(message.message))
 				go handleLobbyMessage(dbclient,message.message,message.user)
 			}
 			for client := range h.clients {
