@@ -1,0 +1,20 @@
+{{define "title"}}Board {{.Key}}{{end}}
+{{define "body"}}
+<h2>Board {{.Key}}</h2>
+{{template "boardCanvas" .}}
+{{end}}
+{{define "js"}}
+<script type="text/javascript" src="/javascript/trigolib.js"></script>
+<script type="text/javascript" src="/javascript/screenboard.js"></script>
+
+<script>
+var sb=new Trigo.ScreenBoard("TriCanvas",9);
+sb.drawGrid();
+sb.setupWS("boards/{{.Key}}");
+var ai=new Trigo.AI(sb.board);
+sb.ai=ai;
+
+{{template "crosshair"}}
+
+</script>
+{{end}}

@@ -1,0 +1,8 @@
+{{define "title"}}About{{end}}
+{{define "body"}}
+	<p>Trigo is essentially the same as Go only played on triangles. The default ruleset is a hybrid one where both stones and captures count as points. The ko rule is simple, the state of the board is not allowed to repeat.</p>
+		
+	<p>Why hybrid rules? Usually Japanese rules are used due to faster counting but Chinese rules are more robust, any disagreement can simply be played out whereas the Japanese ruleset implements special cases that arguably are flawed in the presence of unremovable ko threats. No doubt it is confusing why a group that can live via ko is considered dead when the other player can (potentially) remove all ko threats before starting the ko, removing all ko threats costs a lot of points so why is it just dead? The answer is because the hypothetical playout ("I can capture this, therefore it is dead") emulates Chinese rules where the ko threats can be removed at no cost. Players are used to get points for captures but China is really big so instead of choosing one let's merge them, give points for everything! A perk is that those long running 1 point kos at the end of the game mostly vanish.</p>
+
+	<p>The project is open source and can be found at: <a href='https://github.com/jhlq/Trigo'>github.com/jhlq/Trigo</a></p>
+{{end}}

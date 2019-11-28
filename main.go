@@ -15,20 +15,30 @@ import (
 
 var addr = flag.String("addr", ":8080", "http service address")
 var templates = template.Must(template.ParseFiles("templates/templates.gohtml"))
+var tm map[string]*template.Template
 
+func inittm(){
+	tm=make(map[string]*template.Template)
+	tm["home"] = template.Must(template.ParseFiles("templates/home.gohtml","templates/templates.gohtml","templates/base.gohtml"))
+	tm["lobby"] = template.Must(template.ParseFiles("templates/lobby.gohtml","templates/templates.gohtml","templates/base.gohtml"))
+	tm["game"] = template.Must(template.ParseFiles("templates/game.gohtml","templates/templates.gohtml","templates/base.gohtml"))
+	tm["board"] = template.Must(template.ParseFiles("templates/board.gohtml","templates/templates.gohtml","templates/base.gohtml"))
+	tm["about"] = template.Must(template.ParseFiles("templates/about.gohtml","templates/templates.gohtml","templates/base.gohtml"))
+	tm["contact"] = template.Must(template.ParseFiles("templates/contact.gohtml","templates/templates.gohtml","templates/base.gohtml"))
+}
 func serveIP(w http.ResponseWriter, r *http.Request){
 	fmt.Fprintf(w, "RemoteAddr: "+r.RemoteAddr)
 }
 func serveHome(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "max-age:10800, public")
-	err:=templates.ExecuteTemplate(w, "home",struct{}{})
+	err:=tm["home"].ExecuteTemplate(w, "base",struct{}{})
 	if (err!=nil){ log.Println(err) }
 }
 func serveBoard(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "max-age:10800, public")
 	vars := mux.Vars(r)
 	data:=struct{Key string}{Key:vars["key"]}
-	err:=templates.ExecuteTemplate(w, "board", data)
+	err:=tm["board"].ExecuteTemplate(w, "base",data)
 	if (err!=nil){ log.Println(err) }
 }
 func serveTimeBoard(w http.ResponseWriter, r *http.Request) {
@@ -37,18 +47,17 @@ func serveTimeBoard(w http.ResponseWriter, r *http.Request) {
 }
 func serveAbout(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "max-age:10800, public")
-	err:=templates.ExecuteTemplate(w, "about",struct{}{})
+	err:=tm["about"].ExecuteTemplate(w, "base",struct{}{})
 	if (err!=nil){ log.Println(err) }
 }
 func serveContact(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "max-age:10800, public")
-	err:=templates.ExecuteTemplate(w, "contact",struct{}{})
+	err:=tm["contact"].ExecuteTemplate(w, "base",struct{}{})
 	if (err!=nil){ log.Println(err) }
 }
 func serveLobby(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "max-age:10800, public")
-	tlobby:=template.Must(template.ParseFiles("templates/templates.gohtml","templates/base.gohtml","templates/lobby.gohtml"))
-	err:=tlobby.ExecuteTemplate(w, "base",struct{}{})
+	err:=tm["lobby"].ExecuteTemplate(w, "base",struct{}{})
 	if (err!=nil){ log.Println(err) }
 }
 func serveGame(w http.ResponseWriter, r *http.Request) {
@@ -60,15 +69,16 @@ func serveGame(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Game not found.")
 		return
 	}
-	tgame:=template.Must(template.ParseFiles("templates/game.gohtml","templates/templates.gohtml","templates/base.gohtml"))
-	err=tgame.ExecuteTemplate(w,"base",g)
+	err=tm["game"].ExecuteTemplate(w, "base",g)
 	if (err!=nil){ log.Println(err) }
 }
 func updateTemplates(w http.ResponseWriter, r *http.Request){
 	templates = template.Must(template.ParseFiles("templates/templates.gohtml"))
+	inittm()
 	fmt.Fprintf(w, "Updated templates")
 }
 func main() {
+	inittm()
 	flag.Parse()
 	hub := newHub()
 	go hub.run()
