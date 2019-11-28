@@ -616,6 +616,13 @@ Trigo.Board.prototype.markDeadStones_arr=function(c){
 		}
 	}
 };
+Trigo.Board.prototype.unmarkDeadStones=function(){
+	for (let yi=0;yi<this.tg.triangles.length;yi++){
+		for (let xi=0;xi<this.tg.triangles[yi].length;xi++){
+			this.tg.triangles[yi][xi].markedDead=false;
+		}
+	}
+};
 /*
 Trigo.Board.prototype.validMovesInSpace=function(space){				//added. Sloooow...
 	var vm=0;

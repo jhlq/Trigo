@@ -3,12 +3,13 @@
 {{template "chatHeader"}}
 {{end}}
 {{define "gameCanvas"}}
+	<p id="winner"></p>
 	<input type="number" id="x" onchange="crosshair()" value=1>
 	<input type="number" id="y" onchange="crosshair()" value=1>
 	<br>
 	<button onclick="sb.pass()">Pass.</button>
 	<button onclick="resign()">Resign.</button>
-	<br>
+	<div id="markDead"></div>
 	<canvas id="TriCanvas" width="600" height="540"></canvas>
 	{{template "chat"}}
 	<p id="scores"></p>

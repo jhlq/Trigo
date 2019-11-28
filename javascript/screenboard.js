@@ -288,6 +288,17 @@ Trigo.ScreenBoard.prototype.setupWS=function(id){
 				} else if (arr[0]=="reset"){
 					_this.board.reset();
 					_this.placeMoves();
+				} else if (arr[0]=="markDead"){
+					if (arr[1]=="true"){
+						document.getElementById("markDead").innerHTML='Mark dead stones. <button onclick="sb.done()">Done!</button>';
+					} else if (arr[1]=="false"){
+						document.getElementById("markDead").innerHTML='';
+					}
+					sb.updateParams();
+				} else if (arr[0]=="done"){
+					_this.board.switchPlayer();
+				} else if (arr[0]=="winner"){
+					document.getElementById("winner").innerHTML="<b>Winner: "+arr[1]+"</b>";
 				}
             }
         };
@@ -365,4 +376,12 @@ Trigo.ScreenBoard.prototype.changesize=function(){
 		this.updateParams();
 		this.placeMoves();
 	}
+};
+Trigo.ScreenBoard.prototype.unmarkDeadStones=function(){
+	this.board.unmarkDeadStones();
+	this.placeMoves();
+};
+Trigo.ScreenBoard.prototype.done=function(){
+	var s=this.board.score();
+	this.send("done "+(s[0]-s[1]));
 };
