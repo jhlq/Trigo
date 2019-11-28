@@ -166,11 +166,19 @@ func getLobbyEntries(client *mongo.Client) []lobbyEntry {
 	}
 	return es
 }
+func countGames() int{
+	collection:=getClient().Database("trigo").Collection("games")
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	count, _ := collection.CountDocuments(ctx, bson.M{}, nil)
+	return int(count)
+}
 func addGame(client *mongo.Client,size int,green string,blue string,h *GameHub){
 	collection := client.Database("trigo").Collection("games")
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-	count, _ := collection.CountDocuments(ctx, bson.M{}, nil) //change to get count from GameHub
-	key:=strconv.Itoa(int(count))
+	c:=make(chan int)
+	h.gameCount<-c
+	count:=<-c
+	key:=strconv.Itoa(count)
 	_, err := collection.InsertOne(ctx, bson.M{"key": key,"size":size,"green":green,"blue":blue,"currentUser":green,"currentColor":"green","passed":false,"markDead":false,"done":false,"score":0,"winner":""})
 	if (err!=nil){
 		log.Println("Error adding game.",err)

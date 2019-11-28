@@ -120,7 +120,7 @@ func main() {
 	router.HandleFunc("/game/{key}", serveGame)
 	router.HandleFunc("/update/templates/", updateTemplates)
 	router.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request){ http.ServeFile(w, r, "favicon.ico") })
-	router.HandleFunc("/style.css", func(w http.ResponseWriter, r *http.Request){ http.ServeFile(w, r, "style.css") })
+	router.HandleFunc("/style.css", func(w http.ResponseWriter, r *http.Request){ w.Header().Set("Cache-Control", "max-age:10800, public"); http.ServeFile(w, r, "style.css") })
 	http.Handle("/",router)
 	s := &http.Server{
 		ReadTimeout: 60 * time.Second,

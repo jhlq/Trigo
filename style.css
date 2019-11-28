@@ -35,3 +35,20 @@ li a {
 li a:hover {
   background-color: #111;
 }
+html {
+    position: relative;
+    min-height: 100%;
+}
+body {
+    margin: 0 0 100px; /* bottom = footer height */
+}
+main {
+    padding-left: 30px;
+}
+footer {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 100px;
+    width: 100%;
+}

@@ -96,6 +96,8 @@ type GameHub struct {
 	broadcast chan Door
 	register chan *GameClient
 	unregister chan *GameClient
+	gameCount chan chan int
+	count int
 }
 
 func newGameHub() *GameHub {
@@ -106,6 +108,8 @@ func newGameHub() *GameHub {
 		register:   make(chan *GameClient),
 		unregister: make(chan *GameClient),
 		clients:    make(map[*GameClient]bool),
+		gameCount: make(chan chan int),
+		count: countGames(),
 	}
 }
 
@@ -113,6 +117,9 @@ func (h *GameHub) run() {
 	dbclient:=getClient()
 	for {
 		select {
+		case c:=<-h.gameCount:
+			c<-h.count
+			h.count+=1
 		case client := <-h.register:
 			h.clients[client] = true
 			if client.collection=="lobby"{

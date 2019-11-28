@@ -8,10 +8,12 @@
 {{template "chatHeader"}}
 </head>
 <body>
-	{{template "nav" .}}
-	<h1>Trigo!</h1>
-	{{template "chat"}}
-	{{template "body" .}}
+{{template "nav" .}}
+	<main>
+		<h1>Trigo!</h1>
+		{{template "chat"}}
+		{{template "body" .}}
+	</main>
 	{{template "footer" .}}
 	{{template "js" .}}
 </body>
