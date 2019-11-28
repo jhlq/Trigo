@@ -303,6 +303,10 @@ Trigo.ScreenBoard.prototype.setupWS=function(id){
 				} else if (arr[0]=="winner"){
 					document.getElementById("winner").innerHTML="<b>Winner: "+arr[1]+"</b>";
 					document.getElementById("markDead").innerHTML='';
+				} else if (arr[0]=="notYourTurn"){
+					var item = document.createElement("div");
+					item.innerHTML = "<b>Not your turn.</b>";
+					appendLog(item);
 				}
             }
         };
