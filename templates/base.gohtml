@@ -4,9 +4,13 @@
 <head>
 <meta charset="utf-8"/>
 <title>Trigo! {{template "title" .}}</title>
-{{template "header" .}}
+<link rel="stylesheet" href="/style.css">
+{{template "chatHeader"}}
 </head>
 <body>
+	{{template "nav" .}}
+	<h1>Trigo!</h1>
+	{{template "chat"}}
 	{{template "body" .}}
 	{{template "footer" .}}
 	{{template "js" .}}

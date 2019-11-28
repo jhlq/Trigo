@@ -1,8 +1,21 @@
+{{define "nav"}}
+<header>
+	<nav>
+		<ul>
+			<li><a href="/">Home</a></li>
+			<li><a href="/lobby/">Lobby</a></li>
+			<li><a href="/board/">Online board</a></li>
+			<li><a href="/about/">About</a></li>
+			<li><a href="/contact/">Contact</a></li>
+		</ul>
+	</nav>
+</header> 
+{{end}}
 {{define "footer"}}
 <footer class="footer">
-	<small>
+	<p><small>
 		Go is fun!
-	</small>
+	</small></p>
 	<nav>
 		<ul>
 			<li><a href="/">Home</a></li>
@@ -102,22 +115,6 @@ window.onload = function () {
 		}
 };
 </script>
-<style type="text/css">
-#chat {
-	position: relative;
-	display: block;
-	float: right;
-	width:30%; 
-}
-#log {
-	background: lightblue;
-	overflow: auto;
-	height:500px; 
-}
-#form {
-		overflow: auto;
-}
-</style>
 {{end}}
 {{define "crosshair"}}
 document.body.addEventListener("keydown", keyDown, false);

@@ -1,7 +1,4 @@
 {{define "title"}} Game {{.Key}} {{end}}
-{{define "header"}}
-{{template "chatHeader"}}
-{{end}}
 {{define "gameCanvas"}}
 	<p id="winner"></p>
 	<input type="number" id="x" onchange="crosshair()" value=1>
@@ -11,7 +8,6 @@
 	<button onclick="resign()">Resign.</button>
 	<div id="markDead"></div>
 	<canvas id="TriCanvas" width="600" height="540"></canvas>
-	{{template "chat"}}
 	<p id="scores"></p>
 	<label for="shortcuts">Enable keyboard shortcuts (w a s d and e to enter): </label>
 	<input type="checkbox" id="shortcuts">
@@ -25,7 +21,6 @@
 	<p>	Game record: <input type="text" id="board_moves" value='{{.Size}};'> 
 {{end}}
 {{define "body"}}
-<h1>Trigo!</h1>
 <h2>Game {{.Key}}</h2>
 {{template "gameCanvas" .}}
 {{end}}
