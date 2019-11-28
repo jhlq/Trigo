@@ -287,6 +287,8 @@ func handleGameMessage(client *mongo.Client, message Door,h *GameHub){
 		}
 	} else if (g.MarkDead && a[0]=="markDeadStones"){
 		addOp(client,"games",message.key,string(message.message))
+		update := bson.M{"$set": bson.M{"done": false} }
+		updateGame(client,g.Key,update)
 		h.broadcast<-message
 	} else if (g.MarkDead && a[0]=="done"){
 		if g.Done{
@@ -301,7 +303,7 @@ func handleGameMessage(client *mongo.Client, message Door,h *GameHub){
 			} else {
 				winner="missmatch"
 			}
-			update := bson.M{"$set": bson.M{"winner": winner,"userToPlay":""} }
+			update := bson.M{"$set": bson.M{"winner": winner,"currentUser":""} }
 			updateGame(client,g.Key,update)
 			addOp(client,"games",message.key,"winner "+winner)
 			msg:=Door{"games",g.Key,[]byte("winner "+winner),message.user}

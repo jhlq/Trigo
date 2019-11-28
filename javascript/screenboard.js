@@ -295,10 +295,14 @@ Trigo.ScreenBoard.prototype.setupWS=function(id){
 						document.getElementById("markDead").innerHTML='';
 					}
 					sb.updateParams();
+				} else if (arr[0]=="unmarkDeadStones"){
+					_this.board.unmarkDeadStones();
+					_this.placeMoves();
 				} else if (arr[0]=="done"){
 					_this.board.switchPlayer();
 				} else if (arr[0]=="winner"){
 					document.getElementById("winner").innerHTML="<b>Winner: "+arr[1]+"</b>";
+					document.getElementById("markDead").innerHTML='';
 				}
             }
         };
