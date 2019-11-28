@@ -290,9 +290,9 @@ Trigo.ScreenBoard.prototype.setupWS=function(id){
 					_this.placeMoves();
 				} else if (arr[0]=="markDead"){
 					if (arr[1]=="true"){
-						document.getElementById("markDead").innerHTML='Mark dead stones. <button onclick="sb.done()">Done!</button>';
+						document.getElementById("atEnd").innerHTML='Mark dead stones. <button onclick="sb.done()">Done!</button>';
 					} else if (arr[1]=="false"){
-						document.getElementById("markDead").innerHTML='';
+						document.getElementById("atEnd").innerHTML='';
 					}
 					sb.updateParams();
 				} else if (arr[0]=="unmarkDeadStones"){
@@ -302,7 +302,7 @@ Trigo.ScreenBoard.prototype.setupWS=function(id){
 					_this.board.switchPlayer();
 				} else if (arr[0]=="winner"){
 					document.getElementById("winner").innerHTML="<b>Winner: "+arr[1]+"</b>";
-					document.getElementById("markDead").innerHTML='';
+					document.getElementById("atEnd").innerHTML='<button onclick="sb.updateScore()">Score.</button>';
 				} else if (arr[0]=="notYourTurn"){
 					var item = document.createElement("div");
 					item.innerHTML = "<b>Not your turn.</b>";
@@ -392,4 +392,7 @@ Trigo.ScreenBoard.prototype.unmarkDeadStones=function(){
 Trigo.ScreenBoard.prototype.done=function(){
 	var s=this.board.score();
 	this.send("done "+(s[0]-s[1]));
+};
+Trigo.ScreenBoard.prototype.resign=function(){
+	this.send("resign");
 };

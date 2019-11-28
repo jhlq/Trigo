@@ -260,7 +260,19 @@ func handleGameMessage(client *mongo.Client, message Door,h *GameHub){
 		return
 	}
 	a:=strings.Split(string(message.message)," ")
-	if (a[0]=="placeMove"){
+	if (a[0]=="resign"){
+		var winner string
+		if g.CurrentColor=="green"{
+			winner="blue"
+		} else if g.CurrentColor=="blue"{
+			winner="green"
+		}
+		update := bson.M{"$set": bson.M{"winner": winner,"currentUser":""} }
+		updateGame(client,g.Key,update)
+		addOp(client,"games",message.key,"winner "+winner)
+		msg:=Door{"games",g.Key,[]byte("winner "+winner),message.user}
+		h.broadcast<-msg
+	} else if (a[0]=="placeMove"){
 		addOp(client,"games",message.key,string(message.message))
 		x,_:=strconv.ParseInt(strings.Split(a[1],",")[0],10,64)
 		isPass:=x<0
