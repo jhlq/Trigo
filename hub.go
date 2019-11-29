@@ -6,6 +6,7 @@ package main
 import (
 	//"log"
 	"encoding/json"
+	"time"
 )
 
 type Door struct {
@@ -47,7 +48,7 @@ func (h *Hub) run() {
 			h.clients[client] = true
 			if client.collection=="" && client.key==""{
 				go func(){
-					msgs:=getRecentMessages(dbclient,5)
+					msgs:=getRecentMessages(dbclient,5) //store these in a list?
 					for i:=range msgs {
 						client.send<-[]byte(msgs[len(msgs)-i-1])
 					}
@@ -112,7 +113,16 @@ func newGameHub() *GameHub {
 		count: countGames(),
 	}
 }
-
+func remainingTime(g *game) int{
+	var rt int
+	now:=int(time.Now().Unix())
+	if g.CurrentColor=="green"{
+		rt=g.GreenDeadline-now
+	} else if g.CurrentColor=="blue"{
+		rt=g.BlueDeadline-now
+	}
+	return rt
+}
 func (h *GameHub) run() {
 	dbclient:=getClient()
 	for {
@@ -129,11 +139,13 @@ func (h *GameHub) run() {
 						Key string
 						Size int
 						Id string
+						RemainingTime int
 					}
 					gs:=userToPlay(dbclient,client.user)
 					op.Op="userToPlay"
 					for _,g:=range gs {
 						op.Key=g.Key
+						op.RemainingTime=remainingTime(&g)
 						jop,_:=json.Marshal(op)
 						client.send<-jop
 					}

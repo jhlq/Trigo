@@ -21,19 +21,19 @@ Size: <input type="number" id="size" step="1" value=13 min="1" max="999">
 	lobby.ws.onmessage = function (evt) {
 		var messages = evt.data.split('\n');
 		for (var i = 0; i < messages.length; i++) {
-			var obj=JSON.parse(messages[i]);
+			var op=JSON.parse(messages[i]);
 			console.log(messages[i]);
-			if (obj.Op=="addGame"){
+			if (op.Op=="addGame"){
 				var item = document.createElement("div");
-				item.innerHTML = 'Size: '+obj.Size+' <button onclick="joinGame(\''+obj.Id+'\')">Join!</button>';
-				item.setAttribute("id", obj.Id);
+				item.innerHTML = 'Size: '+op.Size+' <button onclick="joinGame(\''+op.Id+'\')">Join!</button>';
+				item.setAttribute("id", op.Id);
 				document.getElementById("games").appendChild(item);
-			} else if (obj.Op=="joinGame"){
-				var element = document.getElementById(obj.Id);
+			} else if (op.Op=="joinGame"){
+				var element = document.getElementById(op.Id);
 				element.parentNode.removeChild(element);
-			} else if (obj.Op=="userToPlay"){
+			} else if (op.Op=="userToPlay"){
 				var item = document.createElement("div");
-				item.innerHTML = '<a href="/game/'+obj.Key+'">Game '+obj.Key+'</a>';
+				item.innerHTML = '<a href="/game/'+op.Key+'">Game '+op.Key+'</a> Remaining time: '+Math.round(op.RemainingTime/864)/100+' days.';
 				document.getElementById("userToPlay").appendChild(item);
 			}
 		}
@@ -46,11 +46,9 @@ Size: <input type="number" id="size" step="1" value=13 min="1" max="999">
 		lobby.ws.send(msg);
 	};
 	function addGame(){
-		console.log("Sending");
 		send('{"Op":"addGame","Id":"'+Math.random()+'","Size":'+document.getElementById("size").value+'}');
 	};
 	function joinGame(id){
-		console.log('{"Op":"joinGame","Id":"'+id+'"}')
 		send('{"Op":"joinGame","Id":"'+id+'"}');
 	};
 	

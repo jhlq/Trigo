@@ -179,11 +179,13 @@ func addGame(client *mongo.Client,size int,green string,blue string,h *GameHub){
 	h.gameCount<-c
 	count:=<-c
 	key:=strconv.Itoa(count)
-	_, err := collection.InsertOne(ctx, bson.M{"key": key,"size":size,"green":green,"blue":blue,"currentUser":green,"currentColor":"green","passed":false,"markDead":false,"done":false,"score":0,"winner":""})
+	day:=86400
+	deadline:=int(time.Now().Unix())+5*day
+	_, err := collection.InsertOne(ctx, bson.M{"key": key,"size":size,"green":green,"blue":blue,"greenDeadline":deadline,"blueDeadline":deadline,"currentUser":green,"currentColor":"green","passed":false,"markDead":false,"done":false,"score":0,"winner":""})
 	if (err!=nil){
 		log.Println("Error adding game.",err)
 	} else {
-		msg:=Door{"lobby","",[]byte("{\"Op\":\"userToPlay\",\"Key\":\""+key+"\"}"),green}
+		msg:=Door{"lobby","",[]byte("{\"Op\":\"userToPlay\",\"Key\":\""+key+"\",\"RemainingTime\":432000}"),green}
 		h.toUser<-msg
 	}		
 }
@@ -192,6 +194,8 @@ type game struct{
 	Size int
 	Green string
 	Blue string
+	GreenDeadline int
+	BlueDeadline int
 	CurrentUser string
 	CurrentColor string
 	Passed bool
@@ -199,6 +203,7 @@ type game struct{
 	Done bool
 	Score int
 	Winner string
+	Wintype string
 	//Ops []string
 }
 func getGame(client *mongo.Client,key string) (game,error){
@@ -254,7 +259,7 @@ func handleGameMessage(client *mongo.Client, message Door,h *GameHub){
 	if (g.Winner!=""){
 		return
 	}
-	if (g.CurrentUser!=message.user){ //how to disable quick doublemoves?
+	if (g.CurrentUser!=message.user){ //how to disable quick doublemoves? Store active games in gamehub
 		msg:=Door{"games",message.key,[]byte("notYourTurn"),message.user}
 		h.toUser<-msg
 		return
@@ -267,10 +272,10 @@ func handleGameMessage(client *mongo.Client, message Door,h *GameHub){
 		} else if g.CurrentColor=="blue"{
 			winner="green"
 		}
-		update := bson.M{"$set": bson.M{"winner": winner,"currentUser":""} }
+		update := bson.M{"$set": bson.M{"winner": winner,"wintype":"resignation","currentUser":""} }
 		updateGame(client,g.Key,update)
-		addOp(client,"games",message.key,"winner "+winner)
-		msg:=Door{"games",g.Key,[]byte("winner "+winner),message.user}
+		addOp(client,"games",message.key,"winner "+winner+" resignation")
+		msg:=Door{"games",g.Key,[]byte("winner "+winner+" resignation"),message.user}
 		h.broadcast<-msg
 	} else if (a[0]=="placeMove"){
 		addOp(client,"games",message.key,string(message.message))
@@ -323,10 +328,20 @@ func handleGameMessage(client *mongo.Client, message Door,h *GameHub){
 			} else {
 				winner="missmatch"
 			}
-			update := bson.M{"$set": bson.M{"winner": winner,"currentUser":""} }
+			var wintype string
+			if int(score)!=g.Score{
+				wintype="undetermined"
+			} else {
+				s:=g.Score
+				if s<0{
+					s=-s
+				}
+				wintype=strconv.Itoa(s)
+			}
+			update := bson.M{"$set": bson.M{"winner": winner,"wintype":wintype,"currentUser":""} }
 			updateGame(client,g.Key,update)
-			addOp(client,"games",message.key,"winner "+winner)
-			msg:=Door{"games",g.Key,[]byte("winner "+winner),message.user}
+			addOp(client,"games",message.key,"winner "+winner+" "+wintype)
+			msg:=Door{"games",g.Key,[]byte("winner "+winner+" "+wintype),message.user}
 			h.broadcast<-msg
 		} else {
 			score,_:=strconv.ParseInt(a[1],10,64)

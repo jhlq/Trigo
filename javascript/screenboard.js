@@ -301,7 +301,11 @@ Trigo.ScreenBoard.prototype.setupWS=function(id){
 				} else if (arr[0]=="done"){
 					_this.board.switchPlayer();
 				} else if (arr[0]=="winner"){
-					document.getElementById("winner").innerHTML="<b>Winner: "+arr[1]+"</b>";
+					if (arr[1]=="draw!"){
+						document.getElementById("winner").innerHTML="<b>Draw!</b>";
+					} else {
+						document.getElementById("winner").innerHTML="<b>Winner: "+arr[1]+" by "+arr[2]+"</b>";
+					}
 					document.getElementById("atEnd").innerHTML='<button onclick="sb.updateScore()">Score.</button>';
 				} else if (arr[0]=="notYourTurn"){
 					var item = document.createElement("div");
