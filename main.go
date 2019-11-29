@@ -127,6 +127,7 @@ func main() {
 		WriteTimeout: 60 * time.Second,
 		Addr:*addr,
 	}
+	log.Println("Starting to listen...")
 	err:=s.ListenAndServe()
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)

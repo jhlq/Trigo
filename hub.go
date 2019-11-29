@@ -4,9 +4,10 @@
 package main
 
 import (
-	//"log"
+	"log"
 	"encoding/json"
 	"time"
+	"strings"
 )
 
 type Door struct {
@@ -99,18 +100,23 @@ type GameHub struct {
 	unregister chan *GameClient
 	gameCount chan chan int
 	count int
+	timeout chan string
+	addGame chan *game
 }
 
 func newGameHub() *GameHub {
+	bs:=5
 	return &GameHub{
-		toUser:  make(chan Door),
-		fromUser:  make(chan Door),
-		broadcast:  make(chan Door),
+		toUser:  make(chan Door,bs),
+		fromUser:  make(chan Door,bs),
+		broadcast:  make(chan Door,bs),
 		register:   make(chan *GameClient),
 		unregister: make(chan *GameClient),
 		clients:    make(map[*GameClient]bool),
 		gameCount: make(chan chan int),
 		count: countGames(),
+		timeout: make(chan string),
+		addGame: make(chan *game),
 	}
 }
 func remainingTime(g *game) int{
@@ -123,10 +129,78 @@ func remainingTime(g *game) int{
 	}
 	return rt
 }
+type gameTimer struct{
+	t *time.Timer
+	cancel chan struct{}
+}
+func newgt(seconds int) *gameTimer{
+	gt:=gameTimer{time.NewTimer(time.Duration(seconds) * time.Second),make(chan struct{}, 1)}
+	return &gt
+}
+func gtlistener(gt *gameTimer,key string,to chan string){
+	select{
+	case <-gt.t.C:
+		to<-key
+		return
+	case <-gt.cancel:
+		return
+	}
+}
+func deleteGame(key string,gm map[string]*game,gtm map[string]*gameTimer){
+	gtm[key].t.Stop()
+	gtm[key].cancel<-struct{}{}
+	delete(gtm,key)
+	delete(gm,key)
+}
+func sp(g *game){
+	if g.CurrentColor=="green"{
+		g.CurrentUser=g.Blue
+		g.CurrentColor="blue"
+	} else if g.CurrentColor=="blue"{
+		g.CurrentUser=g.Green
+		g.CurrentColor="green"
+	}
+}
+func updateTime(g *game){
+	rt:=remainingTime(g)
+	rt+=g.TurnTime
+	if rt>g.MaxTime{
+		rt=g.MaxTime
+	}
+	now:=int(time.Now().Unix())
+	dl:=now+rt
+	if g.CurrentColor=="green"{
+		g.GreenDeadline=dl
+	} else if g.CurrentColor=="blue"{
+		g.BlueDeadline=dl
+	}
+}
 func (h *GameHub) run() {
 	dbclient:=getClient()
+	gm:=make(map[string]*game)
+	gtm:=make(map[string]*gameTimer)
+	ga:=getActiveGames(dbclient)
+	for _,g := range(ga){
+		rt:=remainingTime(g)
+		if rt<0{
+			go setWinner(dbclient,g,"","time",h)
+			continue
+		}
+		gm[g.Key]=g
+		gtm[g.Key]=newgt(rt)
+		go gtlistener(gtm[g.Key],g.Key,h.timeout)
+	}
 	for {
 		select {
+		case g:=<-h.addGame:
+			rt:=remainingTime(g)
+			gm[g.Key]=g
+			gtm[g.Key]=newgt(rt)
+			go gtlistener(gtm[g.Key],g.Key,h.timeout)
+		case key:=<-h.timeout:
+			go setWinner(dbclient,gm[key],"","time",h)
+			delete(gtm,key)
+			delete(gm,key)
 		case c:=<-h.gameCount:
 			c<-h.count
 			h.count+=1
@@ -197,7 +271,28 @@ func (h *GameHub) run() {
 			if message.collection=="lobby"{
 				go handleLobbyMessage(dbclient,message.message,message.user,h)
 			} else if message.collection=="games"{
-				go handleGameMessage(dbclient,message,h)
+				//go handleGameMessage(dbclient,message,h)
+				key:=message.key
+				g:=gm[key]
+				gt:=gtm[key]
+				if (g.CurrentUser!=message.user){
+					msg:=Door{"games",key,[]byte("notYourTurn"),message.user}
+					h.toUser<-msg
+				} else {
+					gt.t.Stop()
+					a:=strings.Split(string(message.message)," ")
+					if (a[0]=="resign"){
+						go setWinner(dbclient,g,"","resignation",h)
+						gt.cancel<-struct{}{}
+						delete(gtm,key)
+						delete(gm,key)
+					} else if (a[0]=="placeMove"){
+						updateTime(g)
+						log.Println(gm[key].CurrentColor)
+						sp(g)
+						log.Println(gm[key].CurrentColor)
+					}
+				}
 			}
 		}
 	}
