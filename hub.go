@@ -200,6 +200,7 @@ func (h *GameHub) run() {
 						Size int
 						Id string
 						RemainingTime int
+						Removable bool
 					}
 					filter := bson.M{"currentUser": client.user}
 					gs:=getGames(dbclient,filter)
@@ -216,6 +217,9 @@ func (h *GameHub) run() {
 					for _,le:=range les {
 						op.Size=le.Size
 						op.Id=le.Id
+						if le.User==client.user {
+							op.Removable=true
+						}
 						jop,_:=json.Marshal(op)
 						client.send<-jop
 					}

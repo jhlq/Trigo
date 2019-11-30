@@ -145,6 +145,11 @@ func handleLobbyMessage(client *mongo.Client, message []byte,user string,h *Game
 		msg:=Door{"lobby","",message,user}
 		h.broadcast<-msg
 		addGame(client,le.Size,user,le.User,h)
+	} else if lm.Op=="removeGame" {
+		_, err := collection.DeleteOne(ctx, bson.M{"id": lm.Id})
+		if (err!=nil){ log.Println("Error deleting lobby entry. ",err) }
+		msg:=Door{"lobby","",message,user}
+		h.broadcast<-msg
 	}
 }
 func getLobbyEntries(client *mongo.Client) []lobbyEntry {

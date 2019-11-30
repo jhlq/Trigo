@@ -14,6 +14,8 @@ Size: <input type="number" id="size" step="1" value=13 min="1" max="999">
 {{define "js"}}
 <script>
 	var lobby={};
+	var title=document.title;
+	var ng=0;
 	lobby.ws = new WebSocket("ws://" + document.location.host + "/ws/lobby");
 	lobby.ws.onclose = function (evt) {
 		console.log("Connection closed.");
@@ -25,10 +27,14 @@ Size: <input type="number" id="size" step="1" value=13 min="1" max="999">
 			//console.log(messages[i]);
 			if (op.Op=="addGame"){
 				var item = document.createElement("div");
-				item.innerHTML = 'Size: '+op.Size+' <button onclick="joinGame(\''+op.Id+'\')">Join!</button>';
+				var s='Size: '+op.Size+' <button onclick="joinGame(\''+op.Id+'\')">Join!</button>';
+				if (op.Removable){
+					s+=' <button onclick="removeGame(\''+op.Id+'\')">Remove.</button>';
+				}
+				item.innerHTML = s;
 				item.setAttribute("id", op.Id);
 				document.getElementById("games").appendChild(item);
-			} else if (op.Op=="joinGame"){
+			} else if (op.Op=="joinGame" || op.Op=="removeGame"){
 				var element = document.getElementById(op.Id);
 				element.parentNode.removeChild(element);
 			} else if (op.Op=="userToPlay"){
@@ -41,6 +47,8 @@ Size: <input type="number" id="size" step="1" value=13 min="1" max="999">
 				}
 				item.innerHTML = '<a href="/game/'+op.Key+'">Game '+op.Key+'.</a> Remaining time: '+rt;
 				document.getElementById("userToPlay").appendChild(item);
+				ng+=1;
+				document.title='('+ng+') '+title;
 			}
 		}
 	};
@@ -57,6 +65,8 @@ Size: <input type="number" id="size" step="1" value=13 min="1" max="999">
 	function joinGame(id){
 		send('{"Op":"joinGame","Id":"'+id+'"}');
 	};
-	
+	function removeGame(id){
+		send('{"Op":"removeGame","Id":"'+id+'"}');
+	};
 </script>
 {{end}}
