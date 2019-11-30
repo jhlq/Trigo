@@ -1153,6 +1153,7 @@ Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong,reset
 	if (markdead){
 		for (let m2ci=0;m2ci<moves2consider.length;m2ci++){
 			var t=moves2consider[m2ci];
+			this.board=board;
 			if (this.canBeCaptured(t.x,t.y)){
 				locvalues[m2ci]=-1;
 				continue;
