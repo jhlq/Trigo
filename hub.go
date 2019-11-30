@@ -203,12 +203,13 @@ func (h *GameHub) run() {
 					}
 					filter := bson.M{"currentUser": client.user}
 					gs:=getGames(dbclient,filter)
-					op.Op="userToPlay"
+					//op.Op="userToPlay"
 					for _,g:=range gs {
-						op.Key=g.Key
+						/*op.Key=g.Key
 						op.RemainingTime=remainingTime(g)
 						jop,_:=json.Marshal(op)
-						client.send<-jop
+						client.send<-jop*/
+						client.send<-u2pop(g)
 					}
 					les:=getLobbyEntries(dbclient)
 					op.Op="addGame"
@@ -278,6 +279,10 @@ func (h *GameHub) run() {
 						delete(gm,key)
 					} else if (a[0]=="placeMove"){
 						sp(g)
+						go func(){
+							msg:=Door{"lobby","",u2pop(g),g.CurrentUser}
+							h.toUser<-msg
+						}()
 						var update bson.M
 						go func(){
 							h.broadcast<-message
@@ -360,6 +365,10 @@ func (h *GameHub) run() {
 							}()
 						} else {
 							sp(g)
+							go func(){
+								msg:=Door{"lobby","",u2pop(g),g.CurrentUser}
+								h.toUser<-msg
+							}()
 							update := bson.M{"$set": bson.M{"currentUser": g.CurrentUser,"currentColor":g.CurrentColor,"deadline":g.Deadline,"remainingTime":g.RemainingTime} }
 							go updateGame(dbclient,key,update)
 							score,_:=strconv.Atoi(a[1])

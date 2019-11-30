@@ -171,6 +171,9 @@ func countGames() int{
 	count, _ := collection.CountDocuments(ctx, bson.M{}, nil)
 	return int(count)
 }
+func u2pop(g *game) []byte{
+	return []byte("{\"Op\":\"userToPlay\",\"Key\":\""+g.Key+"\",\"RemainingTime\":"+strconv.Itoa(remainingTime(g))+"}")
+}
 func addGame(client *mongo.Client,size int,green string,blue string,h *GameHub){
 	collection := client.Database("trigo").Collection("games")
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
@@ -188,7 +191,7 @@ func addGame(client *mongo.Client,size int,green string,blue string,h *GameHub){
 	} else {
 		g,_:=getGame(client,key)
 		h.addGame<-g
-		msg:=Door{"lobby","",[]byte("{\"Op\":\"userToPlay\",\"Key\":\""+key+"\",\"RemainingTime\":"+strconv.Itoa(timelimit)+"}"),green}
+		msg:=Door{"lobby","",u2pop(g),g.CurrentUser}
 		h.toUser<-msg
 	}		
 }
