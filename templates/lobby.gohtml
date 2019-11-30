@@ -28,7 +28,7 @@ Size: <input type="number" id="size" step="1" value=13 min="1" max="999">
 			if (op.Op=="addGame"){
 				var item = document.createElement("div");
 				var s='Size: '+op.Size+' <button onclick="joinGame(\''+op.Id+'\')">Join!</button>';
-				if (op.Removable){
+				if (op.Removable=="true"){
 					s+=' <button onclick="removeGame(\''+op.Id+'\')">Remove.</button>';
 				}
 				item.innerHTML = s;
