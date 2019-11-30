@@ -12,7 +12,6 @@ import (
     "fmt"
     "encoding/json"
     "strconv"
-    "strings"
 )
 
 
@@ -125,7 +124,7 @@ func handleLobbyMessage(client *mongo.Client, message []byte,user string,h *Game
 	collection := client.Database("trigo").Collection("lobby")
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	if lm.Op=="addGame" {
-		_, err := collection.InsertOne(ctx, bson.M{"size": lm.Size,"id":lm.Id,"user":user})
+		_, err := collection.InsertOne(ctx, bson.M{"size": lm.Size,"id":lm.Id,"user":user,"metalStake":0})
 		if (err!=nil){
 			log.Println(err)
 			return
@@ -183,7 +182,7 @@ func addGame(client *mongo.Client,size int,green string,blue string,h *GameHub){
 	timelimit:=5*day
 	tt:=day
 	deadline:=int(time.Now().Unix())+timelimit
-	_, err := collection.InsertOne(ctx, bson.M{"key": key,"size":size,"green":green,"blue":blue,"deadline":deadline,"remainingTime":timelimit,"maxTime":timelimit,"turnTime":tt,"currentUser":green,"currentColor":"green","passed":false,"markDead":false,"done":false,"score":0,"winner":""})
+	_, err := collection.InsertOne(ctx, bson.M{"key": key,"size":size,"green":green,"blue":blue,"deadline":deadline,"remainingTime":timelimit,"maxTime":timelimit,"turnTime":tt,"currentUser":green,"currentColor":"green","passed":false,"markDead":false,"done":false,"score":0,"winner":"","metalStake":0})
 	if (err!=nil){
 		log.Println("Error adding game.",err)
 	} else {
@@ -220,11 +219,10 @@ func getGame(client *mongo.Client,key string) (*game,error){
 	err := collection.FindOne(ctx, filter).Decode(&g)
 	return &g,err
 }
-func getActiveGames(client *mongo.Client) []*game{
+func getGames(client *mongo.Client,filter bson.M) []*game{
 	var ga []*game
 	collection := client.Database("trigo").Collection("games")
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
-	filter := bson.M{"winner": ""}
 	cur, err := collection.Find(ctx, filter)
 	if err != nil { log.Println(err) }
 	for cur.Next(ctx) {
@@ -234,35 +232,6 @@ func getActiveGames(client *mongo.Client) []*game{
 	   ga=append(ga,&result)
 	}
 	return ga
-}
-func userToPlay(client *mongo.Client,user string) []game{
-	var gs []game //change to pointer? Merge with above?
-	collection := client.Database("trigo").Collection("games")
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
-	filter := bson.M{"currentUser": user}
-	cur, err := collection.Find(ctx, filter)
-	if err != nil { log.Println(err) }
-	for cur.Next(ctx) {
-	   var result game
-	   err = cur.Decode(&result)
-	   if err != nil { log.Println(err) }
-	   gs=append(gs,result)
-	}
-	return gs
-}
-func switchPlayer(client *mongo.Client,g *game){
-	collection := client.Database("trigo").Collection("games")
-	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-	filter := bson.M{"key": bson.M{"$eq": g.Key}}
-	cu:=g.Green
-	cc:="green"
-	if g.CurrentColor=="green"{
-		cu=g.Blue
-		cc="blue"
-	}
-	update := bson.M{"$set": bson.M{"currentUser": cu,"currentColor":cc} }
-	_, err := collection.UpdateOne(ctx,filter,update)
-	if (err!=nil){ log.Println(err) }
 }
 func updateGame(client *mongo.Client,key string,update bson.M){
 	collection := client.Database("trigo").Collection("games")
@@ -285,96 +254,4 @@ func setWinner(client *mongo.Client,g *game,winner string,wintype string,h *Game
 	update := bson.M{"$set": bson.M{"winner": winner,"wintype":wintype,"currentUser":""} }
 	updateGame(client,g.Key,update)
 	addOp(client,"games",g.Key,swin)
-}
-func handleGameMessage(client *mongo.Client, message Door,h *GameHub){
-	g,err:=getGame(client,message.key)
-	if (err!=nil){
-		log.Println(err)
-		return
-	}
-	if (g.Winner!=""){
-		return
-	}
-	if (g.CurrentUser!=message.user){ //how to disable quick doublemoves? Store active games in gamehub
-		msg:=Door{"games",message.key,[]byte("notYourTurn"),message.user}
-		h.toUser<-msg
-		return
-	}
-	a:=strings.Split(string(message.message)," ")
-	if (a[0]=="resign"){
-		setWinner(client,g,"","resignation",h)
-	} else if (a[0]=="placeMove"){
-		addOp(client,"games",message.key,string(message.message))
-		x,_:=strconv.ParseInt(strings.Split(a[1],",")[0],10,64)
-		isPass:=x<0
-		var update bson.M
-		if isPass{
-			if g.Passed{
-				update = bson.M{"$set": bson.M{"markDead": true} }
-			} else {
-				update = bson.M{"$set": bson.M{"passed": true} }
-			}
-			updateGame(client,g.Key,update)
-		} else if g.Passed{
-			if g.MarkDead{
-				update = bson.M{"$set": bson.M{"passed": false,"markDead": false,"done":false} }
-				addOp(client,"games",message.key,"markDead false")
-				msg:=Door{"games",g.Key,[]byte("markDead false"),message.user}
-				h.broadcast<-msg
-				addOp(client,"games",message.key,"unmarkDeadStones")
-				msg=Door{"games",g.Key,[]byte("unmarkDeadStones"),message.user}
-				h.broadcast<-msg
-			} else {
-				update = bson.M{"$set": bson.M{"passed": false} }
-			}
-			updateGame(client,g.Key,update)
-		}
-		switchPlayer(client,g)
-		h.broadcast<-message
-		if isPass && g.Passed{
-			addOp(client,"games",message.key,"markDead true")
-			msg:=Door{"games",g.Key,[]byte("markDead true"),message.user}
-			h.broadcast<-msg
-		}
-	} else if (g.MarkDead && a[0]=="markDeadStones"){
-		addOp(client,"games",message.key,string(message.message))
-		update := bson.M{"$set": bson.M{"done": false} }
-		updateGame(client,g.Key,update)
-		h.broadcast<-message
-	} else if (g.MarkDead && a[0]=="done"){
-		if g.Done{
-			var winner string
-			score,_:=strconv.ParseInt(a[1],10,64)
-			if score>0&&g.Score>0{
-				winner="green"
-			} else if score<0&&g.Score<0{
-				winner="blue"
-			} else if score==0&&g.Score==0{
-				winner="draw!"
-			} else {
-				winner="missmatch"
-			}
-			var wintype string
-			if int(score)!=g.Score{
-				wintype="undetermined"
-			} else {
-				s:=g.Score
-				if s<0{
-					s=-s
-				}
-				wintype=strconv.Itoa(s)
-			}
-			update := bson.M{"$set": bson.M{"winner": winner,"wintype":wintype,"currentUser":""} }
-			updateGame(client,g.Key,update)
-			addOp(client,"games",message.key,"winner "+winner+" "+wintype)
-			msg:=Door{"games",g.Key,[]byte("winner "+winner+" "+wintype),message.user}
-			h.broadcast<-msg
-		} else {
-			score,_:=strconv.ParseInt(a[1],10,64)
-			update := bson.M{"$set": bson.M{"done": true,"score":score} }
-			updateGame(client,g.Key,update)
-			addOp(client,"games",message.key,string(message.message))
-			h.broadcast<-message
-		}
-	}
 }

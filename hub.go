@@ -164,7 +164,8 @@ func (h *GameHub) run() {
 	dbclient:=getClient()
 	gm:=make(map[string]*game)
 	gtm:=make(map[string]*gameTimer)
-	ga:=getActiveGames(dbclient)
+	filter := bson.M{"winner": ""}
+	ga:=getGames(dbclient,filter)
 	for _,g := range(ga){
 		rt:=remainingTime(g)
 		if rt<0{
@@ -200,11 +201,12 @@ func (h *GameHub) run() {
 						Id string
 						RemainingTime int
 					}
-					gs:=userToPlay(dbclient,client.user)
+					filter := bson.M{"currentUser": client.user}
+					gs:=getGames(dbclient,filter)
 					op.Op="userToPlay"
 					for _,g:=range gs {
 						op.Key=g.Key
-						op.RemainingTime=remainingTime(&g)
+						op.RemainingTime=remainingTime(g)
 						jop,_:=json.Marshal(op)
 						client.send<-jop
 					}
@@ -258,7 +260,10 @@ func (h *GameHub) run() {
 			} else if message.collection=="games"{
 				//start:=time.Now()
 				key:=message.key
-				g:=gm[key]
+				g,ok:=gm[key]
+				if !ok{
+					break
+				}
 				gt:=gtm[key]
 				if (g.CurrentUser!=message.user){
 					msg:=Door{"games",key,[]byte("notYourTurn"),message.user}
