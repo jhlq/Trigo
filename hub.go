@@ -4,10 +4,12 @@
 package main
 
 import (
-	"log"
+	//"log"
 	"encoding/json"
 	"time"
 	"strings"
+	"go.mongodb.org/mongo-driver/bson"
+	"strconv"
 )
 
 type Door struct {
@@ -120,14 +122,8 @@ func newGameHub() *GameHub {
 	}
 }
 func remainingTime(g *game) int{
-	var rt int
 	now:=int(time.Now().Unix())
-	if g.CurrentColor=="green"{
-		rt=g.GreenDeadline-now
-	} else if g.CurrentColor=="blue"{
-		rt=g.BlueDeadline-now
-	}
-	return rt
+	return g.Deadline-now
 }
 type gameTimer struct{
 	t *time.Timer
@@ -146,33 +142,22 @@ func gtlistener(gt *gameTimer,key string,to chan string){
 		return
 	}
 }
-func deleteGame(key string,gm map[string]*game,gtm map[string]*gameTimer){
-	gtm[key].t.Stop()
-	gtm[key].cancel<-struct{}{}
-	delete(gtm,key)
-	delete(gm,key)
-}
 func sp(g *game){
-	if g.CurrentColor=="green"{
-		g.CurrentUser=g.Blue
-		g.CurrentColor="blue"
-	} else if g.CurrentColor=="blue"{
-		g.CurrentUser=g.Green
-		g.CurrentColor="green"
-	}
-}
-func updateTime(g *game){
 	rt:=remainingTime(g)
 	rt+=g.TurnTime
 	if rt>g.MaxTime{
 		rt=g.MaxTime
 	}
 	now:=int(time.Now().Unix())
-	dl:=now+rt
+	dl:=now+g.RemainingTime
+	g.RemainingTime=rt
+	g.Deadline=dl
 	if g.CurrentColor=="green"{
-		g.GreenDeadline=dl
+		g.CurrentUser=g.Blue
+		g.CurrentColor="blue"
 	} else if g.CurrentColor=="blue"{
-		g.BlueDeadline=dl
+		g.CurrentUser=g.Green
+		g.CurrentColor="green"
 	}
 }
 func (h *GameHub) run() {
@@ -271,13 +256,13 @@ func (h *GameHub) run() {
 			if message.collection=="lobby"{
 				go handleLobbyMessage(dbclient,message.message,message.user,h)
 			} else if message.collection=="games"{
-				//go handleGameMessage(dbclient,message,h)
+				//start:=time.Now()
 				key:=message.key
 				g:=gm[key]
 				gt:=gtm[key]
 				if (g.CurrentUser!=message.user){
 					msg:=Door{"games",key,[]byte("notYourTurn"),message.user}
-					h.toUser<-msg
+					go func(){ h.toUser<-msg }()
 				} else {
 					gt.t.Stop()
 					a:=strings.Split(string(message.message)," ")
@@ -287,12 +272,105 @@ func (h *GameHub) run() {
 						delete(gtm,key)
 						delete(gm,key)
 					} else if (a[0]=="placeMove"){
-						updateTime(g)
-						log.Println(gm[key].CurrentColor)
 						sp(g)
-						log.Println(gm[key].CurrentColor)
+						var update bson.M
+						go func(){
+							h.broadcast<-message
+							addOp(dbclient,"games",message.key,string(message.message))
+							update = bson.M{"$set": bson.M{"currentUser": g.CurrentUser,"currentColor":g.CurrentColor,"deadline":g.Deadline,"remainingTime":g.RemainingTime} }
+							updateGame(dbclient,key,update)
+						}()
+						x,_:=strconv.ParseInt(strings.Split(a[1],",")[0],10,64)
+						isPass:=x<0
+						if isPass{
+							if g.Passed{
+								g.MarkDead=true
+								update = bson.M{"$set": bson.M{"markDead": true} }
+								go func(){
+									msg:=Door{"games",key,[]byte("markDead true"),""}
+									h.broadcast<-msg
+									addOp(dbclient,"games",key,"markDead true")
+								}()
+							} else {
+								g.Passed=true
+								update = bson.M{"$set": bson.M{"passed": true} }
+							}
+							go updateGame(dbclient,key,update)
+						} else if g.Passed{
+							if g.MarkDead{
+								g.Passed=false
+								g.MarkDead=false
+								g.Done=false
+								update = bson.M{"$set": bson.M{"passed": false,"markDead": false,"done":false} }
+								go func(){ 
+									addOp(dbclient,"games",key,"markDead false")
+									msg:=Door{"games",key,[]byte("markDead false"),""}
+									h.broadcast<-msg
+									addOp(dbclient,"games",key,"unmarkDeadStones")
+									msg=Door{"games",key,[]byte("unmarkDeadStones"),""}
+									h.broadcast<-msg
+								}()
+							} else {
+								g.Passed=false
+								update = bson.M{"$set": bson.M{"passed": false} }
+							}
+							go updateGame(dbclient,key,update)
+						}
+					} else if (g.MarkDead && a[0]=="markDeadStones"){
+						g.Done=false
+						go func(){
+							update := bson.M{"$set": bson.M{"done": false} }
+							updateGame(dbclient,key,update)
+							addOp(dbclient,"games",key,string(message.message))
+							h.broadcast<-message
+						}()
+					} else if (g.MarkDead && a[0]=="done"){
+						if g.Done{
+							gt.cancel<-struct{}{}
+							delete(gtm,key)
+							delete(gm,key)
+							go func(){
+								var winner string
+								score,_:=strconv.Atoi(a[1])
+								if score>0&&g.Score>0{
+									winner="green"
+								} else if score<0&&g.Score<0{
+									winner="blue"
+								} else if score==0&&g.Score==0{
+									winner="draw!"
+								} else {
+									winner="missmatch"
+								}
+								var wintype string
+								if score!=g.Score{
+									wintype="undetermined"
+								} else {
+									s:=g.Score
+									if s<0{
+										s=-s
+									}
+									wintype=strconv.Itoa(s)
+								}
+								setWinner(dbclient,g,winner,wintype,h)
+							}()
+						} else {
+							sp(g)
+							update := bson.M{"$set": bson.M{"currentUser": g.CurrentUser,"currentColor":g.CurrentColor,"deadline":g.Deadline,"remainingTime":g.RemainingTime} }
+							go updateGame(dbclient,key,update)
+							score,_:=strconv.Atoi(a[1])
+							g.Done=true
+							g.Score=score
+							update = bson.M{"$set": bson.M{"done": true,"score":score} }
+							go func(){
+								updateGame(dbclient,g.Key,update)
+								addOp(dbclient,"games",message.key,string(message.message))
+								h.broadcast<-message
+							}()
+						}
 					}
+					gt.t.Reset(time.Duration(remainingTime(g))*time.Second)					
 				}
+				//log.Println("Finished in ",time.Since(start))
 			}
 		}
 	}

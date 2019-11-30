@@ -182,8 +182,8 @@ func addGame(client *mongo.Client,size int,green string,blue string,h *GameHub){
 	day:=86400
 	timelimit:=5*day
 	tt:=day
-	deadline:=int(time.Now().Unix())+60//timelimit
-	_, err := collection.InsertOne(ctx, bson.M{"key": key,"size":size,"green":green,"blue":blue,"greenDeadline":deadline,"blueDeadline":deadline,"maxTime":timelimit,"turnTime":tt,"currentUser":green,"currentColor":"green","passed":false,"markDead":false,"done":false,"score":0,"winner":""})
+	deadline:=int(time.Now().Unix())+timelimit
+	_, err := collection.InsertOne(ctx, bson.M{"key": key,"size":size,"green":green,"blue":blue,"deadline":deadline,"remainingTime":timelimit,"maxTime":timelimit,"turnTime":tt,"currentUser":green,"currentColor":"green","passed":false,"markDead":false,"done":false,"score":0,"winner":""})
 	if (err!=nil){
 		log.Println("Error adding game.",err)
 	} else {
@@ -198,8 +198,8 @@ type game struct{ //capitalize?
 	Size int
 	Green string
 	Blue string
-	GreenDeadline int
-	BlueDeadline int
+	Deadline int
+	RemainingTime int
 	TurnTime int
 	MaxTime int
 	CurrentUser string

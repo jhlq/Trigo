@@ -22,7 +22,7 @@ Size: <input type="number" id="size" step="1" value=13 min="1" max="999">
 		var messages = evt.data.split('\n');
 		for (var i = 0; i < messages.length; i++) {
 			var op=JSON.parse(messages[i]);
-			console.log(messages[i]);
+			//console.log(messages[i]);
 			if (op.Op=="addGame"){
 				var item = document.createElement("div");
 				item.innerHTML = 'Size: '+op.Size+' <button onclick="joinGame(\''+op.Id+'\')">Join!</button>';
@@ -33,7 +33,13 @@ Size: <input type="number" id="size" step="1" value=13 min="1" max="999">
 				element.parentNode.removeChild(element);
 			} else if (op.Op=="userToPlay"){
 				var item = document.createElement("div");
-				item.innerHTML = '<a href="/game/'+op.Key+'">Game '+op.Key+'</a> Remaining time: '+Math.round(op.RemainingTime/864)/100+' days.';
+				var rt
+				if (op.RemainingTime<1000){
+					rt=op.RemainingTime+' seconds';
+				} else {
+					rt=Math.round(op.RemainingTime/864)/100+' days.';
+				}
+				item.innerHTML = '<a href="/game/'+op.Key+'">Game '+op.Key+'.</a> Remaining time: '+rt;
 				document.getElementById("userToPlay").appendChild(item);
 			}
 		}
