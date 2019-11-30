@@ -24,7 +24,7 @@ Size: <input type="number" id="size" step="1" value=13 min="1" max="999">
 		var messages = evt.data.split('\n');
 		for (var i = 0; i < messages.length; i++) {
 			var op=JSON.parse(messages[i]);
-			console.log(messages[i]);
+			//console.log(messages[i]);
 			if (op.Op=="addGame"){
 				var item = document.createElement("div");
 				var s='Size: '+op.Size+' <button onclick="joinGame(\''+op.Id+'\')">Join!</button>';

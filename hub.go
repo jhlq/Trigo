@@ -219,6 +219,8 @@ func (h *GameHub) run() {
 						op.Id=le.Id
 						if le.User==client.user {
 							op.Removable=true
+						} else {
+							op.Removable=false
 						}
 						jop,_:=json.Marshal(op)
 						client.send<-jop
