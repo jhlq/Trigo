@@ -2,6 +2,7 @@
 {{define "body"}}
 <h2>Board {{.Key}}</h2>
 <p>Share the URL to let others edit the board.</p>
+{{template "localchat"}}
 {{template "boardCanvas" .}}
 {{end}}
 {{define "js"}}
@@ -14,6 +15,13 @@ sb.drawGrid();
 sb.setupWS("boards/{{.Key}}");
 var ai=new Trigo.AI(sb.board);
 sb.ai=ai;
+
+document.getElementById("commentform").onsubmit = function () {
+		var msg = document.getElementById("comment");
+		sb.send("comment "+msg.value);
+		msg.value = "";
+		return false;
+};
 
 {{template "crosshair"}}
 

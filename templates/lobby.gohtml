@@ -1,12 +1,14 @@
 {{define "title"}} Lobby {{end}}
 {{define "body"}}
 <h2>Lobby</h2>
+<p>Welcome to the waiting room! Leave this tab open to be notified in the title when it is your turn.</p>
+<p>By default progress is linked via a cookie with your IP. To make sure your games are available from anywhere you can <a href="/account/">create a custom cookie.</a></p>
 <h3>Your turn in the following games</h3>
 <div id="userToPlay"></div>
 
-<h3>Create game</h3>
+<h3>Create game entry</h3>
 Size: <input type="number" id="size" step="1" value=13 min="1" max="999">
-<button onclick="addGame()">Create game!</button>
+<button onclick="addGame()">Create!</button>
 
 <h3>Games to join</h3>
 <div id="games"></div>
@@ -49,6 +51,10 @@ Size: <input type="number" id="size" step="1" value=13 min="1" max="999">
 				document.getElementById("userToPlay").appendChild(item);
 				ng+=1;
 				document.title='('+ng+') '+title;
+			} else if (op.Op=="log"){
+				var item = document.createElement("div");
+				item.innerHTML = "<b>"+op.Msg+"</b>";
+				appendLog(item);
 			}
 		}
 	};

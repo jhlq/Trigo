@@ -1,10 +1,11 @@
 {{define "title"}} Game {{.Key}} {{end}}
 {{define "gameCanvas"}}
 	<p id="winner"></p>
+	{{template "localchat"}}
 	<input type="number" id="x" onchange="crosshair()" value=1>
 	<input type="number" id="y" onchange="crosshair()" value=1>
 	<br>
-	<button onclick="sb.pass()">Pass.</button>
+	<button onclick="sb.pass()">Pass.</button> &nbsp;&nbsp;&nbsp;
 	<button onclick="sb.resign()">Resign.</button>
 	<div id="atEnd"></div>
 	<canvas id="TriCanvas" width="600" height="540"></canvas>
@@ -32,6 +33,13 @@
 var sb=new Trigo.ScreenBoard("TriCanvas",{{.Size}});
 sb.drawGrid();
 sb.setupWS("games/{{.Key}}");
+
+document.getElementById("commentform").onsubmit = function () {
+		var msg = document.getElementById("comment");
+		sb.send("comment "+msg.value);
+		msg.value = "";
+		return false;
+};
 
 {{template "crosshair"}}
 

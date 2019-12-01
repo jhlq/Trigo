@@ -267,17 +267,25 @@ func (h *GameHub) run() {
 			} else if message.collection=="games"{
 				//start:=time.Now()
 				key:=message.key
+				a:=strings.Split(string(message.message)," ")
+				if (a[0]=="comment"){
+					go func(){
+						h.broadcast<-message
+						addOp(dbclient,"games",key,string(message.message))
+					}()
+				}
 				g,ok:=gm[key]
 				if !ok{
 					break
 				}
 				gt:=gtm[key]
 				if (g.CurrentUser!=message.user){
-					msg:=Door{"games",key,[]byte("notYourTurn"),message.user}
-					go func(){ h.toUser<-msg }()
+					go func(){ 
+						msg:=Door{"games",key,[]byte("notYourTurn"),message.user}
+						h.toUser<-msg 
+					}()
 				} else {
 					gt.t.Stop()
-					a:=strings.Split(string(message.message)," ")
 					if (a[0]=="resign"){
 						go setWinner(dbclient,g,"","resignation",h)
 						gt.cancel<-struct{}{}
@@ -292,7 +300,7 @@ func (h *GameHub) run() {
 						var update bson.M
 						go func(){
 							h.broadcast<-message
-							addOp(dbclient,"games",message.key,string(message.message))
+							addOp(dbclient,"games",key,string(message.message))
 							update = bson.M{"$set": bson.M{"currentUser": g.CurrentUser,"currentColor":g.CurrentColor,"deadline":g.Deadline,"remainingTime":g.RemainingTime} }
 							updateGame(dbclient,key,update)
 						}()

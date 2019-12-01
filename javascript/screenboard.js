@@ -311,6 +311,10 @@ Trigo.ScreenBoard.prototype.setupWS=function(id){
 					var item = document.createElement("div");
 					item.innerHTML = "<b>Not your turn.</b>";
 					appendLog(item);
+				} else if (arr[0]=="comment"){
+					var item = document.createElement("div");
+					item.innerHTML = "<b>Local: </b>"+messages[i].substr(8);
+					appendLog(item);
 				}
             }
         };

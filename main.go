@@ -25,9 +25,23 @@ func inittm(){
 	tm["board"] = template.Must(template.ParseFiles("templates/board.gohtml","templates/templates.gohtml","templates/base.gohtml"))
 	tm["about"] = template.Must(template.ParseFiles("templates/about.gohtml","templates/templates.gohtml","templates/base.gohtml"))
 	tm["contact"] = template.Must(template.ParseFiles("templates/contact.gohtml","templates/templates.gohtml","templates/base.gohtml"))
+	tm["account"] = template.Must(template.ParseFiles("templates/account.gohtml","templates/templates.gohtml","templates/base.gohtml"))
 }
 func serveIP(w http.ResponseWriter, r *http.Request){
 	fmt.Fprintf(w, "RemoteAddr: "+r.RemoteAddr)
+	c, err := r.Cookie("user")
+	if err == nil {
+		fmt.Fprintf(w, "\nCookie: "+c.Value)
+	}
+}
+func getUser(r *http.Request) string{
+	c, err := r.Cookie("user")
+	if err != nil {
+		ip,_,_:=net.SplitHostPort(r.RemoteAddr)
+		return ip
+	} else {
+		return c.Value
+	}
 }
 func serveHome(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "max-age:10800, public")
@@ -55,9 +69,50 @@ func serveContact(w http.ResponseWriter, r *http.Request) {
 	err:=tm["contact"].ExecuteTemplate(w, "base",struct{}{})
 	if (err!=nil){ log.Println(err) }
 }
+func serveAccount(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "max-age:10800, public")
+	u:=getUser(r)
+	if r.Method != http.MethodPost {
+		err:=tm["account"].ExecuteTemplate(w, "base",struct{Msg string;User string}{"",u})
+		if (err!=nil){ log.Println(err) }
+	} else {
+		nu:=r.FormValue("user")
+		var msg string
+		if nu==""{
+			cookie := http.Cookie{
+				Name:	"user",
+				Value:   "",
+				Path: "/",
+				MaxAge: -1,
+			}
+			http.SetCookie(w, &cookie)
+			msg="Removed cookie."
+		} else {
+			cookie := http.Cookie{
+				Name:	"user",
+				Value:   nu,
+				Path: "/",
+			}
+			http.SetCookie(w, &cookie)
+			msg="Updated cookie."
+		}
+		err:=tm["account"].ExecuteTemplate(w, "base",struct{Msg string;User string}{msg,nu})
+		if (err!=nil){ log.Println(err) }
+	}
+}
 func serveLobby(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "max-age:10800, public")
-	err:=tm["lobby"].ExecuteTemplate(w, "base",struct{}{})
+	_, err := r.Cookie("user")
+	if err != nil {
+		ip,_,_:=net.SplitHostPort(r.RemoteAddr)
+		cookie := http.Cookie{
+			Name:	"user",
+			Value:   ip,
+			Path: "/",
+		}
+		http.SetCookie(w, &cookie)
+	}
+	err=tm["lobby"].ExecuteTemplate(w, "base",struct{}{})
 	if (err!=nil){ log.Println(err) }
 }
 func serveGame(w http.ResponseWriter, r *http.Request) {
@@ -104,18 +159,17 @@ func main() {
 	})
 	router.HandleFunc("/ws/games/{key}", func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		ip,_,_:=net.SplitHostPort(r.RemoteAddr)
-		serveGameWs(gamehub, w, r, "games",vars["key"],ip)
+		serveGameWs(gamehub, w, r, "games",vars["key"],getUser(r))
 	})
 	router.HandleFunc("/ws/lobby", func(w http.ResponseWriter, r *http.Request) {
-		ip,_,_:=net.SplitHostPort(r.RemoteAddr)
-		serveGameWs(gamehub, w, r, "lobby","",ip)
+		serveGameWs(gamehub, w, r, "lobby","",getUser(r))
 	})
 	router.HandleFunc("/", serveHome)
 	router.HandleFunc("/board/{key}",serveBoard)
 	router.HandleFunc("/board/", serveTimeBoard)
 	router.HandleFunc("/about/", serveAbout)
 	router.HandleFunc("/contact/", serveContact)
+	router.HandleFunc("/account/", serveAccount)
 	router.HandleFunc("/lobby/", serveLobby)
 	router.HandleFunc("/game/{key}", serveGame)
 	router.HandleFunc("/update/templates/", updateTemplates)

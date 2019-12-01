@@ -1,5 +1,4 @@
-{{define "nav"}}
-<header>
+{{define "navlist"}}
 	<nav>
 		<ul>
 			<li><a href="/">Home</a></li>
@@ -7,8 +6,13 @@
 			<li><a href="/board/">Online board</a></li>
 			<li><a href="/about/">About</a></li>
 			<li><a href="/contact/">Contact</a></li>
+			<li><a href="/account/">Account</a></li>
 		</ul>
 	</nav>
+{{end}}
+{{define "nav"}}
+<header>
+	{{template "navlist"}}
 </header> 
 {{end}}
 {{define "footer"}}
@@ -16,15 +20,7 @@
 	<p><small>
 		Go is fun!
 	</small></p>
-	<nav>
-		<ul>
-			<li><a href="/">Home</a></li>
-			<li><a href="/lobby/">Lobby</a></li>
-			<li><a href="/board/">Online board</a></li>
-			<li><a href="/about/">About</a></li>
-			<li><a href="/contact/">Contact</a></li>
-		</ul>
-	</nav>
+	{{template "navlist"}}
 </footer> 
 {{end}}
 
@@ -66,7 +62,13 @@
 		</form>
 	</div>
 {{end}}
-
+{{define "localchat"}}
+	<form id="commentform">
+		Local chat: 
+		<input type="text" id="comment" size="32"/>
+		<input type="submit" value="Send" />
+	</form>
+{{end}}
 {{define "chatHeader"}}
 <script type="text/javascript">
 function appendLog(item) {

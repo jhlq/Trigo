@@ -1,0 +1,33 @@
+{{define "title"}} Account {{end}}
+{{define "body"}}
+	<h2>Account</h2>
+	{{if .Msg}}
+		<p>{{.Msg}}</p>
+	{{end}}
+	<p>You are now playing as:
+	<span id="user"></span>
+	<button id="toggle" onclick="toggle()">Show.</button></p>
+	<h3>Set user to persist progress to</h3>
+	<p>Leave blank to remove cookie.</p>
+	<form method="POST">
+		<label>User:</label>
+		<input type="password" name="user">
+		<input type="submit" value="Submit">
+	</form>
+{{end}}
+
+{{define "js"}}
+<script>
+var u=document.getElementById("user");
+var b=document.getElementById("toggle");
+function toggle(){
+	if (u.innerText==""){
+		u.innerText="{{.User}}";
+		b.innerText="Hide.";
+	} else {
+		u.innerText="";
+		b.innerText="Show.";
+	}
+};
+</script>
+{{end}}
