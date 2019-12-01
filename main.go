@@ -87,6 +87,7 @@ func serveAccount(w http.ResponseWriter, r *http.Request) {
 			}
 			http.SetCookie(w, &cookie)
 			msg="Removed cookie."
+			nu,_,_=net.SplitHostPort(r.RemoteAddr)
 		} else {
 			cookie := http.Cookie{
 				Name:	"user",
@@ -147,11 +148,11 @@ func main() {
 		}
 	}
 	http.Handle("/javascript/", http.StripPrefix("/javascript/", changeHeaderThenServe(http.FileServer(http.Dir("javascript")))))
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+	router := mux.NewRouter()
+	router.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		ip,_,_:=net.SplitHostPort(r.RemoteAddr)
 		serveWs(hub, w, r,"","",ip)
 	})
-	router := mux.NewRouter()
 	router.HandleFunc("/ws/boards/{key}", func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		ip,_,_:=net.SplitHostPort(r.RemoteAddr)

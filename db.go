@@ -268,3 +268,17 @@ func setWinner(client *mongo.Client,g *game,winner string,wintype string,h *Game
 	updateGame(client,g.Key,update)
 	addOp(client,"games",g.Key,swin)
 }
+func getMetal(client *mongo.Client,user string) float64{
+	collection := client.Database("trigo").Collection("users")
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	res := collection.FindOne(ctx, bson.M{"user":user})
+	if (res.Err()!=nil){
+		_, err := collection.InsertOne(ctx, bson.M{"user": user,"metal":1.0})
+		if (err!=nil){ log.Println(err) }
+		return 1
+	} else {
+		var m struct{ Metal float64 }
+		res.Decode(&m)
+		return m.Metal
+	}
+}

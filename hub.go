@@ -201,15 +201,16 @@ func (h *GameHub) run() {
 						Id string
 						RemainingTime int
 						Removable bool
+						Metal float64
 					}
+					m:=getMetal(dbclient,client.user)
+					op.Op="setMetal"
+					op.Metal=m
+					jop,_:=json.Marshal(op)
+					client.send<-jop
 					filter := bson.M{"currentUser": client.user}
 					gs:=getGames(dbclient,filter)
-					//op.Op="userToPlay"
 					for _,g:=range gs {
-						/*op.Key=g.Key
-						op.RemainingTime=remainingTime(g)
-						jop,_:=json.Marshal(op)
-						client.send<-jop*/
 						client.send<-u2pop(g)
 					}
 					les:=getLobbyEntries(dbclient)
@@ -222,7 +223,7 @@ func (h *GameHub) run() {
 						} else {
 							op.Removable=false
 						}
-						jop,_:=json.Marshal(op)
+						jop,_=json.Marshal(op)
 						client.send<-jop
 					}
 				}()
