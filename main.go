@@ -70,7 +70,7 @@ func serveContact(w http.ResponseWriter, r *http.Request) {
 	if (err!=nil){ log.Println(err) }
 }
 func serveAccount(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Cache-Control", "max-age:10800, public")
+	w.Header().Set("Cache-Control", "no-cache")
 	u:=getUser(r)
 	if r.Method != http.MethodPost {
 		err:=tm["account"].ExecuteTemplate(w, "base",struct{Msg string;User string}{"",u})
