@@ -204,7 +204,7 @@ func (h *GameHub) run() {
 						Metal float64
 					}
 					m:=getMetal(dbclient,client.user)
-					op.Op="setMetal"
+					op.Op="incMetal"
 					op.Metal=m
 					jop,_:=json.Marshal(op)
 					client.send<-jop
@@ -218,6 +218,7 @@ func (h *GameHub) run() {
 					for _,le:=range les {
 						op.Size=le.Size
 						op.Id=le.Id
+						op.Metal=le.MetalStake
 						if le.User==client.user {
 							op.Removable=true
 						} else {
@@ -274,6 +275,7 @@ func (h *GameHub) run() {
 						h.broadcast<-message
 						addOp(dbclient,"games",key,string(message.message))
 					}()
+					break
 				}
 				g,ok:=gm[key]
 				if !ok{

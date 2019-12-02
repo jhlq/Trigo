@@ -2,12 +2,13 @@
 {{define "body"}}
 <h2>Lobby</h2>
 <p>Welcome to the waiting room! Leave this tab open to be notified in the title when it is your turn.</p>
-<p>By default progress is linked via a cookie with your IP. To make sure your games are available from anywhere you can <a href="/account/">create a custom cookie.</a></p>
+<p>By default progress is linked via a cookie with the IP your device had when it first connected. To make sure your games are available from anywhere you can <a href="/account/">create a custom cookie.</a></p>
 <h3>Your turn in the following games</h3>
 <div id="userToPlay"></div>
 
 <h3>Create game entry</h3>
 Size: <input type="number" id="size" step="1" value=13 min="1" max="999">
+Metal stake: <input type="number" id="metalStake" value=0 min="0">
 <button onclick="addGame()">Create!</button>
 
 <p id="metal"></p>
@@ -18,6 +19,7 @@ Size: <input type="number" id="size" step="1" value=13 min="1" max="999">
 {{define "js"}}
 <script>
 	var lobby={};
+	var metal=0;
 	var title=document.title;
 	var ng=0;
 	lobby.ws = new WebSocket("ws://" + document.location.host + "/ws/lobby");
@@ -29,11 +31,13 @@ Size: <input type="number" id="size" step="1" value=13 min="1" max="999">
 		for (var i = 0; i < messages.length; i++) {
 			var op=JSON.parse(messages[i]);
 			//console.log(messages[i]);
-			if (op.Op=="addGame"){
+			if (op.Op=="addGame" && !document.getElementById(op.Id)){
 				var item = document.createElement("div");
-				var s='Size: '+op.Size+' <button onclick="joinGame(\''+op.Id+'\')">Join!</button>';
+				var s='Size: '+op.Size+'. Metal stake: '+op.Metal;
 				if (op.Removable==true){
 					s+=' <button onclick="removeGame(\''+op.Id+'\')">Remove.</button>';
+				} else {
+					s+=' <button onclick="joinGame(\''+op.Id+'\')">Join!</button>';
 				}
 				item.innerHTML = s;
 				item.setAttribute("id", op.Id);
@@ -57,8 +61,9 @@ Size: <input type="number" id="size" step="1" value=13 min="1" max="999">
 				var item = document.createElement("div");
 				item.innerHTML = "<b>"+op.Msg+"</b>";
 				appendLog(item);
-			} else if (op.Op=="setMetal"){
-				document.getElementById("metal").innerText="You have "+op.Metal+" metal.";
+			} else if (op.Op=="incMetal"){
+				metal+=op.Metal;
+				document.getElementById("metal").innerText="You have "+metal+" metal.";
 			}
 		}
 	};
@@ -70,7 +75,20 @@ Size: <input type="number" id="size" step="1" value=13 min="1" max="999">
 		lobby.ws.send(msg);
 	};
 	function addGame(){
-		send('{"Op":"addGame","Id":"'+Math.random()+'","Size":'+document.getElementById("size").value+'}');
+		var id=Math.random();
+		var size=document.getElementById("size").value;
+		var stake=document.getElementById("metalStake").value;
+		if (stake<0 || (stake>0 && stake>metal)){
+			return;
+		}
+		metal=metal-stake;
+		document.getElementById("metal").innerText="You have "+metal+" metal.";
+		var item = document.createElement("div");
+		var s='Size: '+size+'. Metal stake: '+stake+' <button onclick="removeGame(\''+id+'\')">Remove.</button>';
+		item.innerHTML = s;
+		item.setAttribute("id", id);
+		document.getElementById("games").appendChild(item);
+		send('{"Op":"addGame","Id":"'+id+'","Size":'+size+',"Metal":'+stake+'}');
 	};
 	function joinGame(id){
 		send('{"Op":"joinGame","Id":"'+id+'"}');

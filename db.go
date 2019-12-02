@@ -112,11 +112,13 @@ type lobbyMessage struct{
 	Op string
 	Size int
 	Id string
+	Metal float64
 }
 type lobbyEntry struct{
 	Size int
 	Id string
 	User string
+	MetalStake float64
 }
 func handleLobbyMessage(client *mongo.Client, message []byte,user string,h *GameHub){
 	var lm lobbyMessage
@@ -124,19 +126,25 @@ func handleLobbyMessage(client *mongo.Client, message []byte,user string,h *Game
 	collection := client.Database("trigo").Collection("lobby")
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	if lm.Op=="addGame" {
-		if lm.Size<1{
+		if lm.Size<1 || lm.Size>999{
 			msg:=Door{"lobby","",[]byte("{\"Op\":\"log\",\"Msg\":\"Invalid size.\"}"),user}
 			h.toUser<-msg
 			return
 		}
-		_, err := collection.InsertOne(ctx, bson.M{"size": lm.Size,"id":lm.Id,"user":user,"metalStake":0})
+		if lm.Metal<0 || (lm.Metal>0 && lm.Metal>getMetal(client,user)){
+			return
+		}
+		if lm.Metal>0{
+			modMetal(client,user,-lm.Metal)
+		}
+		_, err := collection.InsertOne(ctx, bson.M{"size": lm.Size,"id":lm.Id,"user":user,"metalStake":lm.Metal})
 		if (err!=nil){
 			log.Println(err)
 			return
 		}
 		msg:=Door{"lobby","",message,user}
 		h.broadcast<-msg
-	} else if lm.Op=="joinGame" {
+	} else if lm.Op=="joinGame" || lm.Op=="removeGame"{
 		var le lobbyEntry
 		filter := bson.M{"id": lm.Id}
 		err := collection.FindOne(ctx, filter).Decode(&le)
@@ -149,13 +157,14 @@ func handleLobbyMessage(client *mongo.Client, message []byte,user string,h *Game
 		if (err!=nil){ log.Println("Error deleting lobby entry. ",err) }
 		msg:=Door{"lobby","",message,user}
 		h.broadcast<-msg
-		addGame(client,le.Size,user,le.User,h)
-	} else if lm.Op=="removeGame" {
-		_, err := collection.DeleteOne(ctx, bson.M{"id": lm.Id})
-		if (err!=nil){ log.Println("Error deleting lobby entry. ",err) }
-		msg:=Door{"lobby","",message,user}
-		h.broadcast<-msg
-	}
+		if lm.Op=="joinGame"{
+			addGame(client,le,user,h)
+		} else if lm.Op=="removeGame"{
+			modMetal(client,user,le.MetalStake)
+			msg:=Door{"lobby","",[]byte("{\"Op\":\"incMetal\",\"Metal\":"+fmt.Sprintf("%g", le.MetalStake)+"}"),user}
+			h.toUser<-msg
+		}
+	} 
 }
 func getLobbyEntries(client *mongo.Client) []lobbyEntry {
 	collection := client.Database("trigo").Collection("lobby")
@@ -184,7 +193,7 @@ func countGames() int{
 func u2pop(g *game) []byte{
 	return []byte("{\"Op\":\"userToPlay\",\"Key\":\""+g.Key+"\",\"RemainingTime\":"+strconv.Itoa(remainingTime(g))+"}")
 }
-func addGame(client *mongo.Client,size int,green string,blue string,h *GameHub){
+func addGame(client *mongo.Client,le lobbyEntry,green string,h *GameHub){
 	collection := client.Database("trigo").Collection("games")
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	c:=make(chan int)
@@ -195,7 +204,7 @@ func addGame(client *mongo.Client,size int,green string,blue string,h *GameHub){
 	timelimit:=5*day
 	tt:=day
 	deadline:=int(time.Now().Unix())+timelimit
-	_, err := collection.InsertOne(ctx, bson.M{"key": key,"size":size,"green":green,"blue":blue,"deadline":deadline,"remainingTime":timelimit,"maxTime":timelimit,"turnTime":tt,"currentUser":green,"currentColor":"green","passed":false,"markDead":false,"done":false,"score":0,"winner":"","metalStake":0})
+	_, err := collection.InsertOne(ctx, bson.M{"key": key,"size":le.Size,"green":green,"blue":le.User,"deadline":deadline,"remainingTime":timelimit,"maxTime":timelimit,"turnTime":tt,"currentUser":green,"currentColor":"green","passed":false,"markDead":false,"done":false,"score":0,"winner":"","metalStake":le.MetalStake})
 	if (err!=nil){
 		log.Println("Error adding game.",err)
 	} else {
@@ -222,6 +231,7 @@ type game struct{ //capitalize?
 	Score int
 	Winner string
 	Wintype string
+	MetalStake float64
 	//Ops []string
 }
 func getGame(client *mongo.Client,key string) (*game,error){
@@ -267,6 +277,19 @@ func setWinner(client *mongo.Client,g *game,winner string,wintype string,h *Game
 	update := bson.M{"$set": bson.M{"winner": winner,"wintype":wintype,"currentUser":""} }
 	updateGame(client,g.Key,update)
 	addOp(client,"games",g.Key,swin)
+	var winuser string
+	if winner=="blue"{
+		winuser=g.Blue
+	} else if winner=="green"{
+		winuser=g.Green
+	}
+	msg=Door{"lobby","",[]byte("{\"Op\":\"incMetal\",\"Metal\":"+fmt.Sprintf("%g", g.MetalStake)+"}"),winuser}
+	h.toUser<-msg
+	m:=g.MetalStake
+	if m==0 && getMetal(client,winuser)<100{
+		m=1
+	}
+	modMetal(client,winuser,m)
 }
 func getMetal(client *mongo.Client,user string) float64{
 	collection := client.Database("trigo").Collection("users")
@@ -281,4 +304,10 @@ func getMetal(client *mongo.Client,user string) float64{
 		res.Decode(&m)
 		return m.Metal
 	}
+}
+func modMetal(client *mongo.Client,user string,amount float64){
+	collection := client.Database("trigo").Collection("users")
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	_,err := collection.UpdateOne(ctx, bson.M{"user":user},bson.M{"$inc":bson.M{"metal": amount}})
+	if (err!=nil){ log.Println(err) }
 }
