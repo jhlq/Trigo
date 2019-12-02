@@ -201,6 +201,7 @@ func (h *GameHub) run() {
 						Id string
 						RemainingTime int
 						Removable bool
+						Ruleset string
 						Metal float64
 					}
 					m:=getMetal(dbclient,client.user)
@@ -218,6 +219,7 @@ func (h *GameHub) run() {
 					for _,le:=range les {
 						op.Size=le.Size
 						op.Id=le.Id
+						op.Ruleset=le.Ruleset
 						op.Metal=le.MetalStake
 						if le.User==client.user {
 							op.Removable=true

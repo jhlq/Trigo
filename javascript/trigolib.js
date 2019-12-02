@@ -371,7 +371,7 @@ Trigo.Board=function(sideLength){
 	
 	this.influence=[];													//new
 	this.komi=7;
-	this.ruleset="hybrid" //supports "japanese" and "chinese"
+	this.ruleset="Hybrid" //supports "Territory" and "Area"
 };
 Trigo.Board.prototype.copy=function(){
 	var bc=new Trigo.Board(this.tg.sideLength);
@@ -577,11 +577,11 @@ Trigo.Board.prototype.score=function(){
 	}
 	this.territory[0]=scores[0];
 	this.territory[1]=scores[1];
-	if (this.ruleset=="hybrid" || this.ruleset=="chinese"){
+	if (this.ruleset=="Hybrid" || this.ruleset=="Area"|| this.ruleset=="Chinese"){
 		scores[0]+=this.stones[0];
 		scores[1]+=this.stones[1];
 	}
-	if (this.ruleset=="hybrid" || this.ruleset=="japanese"){
+	if (this.ruleset=="Hybrid" || this.ruleset=="Territory" || this.ruleset=="Japanese"){
 		scores[0]+=this.captures[0];
 		scores[1]+=this.captures[1];
 	}

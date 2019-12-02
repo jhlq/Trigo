@@ -7,9 +7,15 @@
 <div id="userToPlay"></div>
 
 <h3>Create game entry</h3>
-Size: <input type="number" id="size" step="1" value=13 min="1" max="999">
+<p>Size: <input type="number" id="size" step="1" value=13 min="1" max="999">
+Ruleset: 
+	<select id="ruleset">
+	  <option value="Hybrid">Hybrid</option>
+	  <option value="Area">Area</option>
+	  <option value="Territory">Territory</option>
+	</select>
 Metal stake: <input type="number" id="metalStake" value=0 min="0">
-<button onclick="addGame()">Create!</button>
+<button onclick="addGame()">Create!</button></p>
 
 <p id="metal"></p>
 
@@ -33,7 +39,7 @@ Metal stake: <input type="number" id="metalStake" value=0 min="0">
 			//console.log(messages[i]);
 			if (op.Op=="addGame" && !document.getElementById(op.Id)){
 				var item = document.createElement("div");
-				var s='Size: '+op.Size+'. Metal stake: '+op.Metal;
+				var s='Size: '+op.Size+'. Ruleset: '+op.Ruleset+'. Metal stake: '+op.Metal;
 				if (op.Removable==true){
 					s+=' <button onclick="removeGame(\''+op.Id+'\')">Remove.</button>';
 				} else {
@@ -53,7 +59,7 @@ Metal stake: <input type="number" id="metalStake" value=0 min="0">
 				} else {
 					rt=Math.round(op.RemainingTime/864)/100+' days.';
 				}
-				item.innerHTML = '<a href="/game/'+op.Key+'">Game '+op.Key+'.</a> Remaining time: '+rt;
+				item.innerHTML = '<a href="/game/'+op.Key+'">Game '+op.Key+'.</a> Ruleset: '+op.Ruleset+'. Metal stake: '+op.Metal+'. Remaining time: '+rt;
 				document.getElementById("userToPlay").appendChild(item);
 				ng+=1;
 				document.title='('+ng+') '+title;
@@ -83,12 +89,14 @@ Metal stake: <input type="number" id="metalStake" value=0 min="0">
 		}
 		metal=metal-stake;
 		document.getElementById("metal").innerText="You have "+metal+" metal.";
+		var e=document.getElementById('ruleset');
+		var rs=e.options[e.selectedIndex].value;
 		var item = document.createElement("div");
-		var s='Size: '+size+'. Metal stake: '+stake+' <button onclick="removeGame(\''+id+'\')">Remove.</button>';
+		var s='Size: '+size+'. Ruleset: '+rs+'. Metal stake: '+stake+' <button onclick="removeGame(\''+id+'\')">Remove.</button>';
 		item.innerHTML = s;
 		item.setAttribute("id", id);
 		document.getElementById("games").appendChild(item);
-		send('{"Op":"addGame","Id":"'+id+'","Size":'+size+',"Metal":'+stake+'}');
+		send('{"Op":"addGame","Id":"'+id+'","Size":'+size+',"Ruleset":"'+rs+'","Metal":'+stake+'}');
 	};
 	function joinGame(id){
 		send('{"Op":"joinGame","Id":"'+id+'"}');

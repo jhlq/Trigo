@@ -112,11 +112,13 @@ type lobbyMessage struct{
 	Op string
 	Size int
 	Id string
+	Ruleset string
 	Metal float64
 }
 type lobbyEntry struct{
 	Size int
 	Id string
+	Ruleset string
 	User string
 	MetalStake float64
 }
@@ -137,7 +139,7 @@ func handleLobbyMessage(client *mongo.Client, message []byte,user string,h *Game
 		if lm.Metal>0{
 			modMetal(client,user,-lm.Metal)
 		}
-		_, err := collection.InsertOne(ctx, bson.M{"size": lm.Size,"id":lm.Id,"user":user,"metalStake":lm.Metal})
+		_, err := collection.InsertOne(ctx, bson.M{"size": lm.Size,"id":lm.Id,"ruleset": lm.Ruleset,"user":user,"metalStake":lm.Metal})
 		if (err!=nil){
 			log.Println(err)
 			return
@@ -153,12 +155,20 @@ func handleLobbyMessage(client *mongo.Client, message []byte,user string,h *Game
 			h.toUser<-msg
 			return
 		}
+		if lm.Op=="joinGame"{
+			if le.MetalStake>getMetal(client,user){
+				msg:=Door{"lobby","",[]byte("{\"Op\":\"log\",\"Msg\":\"Not enough metal.\"}"),user}
+				h.toUser<-msg
+				return
+			}
+		}
 		_, err = collection.DeleteOne(ctx, bson.M{"id": lm.Id})
 		if (err!=nil){ log.Println("Error deleting lobby entry. ",err) }
 		msg:=Door{"lobby","",message,user}
 		h.broadcast<-msg
 		if lm.Op=="joinGame"{
 			addGame(client,le,user,h)
+			modMetal(client,user,-le.MetalStake)
 		} else if lm.Op=="removeGame"{
 			modMetal(client,user,le.MetalStake)
 			msg:=Door{"lobby","",[]byte("{\"Op\":\"incMetal\",\"Metal\":"+fmt.Sprintf("%g", le.MetalStake)+"}"),user}
@@ -191,7 +201,7 @@ func countGames() int{
 	return int(count)
 }
 func u2pop(g *game) []byte{
-	return []byte("{\"Op\":\"userToPlay\",\"Key\":\""+g.Key+"\",\"RemainingTime\":"+strconv.Itoa(remainingTime(g))+"}")
+	return []byte("{\"Op\":\"userToPlay\",\"Key\":\""+g.Key+"\",\"Ruleset\":\""+g.Ruleset+"\",\"Metal\":"+fmt.Sprintf("%g", g.MetalStake)+",\"RemainingTime\":"+strconv.Itoa(remainingTime(g))+"}")
 }
 func addGame(client *mongo.Client,le lobbyEntry,green string,h *GameHub){
 	collection := client.Database("trigo").Collection("games")
@@ -204,10 +214,13 @@ func addGame(client *mongo.Client,le lobbyEntry,green string,h *GameHub){
 	timelimit:=5*day
 	tt:=day
 	deadline:=int(time.Now().Unix())+timelimit
-	_, err := collection.InsertOne(ctx, bson.M{"key": key,"size":le.Size,"green":green,"blue":le.User,"deadline":deadline,"remainingTime":timelimit,"maxTime":timelimit,"turnTime":tt,"currentUser":green,"currentColor":"green","passed":false,"markDead":false,"done":false,"score":0,"winner":"","metalStake":le.MetalStake})
+	_, err := collection.InsertOne(ctx, bson.M{"key": key,"size":le.Size,"green":green,"blue":le.User,"deadline":deadline,"remainingTime":timelimit,"maxTime":timelimit,"turnTime":tt,"currentUser":green,"currentColor":"green","passed":false,"markDead":false,"done":false,"ruleset":le.Ruleset,"score":0,"winner":"","metalStake":le.MetalStake})
 	if (err!=nil){
 		log.Println("Error adding game.",err)
 	} else {
+		if le.Ruleset!="Hybrid"{
+			addOp(client,"games",key,"ruleset "+le.Ruleset)
+		}
 		g,_:=getGame(client,key)
 		h.addGame<-g
 		msg:=Door{"lobby","",u2pop(g),g.CurrentUser}
@@ -228,6 +241,7 @@ type game struct{ //capitalize?
 	Passed bool
 	MarkDead bool
 	Done bool
+	Ruleset string
 	Score int
 	Winner string
 	Wintype string
@@ -285,7 +299,7 @@ func setWinner(client *mongo.Client,g *game,winner string,wintype string,h *Game
 	}
 	msg=Door{"lobby","",[]byte("{\"Op\":\"incMetal\",\"Metal\":"+fmt.Sprintf("%g", g.MetalStake)+"}"),winuser}
 	h.toUser<-msg
-	m:=g.MetalStake
+	m:=2*g.MetalStake
 	if m==0 && getMetal(client,winuser)<100{
 		m=1
 	}

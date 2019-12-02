@@ -222,7 +222,7 @@ Trigo.ScreenBoard.prototype.placeMove=function(x,y,player){
 Trigo.ScreenBoard.prototype.updateScore=function(){
 	var s=this.board.score();
 	var sum=s[0]-s[1];
-	var result="Ruleset "+this.board.ruleset+" gives final result: ";
+	var result=this.board.ruleset+" ruleset gives final result: ";
 	if (sum>0){
 		result+="Green by "+sum+" points.";
 	} else if (sum<0){
@@ -288,9 +288,17 @@ Trigo.ScreenBoard.prototype.setupWS=function(id){
 				} else if (arr[0]=="reset"){
 					_this.board.reset();
 					_this.placeMoves();
+				} else if (arr[0]=="ruleset"){
+					if (arr[1]=="Hybrid"){
+						_this.board.ruleset="Hybrid";
+					} else if (arr[1]=="Area"){
+						_this.board.ruleset="Area";
+					} else if (arr[1]=="Territory"){
+						_this.board.ruleset="Territory";
+					}
 				} else if (arr[0]=="markDead"){
 					if (arr[1]=="true"){
-						document.getElementById("atEnd").innerHTML='Mark dead stones. <button onclick="sb.done()">Done!</button>';
+						document.getElementById("atEnd").innerHTML=["Green","Blue"][_this.board.player-1]+', please mark dead stones. <button onclick="sb.done()">Done!</button>';
 					} else if (arr[1]=="false"){
 						document.getElementById("atEnd").innerHTML='';
 					}
@@ -300,6 +308,7 @@ Trigo.ScreenBoard.prototype.setupWS=function(id){
 					_this.placeMoves();
 				} else if (arr[0]=="done"){
 					_this.board.switchPlayer();
+					document.getElementById("atEnd").innerHTML=["Green","Blue"][_this.board.player-1]+', please mark dead stones. <button onclick="sb.done()">Done!</button>';
 				} else if (arr[0]=="winner"){
 					if (arr[1]=="draw!"){
 						document.getElementById("winner").innerHTML="<b>Draw!</b>";
