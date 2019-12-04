@@ -81,7 +81,7 @@ Metal stake: <input type="number" id="metalStake" value=0 min="0">
 				var item = document.createElement("div");
 				item.innerHTML = "<b>"+op.Msg+"</b>";
 				appendLog(item);
-			} else if (op.Op=="incMetal"){
+			} else if (op.Op=="incMetal" || op.Op=="modMetal"){
 				metal+=op.Metal;
 				document.getElementById("metal").innerText="You have "+metal+" metal.";
 			}

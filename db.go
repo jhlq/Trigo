@@ -167,6 +167,8 @@ func handleLobbyMessage(client *mongo.Client, message []byte,user string,h *Game
 		msg:=Door{"lobby","",message,user}
 		h.broadcast<-msg
 		if lm.Op=="joinGame"{
+			msg:=Door{"lobby","",[]byte("{\"Op\":\"incMetal\",\"Metal\":"+fmt.Sprintf("%g", -le.MetalStake)+"}"),user}
+			h.toUser<-msg
 			addGame(client,le,user,h)
 			modMetal(client,user,-le.MetalStake)
 		} else if lm.Op=="removeGame"{
@@ -297,14 +299,14 @@ func setWinner(client *mongo.Client,g *game,winner string,wintype string,h *Game
 	} else if winner=="green"{
 		winuser=g.Green
 	}
-	msg=Door{"lobby","",[]byte("{\"Op\":\"incMetal\",\"Metal\":"+fmt.Sprintf("%g", g.MetalStake)+"}"),winuser}
-	h.toUser<-msg
 	msg=Door{"lobby","",[]byte("{\"Op\":\"userPlayed\",\"Key\":"+g.Key+"}"),g.CurrentUser}
 	h.toUser<-msg
 	m:=2*g.MetalStake
 	if m==0 && getMetal(client,winuser)<100{
 		m=1
 	}
+	msg=Door{"lobby","",[]byte("{\"Op\":\"incMetal\",\"Metal\":"+fmt.Sprintf("%g", m)+"}"),winuser}
+	h.toUser<-msg
 	modMetal(client,winuser,m)
 }
 func getMetal(client *mongo.Client,user string) float64{
