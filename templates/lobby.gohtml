@@ -5,7 +5,7 @@
 <p>By default progress is linked via a cookie with the IP your device had when it first connected. To make sure your games are available from anywhere you can <a href="/account/">create a custom cookie.</a></p>
 <h3>Your turn in the following games</h3>
 <div id="userToPlay"></div>
-
+<p id="ng0">No games.</p>
 <h3>Create game entry</h3>
 <p>Size: <input type="number" id="size" step="1" value=13 min="1" max="999">
 Ruleset: 
@@ -53,7 +53,8 @@ Metal stake: <input type="number" id="metalStake" value=0 min="0">
 				element.parentNode.removeChild(element);
 			} else if (op.Op=="userToPlay"){
 				var item = document.createElement("div");
-				var rt
+				item.setAttribute("id", op.Key);
+				var rt;
 				if (op.RemainingTime<1000){
 					rt=op.RemainingTime+' seconds';
 				} else {
@@ -61,8 +62,21 @@ Metal stake: <input type="number" id="metalStake" value=0 min="0">
 				}
 				item.innerHTML = '<a href="/game/'+op.Key+'">Game '+op.Key+'.</a> Ruleset: '+op.Ruleset+'. Metal stake: '+op.Metal+'. Remaining time: '+rt;
 				document.getElementById("userToPlay").appendChild(item);
+				if (ng==0){
+					document.getElementById("ng0").innerText="";
+				}
 				ng+=1;
 				document.title='('+ng+') '+title;
+			} else if (op.Op=="userPlayed"){
+				var element = document.getElementById(op.Key);
+				element.parentNode.removeChild(element);
+				ng-=1;
+				if (ng==0){
+					document.getElementById("ng0").innerText="No games.";
+					document.title=title;
+				} else {
+					document.title='('+ng+') '+title;
+				}
 			} else if (op.Op=="log"){
 				var item = document.createElement("div");
 				item.innerHTML = "<b>"+op.Msg+"</b>";

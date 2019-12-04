@@ -193,6 +193,11 @@ func (h *GameHub) run() {
 		case client := <-h.register:
 			h.clients[client] = true
 			if client.collection=="lobby"{
+				for _,g:=range gm {
+					if g.CurrentUser==client.user{
+						client.send<-u2pop(g)
+					}
+				}
 				go func(){
 					var op struct{
 						Op string
@@ -209,11 +214,6 @@ func (h *GameHub) run() {
 					op.Metal=m
 					jop,_:=json.Marshal(op)
 					client.send<-jop
-					filter := bson.M{"currentUser": client.user}
-					gs:=getGames(dbclient,filter)
-					for _,g:=range gs {
-						client.send<-u2pop(g)
-					}
 					les:=getLobbyEntries(dbclient)
 					op.Op="addGame"
 					for _,le:=range les {
@@ -297,9 +297,12 @@ func (h *GameHub) run() {
 						delete(gtm,key)
 						delete(gm,key)
 					} else if (a[0]=="placeMove"){
+						cu:=g.CurrentUser
 						sp(g)
 						go func(){
 							msg:=Door{"lobby","",u2pop(g),g.CurrentUser}
+							h.toUser<-msg
+							msg=Door{"lobby","",[]byte("{\"Op\":\"userPlayed\",\"Key\":"+g.Key+"}"),cu}
 							h.toUser<-msg
 						}()
 						var update bson.M
@@ -383,9 +386,12 @@ func (h *GameHub) run() {
 								setWinner(dbclient,g,winner,wintype,h)
 							}()
 						} else {
+							cu:=g.CurrentUser
 							sp(g)
 							go func(){
 								msg:=Door{"lobby","",u2pop(g),g.CurrentUser}
+								h.toUser<-msg
+								msg=Door{"lobby","",[]byte("{\"Op\":\"userPlayed\",\"Key\":"+g.Key+"}"),cu}
 								h.toUser<-msg
 							}()
 							update := bson.M{"$set": bson.M{"currentUser": g.CurrentUser,"currentColor":g.CurrentColor,"deadline":g.Deadline,"remainingTime":g.RemainingTime} }

@@ -299,6 +299,8 @@ func setWinner(client *mongo.Client,g *game,winner string,wintype string,h *Game
 	}
 	msg=Door{"lobby","",[]byte("{\"Op\":\"incMetal\",\"Metal\":"+fmt.Sprintf("%g", g.MetalStake)+"}"),winuser}
 	h.toUser<-msg
+	msg=Door{"lobby","",[]byte("{\"Op\":\"userPlayed\",\"Key\":"+g.Key+"}"),g.CurrentUser}
+	h.toUser<-msg
 	m:=2*g.MetalStake
 	if m==0 && getMetal(client,winuser)<100{
 		m=1
