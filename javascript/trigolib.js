@@ -693,9 +693,10 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connec
 	var nwin=0;
 	var stonechange=0;
 	for (let i=0;i<maxit;i++){
+//		console.log("nwin%: "+nwin/(i+1));
 		var stonescaptured=0;
 		var bc=this.copy();
-		var cc=bc.tg.getCluster(c0.x,c0.y);
+		var cc=bc.tg.getCluster(c0.x,c0.y); //copy cluster?
 		space=bc.tg.getConnectedSpace(cc);								//changed this to bc
 		var ss=space.length;
 		//console.log("ss: "+ss);
@@ -731,11 +732,40 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connec
 			} else {
 				var currentstones=bc.stones[bc.otherPlayer()-1];				//added
 				placedmove=bc.placeMove(rt.x,rt.y);
+				if (placedmove && bc.player==bc.otherPlayer(c0.player)){
+					var g=bc.tg.getGroup(rt.x,rt.y);
+					if (bc.tg.liberties(g)==1){
+						bc.undo();
+						placedmove=false;
+					}
+				}
 				if (placedmove){
 					//s+=rt.x+","+rt.y+"   ";
 					stonechange=currentstones-bc.stones[bc.player-1];
 					if (stonechange>0 && bc.player==c0.player){
 						stonescaptured+=stonechange;					//placeMoveCountCaptures -> -1=didn't place
+					} else if (bc.player==c0.player){ //remove after making connectDanglers function
+						var g=bc.tg.getGroup(rt.x,rt.y);
+						var li=bc.tg.libertiesInds(g);
+						if (li.length==1){
+							var cantconnectfatal=false;
+							var bcc=bc.copy();
+							for (let i=0;i<30;i++){
+								bcc.tg.set(li[0].x,li[0].y,bcc.otherPlayer());
+								g=bcc.tg.getGroup(rt.x,rt.y);
+								li=bcc.tg.libertiesInds(g);
+								if (li.length==0){
+									if (g.length>4){
+										cantconnectfatal=true;
+									}
+									break;
+								} else if (li.length>1){
+									bc=bcc;
+									break;
+								}
+							}
+							if (cantconnectfatal) break;
+						}
 					}
 				}
 			}
@@ -745,7 +775,7 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connec
 					break;
 				}
 				space.splice(r,1);
-				if (space.length==0) break;								//modified, this should be improved somehow, space can't be 0... something got captured
+				//if (space.length==0) break;								//modified, this should be improved somehow, space can't be 0... something got captured
 			} else {
 //				s+="nope "+rt.x+","+rt.y+"   ";
 				bc.switchPlayer();
