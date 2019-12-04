@@ -2,6 +2,9 @@
 {{define "body"}}
 <p>Go is one of the oldest and most played games on the planet, it has simple rules and deep strategy. Triangular Go introduces interesting new elements like rapid shortage of liberties, one stone ladder and six way cuts. Challenge an AI below or <a href="/lobby/">head to the lobby</a> to play online.</p>
 <p>Should something not work ensure you have the latest updates, press ctrl+F5 or wait three hours for the cache to expire. If the error remains please <a href="/contact/">get in touch.</a></p>
+<p><label for="autoAI">AI plays automatically </label>
+<input type="checkbox" id="autoAI" checked=1>
+</p>
 {{template "boardCanvas" .}}
 {{end}}
 {{define "js"}}
@@ -13,6 +16,7 @@ var sb=new Trigo.ScreenBoard("TriCanvas",9);
 sb.drawGrid();
 var ai=new Trigo.AI(sb.board);
 sb.ai=ai;
+sb.letAIPlay();
 
 {{template "crosshair"}}
 

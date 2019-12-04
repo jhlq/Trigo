@@ -77,8 +77,12 @@ Trigo.ScreenBoard.prototype.handleClick=function(x,y){
 		if (this.ws){
 			this.send("placeMove "+tri.x+","+tri.y);
 		} else {
+			this.board.unmarkDeadStones();
 			this.board.placeMove(tri.x,tri.y);
 			this.placeMoves();
+			if (document.getElementById("autoAI").checked){
+				this.letAIPlay();
+			}
 		}
 	} else if (imt==1){
 		if (this.ws){
@@ -349,6 +353,9 @@ Trigo.ScreenBoard.prototype.pass=function(){
 	} else {
 		this.board.pass();
 		this.placeMoves();
+		if (document.getElementById("autoAI").checked){
+			this.letAIPlay();
+		}
 	}
 };
 Trigo.ScreenBoard.prototype.undo=function(){

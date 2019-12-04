@@ -56,4 +56,9 @@ button {
 	background-color: black;
 	color: white;
 	padding: 5px 15px;
+	border: 3px solid #4B0082;
+	border-radius: 12px;
+}
+button:active {
+	transform: translateY(1px);
 }
