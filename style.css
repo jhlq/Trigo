@@ -1,13 +1,13 @@
 #chat {
-	position: relative;
+	position: fixed;
 	display: block;
-	float: right;
+	right: 0px;
 	width:30%; 
 }
 #log {
 	background: lightblue;
 	overflow: auto;
-	height:500px; 
+	height:500px;
 }
 #form {
 		overflow: auto;
@@ -44,6 +44,7 @@ body {
 }
 main {
 	padding-left: 30px;
+	margin-right: 33%;
 }
 footer {
 	position: absolute;
