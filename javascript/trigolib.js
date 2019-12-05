@@ -621,7 +621,9 @@ Trigo.Board.prototype.markDeadStones_arr=function(c){
 Trigo.Board.prototype.unmarkDeadStones=function(){
 	for (let yi=0;yi<this.tg.triangles.length;yi++){
 		for (let xi=0;xi<this.tg.triangles[yi].length;xi++){
-			this.tg.triangles[yi][xi].markedDead=false;
+			if (this.tg.triangles[yi][xi].markedDead){
+				this.markDeadStones(xi,yi);
+			}
 		}
 	}
 };
@@ -727,16 +729,7 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connec
 					nwin++;
 					break;
 				}
-				/*for (let ci=0;ci<cc.length;ci++){						//update space, only if captures happened
-					if (cc[ci].player==c0.player){
-						cc=bc.tg.getCluster(cc[ci].x,cc[ci].y);
-						space=bc.tg.getConnectedSpace(cc);
-						break;
-					}
-				}*/
-			}
-			if (si>0){
-				for (let ci=0;ci<cc.length;ci++){
+				for (let ci=0;ci<cc.length;ci++){						//update space, only if captures happened
 					if (bc.tg.get(cc[ci].x,cc[ci].y).player==c0.player){
 						cc=bc.tg.getCluster(cc[ci].x,cc[ci].y);
 						space=bc.tg.getConnectedSpace(cc);
@@ -744,6 +737,15 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connec
 					}
 				}
 			}
+			/*if (si>0){
+				for (let ci=0;ci<cc.length;ci++){
+					if (bc.tg.get(cc[ci].x,cc[ci].y).player==c0.player){
+						cc=bc.tg.getCluster(cc[ci].x,cc[ci].y);
+						space=bc.tg.getConnectedSpace(cc);
+						break;
+					}
+				}
+			}*/
 			stonechange=0; //this didn't change much... Better!
 			//if (bc.validMovesInSpace(space)==0) break;				//is there a better way? This was very slow
 			if (space.length==0) break;
@@ -758,57 +760,43 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connec
 			var r=Math.floor(Math.random()*tspace.length);
 			var rt=tspace[r];
 			var placedmove;
-			/*var r=Math.floor(Math.random()*space.length);
-			var rt=space[r];
-			var adjrt=bc.tg.adjacent(rt);
-			var adjacentallsame=true;
-			for (let ai=0;ai<adjrt.length;ai++){
-				var a=adjrt[ai];
-				if (a.player!=bc.player){
-					adjacentallsame=false;
+			var currentstones=bc.stones[bc.otherPlayer()-1];				//added
+			var ubc=bc.copy();
+			placedmove=ubc.placeMove(rt.x,rt.y);
+			if (placedmove && ubc.player==ubc.otherPlayer(c0.player)){
+				var g=ubc.tg.getGroup(rt.x,rt.y);
+				if (ubc.tg.liberties(g)==1){
+					ubc=bc;
+					placedmove=false;
 				}
-			}*/
-			if (false){//adjacentallsame){
-				placedmove=false;
-			} else {
-				var currentstones=bc.stones[bc.otherPlayer()-1];				//added
-				var ubc=bc.copy();
-				placedmove=ubc.placeMove(rt.x,rt.y);
-				if (placedmove && ubc.player==ubc.otherPlayer(c0.player)){
-					var g=ubc.tg.getGroup(rt.x,rt.y);
-					if (ubc.tg.liberties(g)==1){
-						ubc=bc;
-						placedmove=false;
-					}
-				}
-				bc=ubc;
-				if (placedmove){
-					//s+=rt.x+","+rt.y+"   ";
-					stonechange=currentstones-bc.stones[bc.player-1];
-					if (stonechange>0 && bc.player==c0.player){
-						stonescaptured+=stonechange;					//placeMoveCountCaptures -> -1=didn't place
-					} else if (bc.player==c0.player){ //remove after making connectDanglers function
-						var g=bc.tg.getGroup(rt.x,rt.y);
-						var li=bc.tg.libertiesInds(g);
-						if (li.length==1){
-							var cantconnectfatal=false;
-							var bcc=bc.copy();
-							for (let i=0;i<30;i++){
-								bcc.tg.set(li[0].x,li[0].y,bcc.otherPlayer());
-								g=bcc.tg.getGroup(rt.x,rt.y);
-								li=bcc.tg.libertiesInds(g);
-								if (li.length==0){
-									if (g.length>4){
-										cantconnectfatal=true;
-									}
-									break;
-								} else if (li.length>1){
-									bc=bcc;
-									break;
+			}
+			bc=ubc;
+			if (placedmove){
+				//s+=rt.x+","+rt.y+"   ";
+				stonechange=currentstones-bc.stones[bc.player-1];
+				if (stonechange>0 && bc.player==c0.player){
+					stonescaptured+=stonechange;					//placeMoveCountCaptures -> -1=didn't place
+				} else if (bc.player==c0.player){ //remove after making connectDanglers function
+					var g=bc.tg.getGroup(rt.x,rt.y);
+					var li=bc.tg.libertiesInds(g);
+					if (li.length==1){
+						var cantconnectfatal=false;
+						var bcc=bc.copy();
+						for (let i=0;i<30;i++){
+							bcc.tg.set(li[0].x,li[0].y,bcc.otherPlayer());
+							g=bcc.tg.getGroup(rt.x,rt.y);
+							li=bcc.tg.libertiesInds(g);
+							if (li.length==0){
+								if (g.length>4){
+									cantconnectfatal=true;
 								}
+								break;
+							} else if (li.length>1){
+								bc=bcc;
+								break;
 							}
-							if (cantconnectfatal) break;
 						}
+						if (cantconnectfatal) break;
 					}
 				}
 			}
@@ -1117,8 +1105,9 @@ Trigo.AI.prototype.MCTSTryCapture=function(group,maxit){
 	if (gp!=this.board.otherPlayer()) return false;
 	var root=new Trigo.AI.MCTSNode(gp,false,false,this.board.tg.libertiesInds(group));
 	if (root.alternatives.length>2) return false;
+	if (root.alternatives.length<2) return true;
 	this.makeChildren(root);
-	if (maxit===undefined) maxit=10;
+	if (maxit===undefined) maxit=30;
 	for (let i=0;i<maxit;i++){
 		var bc=this.board.copy();
 		root.visited+=1;
@@ -1158,7 +1147,11 @@ Trigo.AI.prototype.canBeCaptured=function(x,y){						//this will be useful
 	var bc=this.board.copy();
 	var captures=bc.placeMoveCountCaptures(x,y);
 	if (captures<0) return true; //suicide/invalid
-	if (captures<1 && bc.tg.liberties_arr(bc.tg.getGroup(x,y))==1) return true;
+	//if (captures<1 && bc.tg.liberties_arr(bc.tg.getGroup(x,y))==1) return true;
+	if (captures<1){
+		var aibc=new Trigo.AI(bc);
+		return aibc.MCTSTryCapture(bc.tg.getGroup(x,y));
+	}
 	return false; //add code for ladders/nets
 };
 Trigo.AI.prototype.canCapture=function(x,y){
