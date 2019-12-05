@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-var addr = flag.String("addr", ":8080", "http service address")
+var addr = flag.String("addr", ":8080", "http service address") //iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080
 var templates = template.Must(template.ParseFiles("templates/templates.gohtml"))
 var tm map[string]*template.Template
 
