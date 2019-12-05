@@ -374,6 +374,18 @@ Trigo.ScreenBoard.prototype.reset=function(){
 		this.placeMoves();
 	}
 };
+Trigo.ScreenBoard.prototype.autoMarkDeadStones=function(){
+	if (this.ws){
+		var tbm=this.board.toBeMarked();
+		for (let clusteri=0;clusteri<tbm.length;clusteri++){
+			var c0=tbm[clusteri][0];
+			this.send("markDeadStones "+c0.x+","+c0.y);
+		}
+	} else {
+		this.board.autoMarkDeadStones();
+		this.placeMoves();
+	}
+};
 Trigo.ScreenBoard.prototype.letAIPlay=function(){
 	if (this.ws){
 		this.ai.board=this.board.copy()
@@ -385,8 +397,7 @@ Trigo.ScreenBoard.prototype.letAIPlay=function(){
 		this.ai.placeSmartMove();
 		var nmoves=this.board.moves.length;
 		if (this.board.moves[nmoves-1].isPass() && this.board.moves[nmoves-2].isPass()){
-			//sb.board.autoMarkDeadStones(); //return this when automarking improves
-			//sb.placeMoves();
+			this.autoMarkDeadStones();
 			this.updateScore();
 		} else {
 			this.placeMoves();
