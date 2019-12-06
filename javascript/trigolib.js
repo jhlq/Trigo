@@ -987,6 +987,15 @@ Trigo.Board.prototype.loadGame=function(movesstring){
 	}
 	this.placeMoves();
 };
+Trigo.Board.prototype.ataris=function(group){
+	var arr=this.tg.adjacent(group);
+	for (let arri=0;arri<arr.length;arri++){
+		if (arr[arri].alive()){
+			if (this.tg.liberties(this.tg.getGroup_tri(arr[arri]))==1) return true
+		}
+	}
+	return false;
+};
 
 //AI
 
@@ -1073,6 +1082,8 @@ Trigo.AI.MCTSNode=function(player,move,parent,alts){
 	this.parent=parent;
 	this.children=[];
 	this.alternatives=alts;
+	this.terminating=false;
+	this.winner=0;
 };
 Trigo.AI.MCTSNode.prototype.select=function(){
 	var cis=[];
@@ -1081,6 +1092,15 @@ Trigo.AI.MCTSNode.prototype.select=function(){
 		var n;
 		if (child.visited==0){
 			n=5;
+		} else if (child.terminating){
+			if (child.wins>0){
+				this.terminating=true;
+				this.winner=child.player;
+				child.bp(child.player);
+				return false;
+			} else {
+				n=0;
+			}
 		} else {
 			n=child.wins*3+1;
 		}
@@ -1088,10 +1108,17 @@ Trigo.AI.MCTSNode.prototype.select=function(){
 			cis.push(ci);
 		}
 	}
+	if (cis.length==0){
+		this.terminating=true;
+		this.winner=this.player;
+		this.bp(this.player);
+		return false;
+	}
 	var c=cis[Math.floor(Math.random()*(cis.length))];
 	return this.children[c];
 };
 Trigo.AI.MCTSNode.prototype.bp=function(winner){
+	this.visited+=1;
 	if (this.player==winner) this.wins+=1;
 	if (this.parent) this.parent.bp(winner);
 };
@@ -1106,40 +1133,44 @@ Trigo.AI.prototype.MCTSTryCapture=function(group,maxit){
 	var root=new Trigo.AI.MCTSNode(gp,false,false,this.board.tg.libertiesInds(group));
 	if (root.alternatives.length>2) return false;
 	if (root.alternatives.length<2) return true;
+	if (this.board.ataris(group)) return false;
 	this.makeChildren(root);
 	if (maxit===undefined) maxit=30;
 	for (let i=0;i<maxit;i++){
 		var bc=this.board.copy();
-		root.visited+=1;
 		var child=root.select();
+		if (!child) return root.winner!=root.player;
 		for (let j=0;j<maxit;j++){
-			child.visited+=1;
 			var pm=bc.placeMove(child.move.x,child.move.y);
 			if (!pm){
+				child.terminating=true;
 				child.bp(bc.otherPlayer());
 				break;
 			}
 			var g=bc.tg.getGroup(child.move.x,child.move.y);
 			var li=bc.tg.libertiesInds(g);
 			if (li.length<2){
+				child.terminating=true;
 				child.bp(bc.player);
 				break;
-			} else if (li.length>2){
+			}
+			if (bc.player==gp){
+				g=bc.tg.getGroup(group[0].x,group[0].y);
+				li=bc.tg.libertiesInds(g);
+			} else if (li.length>2 || this.board.ataris(g)){
+				child.terminating=true;
 				child.bp(bc.otherPlayer());
 				break;
 			}
 			if (!child.alternatives){
-				if (bc.player==gp){
-					g=bc.tg.getGroup(group[0].x,group[0].y);
-					li=bc.tg.libertiesInds(g);
-				}
 				child.alternatives=li;
 				this.makeChildren(child);
 			}
 			child=child.select();
+			if (!child) break;
 		}
 	}
-	//console.log(root.wins/root.visited);
+	console.log(root.wins+", "+root.visited);
 	if (root.wins/root.visited>0.5) return false;
 	return true;
 };
@@ -1147,12 +1178,11 @@ Trigo.AI.prototype.canBeCaptured=function(x,y){						//this will be useful
 	var bc=this.board.copy();
 	var captures=bc.placeMoveCountCaptures(x,y);
 	if (captures<0) return true; //suicide/invalid
-	//if (captures<1 && bc.tg.liberties_arr(bc.tg.getGroup(x,y))==1) return true;
 	if (captures<1){
 		var aibc=new Trigo.AI(bc);
 		return aibc.MCTSTryCapture(bc.tg.getGroup(x,y));
 	}
-	return false; //add code for ladders/nets
+	return false; //add code for nets
 };
 Trigo.AI.prototype.canCapture=function(x,y){
 	var bc=this.board.copy();
