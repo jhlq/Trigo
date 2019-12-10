@@ -313,6 +313,7 @@ Trigo.ScreenBoard.prototype.setupWS=function(id){
 					_this.placeMoves();
 				} else if (arr[0]=="done"){
 					_this.board.switchPlayer();
+					_this.placeMoves();
 					document.getElementById("atEnd").innerHTML=["Green","Blue"][_this.board.player-1]+', please mark dead stones. <button onclick="sb.done()">Done!</button>';
 				} else if (arr[0]=="winner"){
 					if (arr[1]=="draw!"){

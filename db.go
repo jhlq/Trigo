@@ -293,21 +293,36 @@ func setWinner(client *mongo.Client,g *game,winner string,wintype string,h *Game
 	update := bson.M{"$set": bson.M{"winner": winner,"wintype":wintype,"currentUser":""} }
 	updateGame(client,g.Key,update)
 	addOp(client,"games",g.Key,swin)
-	var winuser string
-	if winner=="blue"{
-		winuser=g.Blue
-	} else if winner=="green"{
-		winuser=g.Green
-	}
 	msg=Door{"lobby","",[]byte("{\"Op\":\"userPlayed\",\"Key\":"+g.Key+"}"),g.CurrentUser}
 	h.toUser<-msg
-	m:=2*g.MetalStake
-	if m==0 && getMetal(client,winuser)<100{
-		m=1
+	if winner=="draw!"{
+		m:=1.5*g.MetalStake
+		if m==0{
+			m=0.75
+		}
+		msg=Door{"lobby","",[]byte("{\"Op\":\"incMetal\",\"Metal\":"+fmt.Sprintf("%g", m)+"}"),g.Green}
+		h.toUser<-msg
+		modMetal(client,g.Green,m)
+		msg=Door{"lobby","",[]byte("{\"Op\":\"incMetal\",\"Metal\":"+fmt.Sprintf("%g", m)+"}"),g.Blue}
+		h.toUser<-msg
+		modMetal(client,g.Blue,m)
+	} else if winner=="missmatch"{
+		log.Println("Missmatch in game "+g.Key)
+	} else {
+		var winuser string
+		if winner=="blue"{
+			winuser=g.Blue
+		} else if winner=="green"{
+			winuser=g.Green
+		}
+		m:=2*g.MetalStake
+		if m==0 && getMetal(client,winuser)<100{
+			m=1
+		}
+		msg=Door{"lobby","",[]byte("{\"Op\":\"incMetal\",\"Metal\":"+fmt.Sprintf("%g", m)+"}"),winuser}
+		h.toUser<-msg
+		modMetal(client,winuser,m)
 	}
-	msg=Door{"lobby","",[]byte("{\"Op\":\"incMetal\",\"Metal\":"+fmt.Sprintf("%g", m)+"}"),winuser}
-	h.toUser<-msg
-	modMetal(client,winuser,m)
 }
 func getMetal(client *mongo.Client,user string) float64{
 	collection := client.Database("trigo").Collection("users")
