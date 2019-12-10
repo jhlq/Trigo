@@ -137,6 +137,7 @@ Trigo.ScreenBoard.prototype.placeMoves=function(){
             this.drawer.circle(st.pixX,st.pixY,"#fff",s/3);
         }
     }
+    this.drawer.circle(this.drawer.canvas.width-3*s, this.drawer.canvas.height-3*s,["#0f0","#00f"][this.board.player-1],s);
     document.getElementById("board_moves").value=this.board.state();
 };
 
