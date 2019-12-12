@@ -737,15 +737,6 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connec
 					}
 				}
 			}
-			/*if (si>0){
-				for (let ci=0;ci<cc.length;ci++){
-					if (bc.tg.get(cc[ci].x,cc[ci].y).player==c0.player){
-						cc=bc.tg.getCluster(cc[ci].x,cc[ci].y);
-						space=bc.tg.getConnectedSpace(cc);
-						break;
-					}
-				}
-			}*/
 			stonechange=0; //this didn't change much... Better!
 			//if (bc.validMovesInSpace(space)==0) break;				//is there a better way? This was very slow
 			if (space.length==0) break;
@@ -789,6 +780,10 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connec
 							if (li.length==0){
 								if (g.length>4){
 									cantconnectfatal=true;
+								} else {
+									bc.tg.removeGroup(g);
+									bc.switchPlayer();
+									stonechange=g.length;
 								}
 								break;
 							} else if (li.length>1){
