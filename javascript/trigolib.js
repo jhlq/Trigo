@@ -635,7 +635,7 @@ Trigo.Board.prototype.validMovesInSpace=function(space){				//added. Sloooow...
 		if (this.isValidMove(t.x,t.y,1) || this.isValidMove(t.x,t.y,2)) vm+=1;
 	}
 	return vm;
-};
+};*/
 Trigo.Board.prototype.twoSuicideMovesInSpace=function(space,player){	//added, must connect all danglers first
 	var sm=0;
 	for (let si=0;si<space.length;si++){
@@ -644,7 +644,7 @@ Trigo.Board.prototype.twoSuicideMovesInSpace=function(space,player){	//added, mu
 		if (sm>=2) return true;
 	}
 	return false;
-};*/
+};
 Trigo.Board.prototype.trimSpace=function(space){
 	var vm=[];
 	for (let si=0;si<space.length;si++){
@@ -734,22 +734,23 @@ Trigo.Board.prototype.connectDanglers=function(){
 };
 Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connect danglers? AI.markDeadByPlaying. Fill dame, see what is in atari
 	if (cluster.length==0) return false;								//added checks
-	var surrounded=this.surrounds(cluster);
-	if (surrounded.length>5) return false;
 	if (maxit===undefined) maxit=10;
 	var space=this.tg.getConnectedSpace(cluster);
 	if (space.length>15) return false;
 	var c0=cluster[0];
-	//connect danglers
-	//if (this.twoSuicideMovesInSpace(space,this.otherPlayer(c0.player))) return false;
-	var totalstones=this.stones[c0.player-1];
+	var mb=this.copy();
+	mb.connectDanglers();
+	var surrounded=mb.surrounds(cluster);
+	if (surrounded.length>5) return false;
+	if (mb.twoSuicideMovesInSpace(space,this.otherPlayer(c0.player))) return false;
+	var totalstones=mb.stones[c0.player-1];
 	var clusterstones=cluster.length;
 	var stonelimit=totalstones-clusterstones*0.7;
 	var nwin=0;
 	for (let i=0;i<maxit;i++){
 		var stonechange=0;
 		var stonescaptured=0;
-		var bc=this.copy();
+		var bc=mb.copy();
 		var cc=bc.tg.getCluster(c0.x,c0.y); //copy cluster?
 		space=bc.tg.getConnectedSpace(cc);								//changed this to bc
 		var ss=space.length;
@@ -829,7 +830,7 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connec
 						}
 						if (cantconnectfatal) break;
 					}
-				}
+				}/**/
 			}
 			if (placedmove){
 				if (bc.stones[c0.player-1]<stonelimit){
