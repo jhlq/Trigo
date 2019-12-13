@@ -696,7 +696,8 @@ Trigo.Board.prototype.surrounds=function(cluster){						//efficient
 	}
 	return surrounded;
 };
-Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connect danglers? AI.markDeadByPlaying
+
+Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connect danglers? AI.markDeadByPlaying. Fill dame, see what is in atari
 	if (cluster.length==0) return false;								//added checks
 	var surrounded=this.surrounds(cluster);
 	if (surrounded.length>5) return false;
@@ -747,6 +748,7 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connec
 			var placedmove;
 			var currentstones=bc.stones[bc.otherPlayer()-1];				//added
 			var ubc=bc.copy();
+			//console.log("Placing "+rt.x+", "+rt.y+": "+ubc.player);
 			placedmove=ubc.placeMove(rt.x,rt.y);
 			if (placedmove && ubc.player==ubc.otherPlayer(c0.player)){
 				var g=ubc.tg.getGroup(rt.x,rt.y);
@@ -760,7 +762,7 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connec
 				stonechange=currentstones-bc.stones[bc.player-1];
 				if (stonechange>0 && bc.player==c0.player){
 					stonescaptured+=stonechange;					//placeMoveCountCaptures -> -1=didn't place
-				} else if (bc.player==c0.player){ //remove after making connectDanglers function
+				} else if (bc.player==c0.player){ //remove after making connectDanglers function. 
 					var og=bc.tg.getGroup(rt.x,rt.y);
 					var oli=bc.tg.libertiesInds(og);
 					if (oli.length==1){
@@ -768,20 +770,25 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connec
 						var bcc=bc.copy();
 						var li=oli;
 						for (let i=0;i<30;i++){
-							bcc.tg.set(li[0].x,li[0].y,bcc.otherPlayer());
+							//bcc.tg.set(li[0].x,li[0].y,bcc.otherPlayer()); //this would be faster but in some edge cases doesn't work
+							var pm=bcc.placeCustomMove(li[0].x,li[0].y,bcc.otherPlayer());
 							g=bcc.tg.getGroup(rt.x,rt.y);
 							li=bcc.tg.libertiesInds(g);
-							if (li.length==0){
+							if (!pm){
 								if (g.length>4){
 									cantconnectfatal=true;
 								} else {
-									bc.tg.removeGroup(og);
 									bc.placeMove(oli[0].x,oli[0].y);
-									stonechange=g.length;
+									stonechange=og.length;
 								}
 								break;
 							} else if (li.length>1){
 								bc=bcc;
+								break;
+							}
+							if (i==0 && g.length==og.length+1){
+								bc.placeMove(oli[0].x,oli[0].y);
+								stonechange=og.length;
 								break;
 							}
 						}
@@ -798,6 +805,7 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connec
 				bc.switchPlayer();
 			}
 		}
+		console.log("nwin: "+nwin);
 	}
 	if (nwin/maxit>=0.5) return true;
 	return false;
@@ -824,10 +832,12 @@ Trigo.Board.prototype.toBeMarked=function(){
 	return tobemarked;
 };
 Trigo.Board.prototype.autoMarkDeadStones=function(){
-	var tobemarked=this.toBeMarked();
-	for (let clusteri=0;clusteri<tobemarked.length;clusteri++){
-		var cluster=tobemarked[clusteri];
-		this.markDeadStones(cluster);
+	for (let i=0;i<2;i++){
+		var tobemarked=this.toBeMarked();
+		for (let clusteri=0;clusteri<tobemarked.length;clusteri++){
+			var cluster=tobemarked[clusteri];
+			this.markDeadStones(cluster);
+		}
 	}
 };
 
