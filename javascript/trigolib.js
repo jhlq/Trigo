@@ -696,7 +696,42 @@ Trigo.Board.prototype.surrounds=function(cluster){						//efficient
 	}
 	return surrounded;
 };
-
+Trigo.Board.prototype.connectDanglers=function(){
+	var bc=this.copy();
+	bc.spreadInfluence();
+	for (let y=0;y<this.tg.triangles.length;y++){
+		for (let x=0;x<this.tg.triangles[y].length;x++){
+			var itri=bc.influence[y][x];
+			if (itri.green>0 && itri.blue>0){
+				if (itri.green>itri.blue){
+					bc.placeCustomMove(x,y,1);
+				} else {
+					bc.placeCustomMove(x,y,2);
+				}
+			}
+		}
+	}
+	var ai=new Trigo.AI(bc);
+	var ataris=ai.findLibertyShortages()[0];
+	for (let a=0;a<ataris.length;a++){
+		let at=ataris[a];
+		let p=bc.tg.adjacent(at)[0].player;
+		for (let i=0;i<300;i++){
+			let pm=bc.placeCustomMove(at.x,at.y,p);
+			if (pm){
+				this.placeCustomMove(at.x,at.y,p);
+				let li=bc.tg.libertiesInds(bc.tg.getGroup(at.x,at.y));
+				if (li.length==1){
+					at=li[0];
+				} else {
+					break;
+				}
+			} else {
+				break;
+			}
+		}
+	}
+};
 Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connect danglers? AI.markDeadByPlaying. Fill dame, see what is in atari
 	if (cluster.length==0) return false;								//added checks
 	var surrounded=this.surrounds(cluster);
@@ -769,7 +804,7 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connec
 						var cantconnectfatal=false;
 						var bcc=bc.copy();
 						var li=oli;
-						for (let i=0;i<30;i++){
+						for (let i=0;i<300;i++){
 							//bcc.tg.set(li[0].x,li[0].y,bcc.otherPlayer()); //this would be faster but in some edge cases doesn't work
 							var pm=bcc.placeCustomMove(li[0].x,li[0].y,bcc.otherPlayer());
 							g=bcc.tg.getGroup(rt.x,rt.y);
@@ -805,7 +840,7 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connec
 				bc.switchPlayer();
 			}
 		}
-		console.log("nwin: "+nwin);
+		//console.log("nwin: "+nwin);
 	}
 	if (nwin/maxit>=0.5) return true;
 	return false;
