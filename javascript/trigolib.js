@@ -1339,6 +1339,30 @@ Trigo.AI.prototype.markDeadByPlaying=function(){
 	}
 	this.board=ob;
 };
+Trigo.AI.prototype.evaluateMove=function(tri){
+	bc=this.board.copy();
+	player=this.board.player;
+	var placedmove=bc.placeMove(tri);
+	if (!placedmove){
+		return -1;
+	} else {
+		var igs=bc.getIGs();
+		var se2=bc.estimateScore(false);
+		var locvalue=se2[player-1]-this.se[player-1]+this.se[this.board.otherPlayer(player)-1]-se2[this.board.otherPlayer(player)-1];
+		if (igs[player-1].length<this.igs[player-1].length) locvalue+=10;
+		if (igs[bc.otherPlayer(player)-1].length>this.igs[bc.otherPlayer(player)-1].length) locvalue+=5;
+		bc=this.board.copy();
+		var pcm=bc.placeCustomMove(tri.x,tri.y,this.board.otherPlayer(player));
+		if (pcm){
+			var se3=bc.estimateScore();
+			locvalue+=se3[this.board.otherPlayer(player)-1]-this.se[this.board.otherPlayer(player)-1]+this.se[player-1]-se3[player-1];
+			igs=bc.getIGs();
+			if (igs[player-1].length>this.igs[player-1].length) locvalue+=10;
+			if (igs[bc.otherPlayer(player)-1].length<this.igs[bc.otherPlayer(player)-1].length) locvalue+=5;
+		}
+		return locvalue;
+	}
+};
 Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong,reset){
 	if (this.board.moves.length<1){
 		for (let i=0;i<30;i++){
@@ -1389,6 +1413,8 @@ Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong,reset
 		return;
 	}
 	var se=this.board.estimateScore();
+	this.igs=this.board.getIGs();
+	this.se=this.board.estimateScore(false);
 	this.estimates.push([this.board.moves.length-1,se[0]-se[1]]);
 	var locvalues=[];
 	var player=this.board.player;
@@ -1415,13 +1441,11 @@ Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong,reset
 	} else {
 		var bc=this.board.copy();
 		for (let m2ci=0;m2ci<moves2consider.length;m2ci++){
-			var placedmove=bc.placeMove(moves2consider[m2ci]);
+			locvalues.push(this.evaluateMove(moves2consider[m2ci]));
+			/*var placedmove=bc.placeMove(moves2consider[m2ci]);
 			if (!placedmove){
 				locvalues.push(-1);
-			} /*else if (bc.tryCaptureCluster(bc.tg.getGroup(moves2consider[m2ci].x,moves2consider[m2ci].y))){ //too sloow
-				locvalues.push(-1);
-				bc=this.board.copy();
-			} */else {
+			} else {
 				var se2=bc.estimateScore();
 				var locvalue=se2[player-1]-se[player-1]+se[this.board.otherPlayer(player)-1]-se2[this.board.otherPlayer(player)-1];
 				bc=this.board.copy();
@@ -1432,7 +1456,7 @@ Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong,reset
 					bc=this.board.copy(); //this isn't necessary on last iteration...
 				}
 				locvalues.push(locvalue);
-			}
+			}*/
 		}
 	}
 	if (markdead){
