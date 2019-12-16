@@ -1024,6 +1024,79 @@ Trigo.Board.prototype.ataris=function(group){
 	return false;
 };
 
+Trigo.InfluenceGroup=function(){
+	this.stones=[];
+	this.monopoly=[];
+	this.majority=[];
+	this.minority=[];
+};
+Trigo.Board.prototype.getIG=function(x,y){
+	if (y===undefined){
+		y=x.y;
+		x=x.x;
+	}
+	var ig=new Trigo.InfluenceGroup();
+	ig.stones=this.tg.getGroup(x,y);
+	if (ig.stones.length==0) return ig;
+	var p=ig.stones[0].player;
+	var checked=[];
+	for (let si=0;si<ig.stones.length;si++){
+		checked.push(ig.stones[si]);
+	}
+	var fringe=this.tg.adjacent(ig.stones);
+	while (fringe.length>0){
+		let tfringe=[];
+		for (let i=0;i<fringe.length;i++){
+			let t=fringe[i];
+			if (!checked.includes(t)){
+				checked.push(t);
+				if (t.alive()){
+					if (t.player==p){
+						ig.stones.push(t);
+						tfringe.push(t);
+					}
+				} else {
+					let it=this.influence[t.y][t.x];
+					let inf=[it.green,it.blue];
+					if (inf[p-1]>0){
+						if (inf[this.otherPlayer(p)-1]==0){
+							ig.monopoly.push(t);
+							tfringe.push(t);
+						} else if (inf[p-1]>inf[this.otherPlayer(p)-1]){
+							ig.majority.push(t);
+							tfringe.push(t);
+						} else {
+							ig.minority.push(t);
+						}
+					}
+				}
+			}
+		}
+		fringe=this.tg.adjacent(tfringe);
+	}
+	return ig;
+};
+Trigo.Board.prototype.getIGs=function(){
+	var checked=[];
+	var igs=[[],[]];
+	this.spreadInfluence();
+	for (let y=0;y<this.tg.triangles.length;y++){
+		for (let x=0;x<this.tg.triangles[y].length;x++){
+			let t=this.tg.triangles[y][x];
+			if (t.alive()){
+				if (!checked.includes(t)){
+					let ig=this.getIG(t.x,t.y);
+					for (let si=0;si<ig.stones.length;si++){
+						checked.push(ig.stones[si]);
+					}
+					igs[t.player-1].push(ig);
+				}
+			}
+		}
+	}
+	return igs;
+};
+
 //AI
 
 Trigo.AI=function(board){
