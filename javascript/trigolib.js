@@ -519,7 +519,6 @@ Trigo.Board.prototype.state=function(){
 Trigo.Board.prototype.placeMoves=function(reset){
 	if (reset===undefined) reset=true;									//doesn't seem necessary? Why not?
 	var m=this.moves;
-	//var p=this.player; //why unused? Better to have the player default to next after last move
 	if (reset) this.reset();											//add conditional reset? If tg doesn't need to be reinitialized, when board was just created. Yea
 	for (let movei=0;movei<m.length;movei++){
 		var move=m[movei];
@@ -529,6 +528,7 @@ Trigo.Board.prototype.placeMoves=function(reset){
 	if (this.moves.length>0){
 		this.player=this.otherPlayer(this.moves[this.moves.length-1].player);
 	}
+	this.spreadInfluence();
 };
 Trigo.Board.prototype.undo=function(){
 	if (!(this.moves.length==0)){
@@ -1360,20 +1360,21 @@ Trigo.AI.prototype.evaluateMove=function(x,y){
 		var locvalue=se2[player-1]-this.se[player-1]+this.se[this.board.otherPlayer(player)-1]-se2[this.board.otherPlayer(player)-1];
 		if (igs[player-1].length<this.igs[player-1].length) locvalue+=10;
 		if (igs[bc.otherPlayer(player)-1].length>this.igs[bc.otherPlayer(player)-1].length) locvalue+=5;
-		var it=bc.influence[tri.y][tri.x];
+		var it=this.board.influence[tri.y][tri.x];
 		if (captures>0 && it.border==0) locvalue+=10;
 		bc=this.board.copy();
 		bc.placeMove(-1,-1);
-		captures=bc.placeMoveCountCaptures(tri);
-		if (captures>=0){
+		var captures2=bc.placeMoveCountCaptures(tri);
+		if (captures2>=0){
 			igs=bc.getIGs();
 			var se3=bc.estimateScore(false);
 			locvalue+=se3[this.board.otherPlayer(player)-1]-this.se[this.board.otherPlayer(player)-1]+this.se[player-1]-se3[player-1];
 			if (igs[player-1].length>this.igs[player-1].length) locvalue+=10;
 			if (igs[bc.otherPlayer(player)-1].length<this.igs[bc.otherPlayer(player)-1].length) locvalue+=5;
-			if (captures>0 && it.border==0) locvalue+=10;
+			if (captures2>0 && it.border==0) locvalue+=10;
 		}
 		if (it.border==1) locvalue=locvalue/2;
+		if (captures==0 && captures2==0 && (it.green==0 != it.blue==0)) locvalue=locvalue/2;
 		return locvalue;
 	}
 };
@@ -1386,7 +1387,7 @@ Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong){
 			if (this.board.placeMove(rx,ry)) return;
 		}
 	}
-	if (thinklong!=true) thinklong=false;
+	this.board.spreadInfluence();
 	var board=this.board;
 	if (this.board.moves[this.board.moves.length-1].isPass()){
 		this.board=this.board.copy();
@@ -1396,7 +1397,6 @@ Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong){
 		this.board=this.board.copy();
 		this.markDeadByPlaying();
 	}
-	this.board.spreadInfluence();
 	var short=this.findLibertyShortages();
 	var moves2consider=[];
 	var inflm=this.findFromInfluence();
