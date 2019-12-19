@@ -711,7 +711,7 @@ Trigo.Board.prototype.connectDanglers=function(){
 		}
 	}
 	var ai=new Trigo.AI(bc);
-	var ataris=ai.findLibertyShortages()[0];
+	var ataris=ai.findLibertyShortages()[0][0];
 	for (let a=0;a<ataris.length;a++){
 		let at=ataris[a];
 		let p=bc.tg.adjacent(at)[0].player;
@@ -1021,12 +1021,14 @@ Trigo.Board.prototype.loadGame=function(movesstring){
 };
 Trigo.Board.prototype.ataris=function(group){
 	var arr=this.tg.adjacent(group);
+	var a=[];
 	for (let arri=0;arri<arr.length;arri++){
 		if (arr[arri].alive()){
-			if (this.tg.liberties(this.tg.getGroup_tri(arr[arri]))==1) return true
+			let g=this.tg.getGroup_tri(arr[arri]);
+			if (this.tg.liberties(g)==1) a.push(g);
 		}
 	}
-	return false;
+	return a;
 };
 
 Trigo.InfluenceGroup=function(){
@@ -1141,24 +1143,29 @@ Trigo.AI.prototype.findLibertyShortages=function(){
 	var capturing=[];
 	var ataris=[];
 	//another for 3 libs?
+	var g1=[];
+	var g2=[];
 	for (let mi=0;mi<this.board.moves.length;mi++){
 		if (this.board.moves[mi].isPass()) continue;
 		var t=this.board.tg.get(this.board.moves[mi].x,this.board.moves[mi].y);
 		if (!checked.includes(t)){
 			var group=this.board.tg.getGroup(t);
+			if (group.length==0) continue;
 			var libinds=this.board.tg.libertiesInds(group);
 			if (libinds.length==1){
 				capturing.push(libinds[0]);
+				g1.push(group);
 			} else if (libinds.length==2){
 				ataris.push(libinds[0]);
 				ataris.push(libinds[1]);
+				g2.push(group);
 			}
 			for (let gi=0;gi<group.length;gi++){
 				checked.push(group[gi]);
 			}
 		}
 	}
-	return [capturing,ataris];
+	return [[capturing,ataris],[g1,g2]];
 };
 Trigo.AI.prototype.findCapturing=function(){
 	var checked=[];
@@ -1222,6 +1229,18 @@ Trigo.AI.MCTSNode.prototype.select=function(){
 	var c=cis[Math.floor(Math.random()*(cis.length))];
 	return this.children[c];
 };
+Trigo.AI.MCTSNode.prototype.next=function(){
+	var wins=[];
+	for (let ci=0;ci<this.children.length;ci++){
+		child=this.children[ci];
+		/*if (child.terminating && child.winner==child.player){
+			return child;
+		}*/
+		wins.push(child.wins);
+	}
+	var c=(new Trigo.AI).indexOfMax(wins);
+	return this.children[c];
+};
 Trigo.AI.MCTSNode.prototype.bp=function(winner){
 	this.visited+=1;
 	if (this.player==winner) this.wins+=1;
@@ -1232,20 +1251,24 @@ Trigo.AI.prototype.makeChildren=function(node){
 		node.children.push(new Trigo.AI.MCTSNode(this.board.otherPlayer(node.player),node.alternatives[a],node))
 	}
 };
-Trigo.AI.prototype.MCTSTryCapture=function(group,maxit){
+Trigo.AI.prototype.MCTSLadder=function(group,maxit){
 	var gp=group[0].player;
-	if (gp!=this.board.otherPlayer()) return false;
 	var root=new Trigo.AI.MCTSNode(gp,false,false,this.board.tg.libertiesInds(group));
-	if (root.alternatives.length>2) return false;
-	if (root.alternatives.length<2) return true;
-	if (this.board.ataris(group)) return false;
+	if (root.alternatives.length>2) return [false,root];
+	var a=this.board.ataris(group);
+	if (a.length>1) return [false,root];
+	if (a.length==1){
+		root.alternatives.push(this.board.tg.libertiesInds(a[0])[0]);
+	}
 	this.makeChildren(root);
-	if (maxit===undefined) maxit=30;
+	if (maxit===undefined) maxit=100;
 	for (let i=0;i<maxit;i++){
 		var bc=this.board.copy();
+		bc.player=bc.otherPlayer(gp);
 		var child=root.select();
-		if (!child) return root.winner!=root.player;
+		if (!child) return [root.winner!=root.player,root];
 		for (let j=0;j<maxit;j++){
+			if (!child.move) console.log(group);
 			var pm=bc.placeMove(child.move.x,child.move.y);
 			if (!pm){
 				child.terminating=true;
@@ -1262,13 +1285,19 @@ Trigo.AI.prototype.MCTSTryCapture=function(group,maxit){
 			if (bc.player==gp){
 				g=bc.tg.getGroup(group[0].x,group[0].y);
 				li=bc.tg.libertiesInds(g);
-			} else if (li.length>2 || this.board.ataris(g)){
-				child.terminating=true;
-				child.bp(bc.otherPlayer());
-				break;
+			} else {
+				a=bc.ataris(g); 
+				if (li.length>2 || a.length>1){
+					child.terminating=true;
+					child.bp(bc.otherPlayer());
+					break;
+				}
 			}
 			if (!child.alternatives){
 				child.alternatives=li;
+				if (bc.player!=gp && a.length==1){
+					child.alternatives.push(bc.tg.libertiesInds(a[0])[0]);
+				}
 				this.makeChildren(child);
 			}
 			child=child.select();
@@ -1276,16 +1305,26 @@ Trigo.AI.prototype.MCTSTryCapture=function(group,maxit){
 		}
 	}
 	console.log(root.wins+", "+root.visited);
-	if (root.wins/root.visited>0.5) return false;
-	return true;
+	if (root.wins/root.visited>0.5) return [false,root];
+	return [true,root];
 };
 Trigo.AI.prototype.canBeCaptured=function(x,y){						//this will be useful
-	var bc=this.board.copy();
-	var captures=bc.placeMoveCountCaptures(x,y);
-	if (captures<0) return true; //suicide/invalid
-	if (captures<1){
-		var aibc=new Trigo.AI(bc);
-		return aibc.MCTSTryCapture(bc.tg.getGroup(x,y));
+	var group=this.board.tg.getGroup(x,y);
+	var captures=0;
+	var bc=this.board;
+	if (group.length==0){
+		bc=this.board.copy();
+		var captures=bc.placeMoveCountCaptures(x,y);
+		group=bc.tg.getGroup(x,y);
+		if (captures<0) return true; //suicide/invalid
+	}
+	if (captures==0){
+		let libs=bc.tg.liberties(group);
+		if (libs==1) return true;
+		if (libs==2){
+			var aibc=new Trigo.AI(bc);
+			return aibc.MCTSLadder(group)[0];
+		}
 	}
 	return false; //add code for nets
 };
@@ -1397,12 +1436,26 @@ Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong){
 		this.board=this.board.copy();
 		this.markDeadByPlaying();
 	}
-	var short=this.findLibertyShortages();
+	var shortf=this.findLibertyShortages();
+	var short=shortf[0];
 	var moves2consider=[];
+	var locvalues=[];
+	var bonuses=[];
+	for (let si=0;si<shortf[1][1].length;si++){
+		let g=shortf[1][1][si];
+		if (g[0].player==this.board.player) continue;
+		let l=this.MCTSLadder(g);
+		if (l[0]){
+			let m=l[1].next().move;
+			if (m.x==16 && m.y==3){ console.log(g.length*10+10);console.log(l[1]); }
+			moves2consider.push(m);
+			bonuses.push(g.length*10+10);
+		}
+	}
 	var inflm=this.findFromInfluence();
 	var moves2consider0=inflm.concat(short[0]);
 	for (let si=0;si<short[1].length;si++){
-		var sm=short[1][si];
+		let sm=short[1][si];
 		if (!this.canCapture(sm.x,sm.y)){
 			moves2consider0.push(sm);
 		}
@@ -1423,11 +1476,9 @@ Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong){
 		}
 		return;
 	}
-	var se=this.board.estimateScore();
 	this.igs=this.board.getIGs();
 	this.se=this.board.estimateScore(false);
-	this.estimates.push([this.board.moves.length-1,se[0]-se[1]]);
-	var locvalues=[];
+	this.estimates.push([this.board.moves.length-1,this.se[0]-this.se[1]]);
 	var player=this.board.player;
 	if (thinklong){
 		var aic=new Trigo.AI(this.board.copy());
@@ -1451,7 +1502,10 @@ Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong){
 		}
 	} else {
 		for (let m2ci=0;m2ci<moves2consider.length;m2ci++){
-			locvalues.push(this.evaluateMove(moves2consider[m2ci]));
+			let lv=this.evaluateMove(moves2consider[m2ci]);
+			if (bonuses.length>m2ci) lv+=bonuses[m2ci];
+			locvalues.push(lv);
+			if (moves2consider[m2ci].x==16 && moves2consider[m2ci].y==3){ console.log(lv);console.log(m2ci,bonuses.length); }
 		}
 	}
 	if (markdead){
