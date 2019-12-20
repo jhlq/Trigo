@@ -802,29 +802,35 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connec
 					var oli=bc.tg.libertiesInds(og);
 					if (oli.length==1){
 						var cantconnectfatal=false;
-						var bcc=bc.copy();
-						var li=oli;
-						for (let i=0;i<300;i++){
-							//bcc.tg.set(li[0].x,li[0].y,bcc.otherPlayer()); //this would be faster but in some edge cases doesn't work
-							var pm=bcc.placeCustomMove(li[0].x,li[0].y,bcc.otherPlayer());
-							g=bcc.tg.getGroup(rt.x,rt.y);
-							li=bcc.tg.libertiesInds(g);
-							if (!pm){
-								if (g.length>4){
-									cantconnectfatal=true;
-								} else {
+						if (this.surrounds(og)==0){
+							if (g.length>4){
+								cantconnectfatal=true;
+							}
+						} else {
+							var bcc=bc.copy();
+							var li=oli;
+							for (let i=0;i<300;i++){
+								//bcc.tg.set(li[0].x,li[0].y,bcc.otherPlayer()); //this would be faster but in some edge cases doesn't work
+								var pm=bcc.placeCustomMove(li[0].x,li[0].y,bcc.otherPlayer());
+								g=bcc.tg.getGroup(rt.x,rt.y);
+								li=bcc.tg.libertiesInds(g);
+								if (!pm){
+									if (g.length>4){
+										cantconnectfatal=true;
+									} else {
+										bc.placeMove(oli[0].x,oli[0].y);
+										stonechange=og.length;
+									}
+									break;
+								} else if (li.length>1){
+									bc=bcc;
+									break;
+								}
+								if (i==0 && g.length==og.length+1){
 									bc.placeMove(oli[0].x,oli[0].y);
 									stonechange=og.length;
+									break;
 								}
-								break;
-							} else if (li.length>1){
-								bc=bcc;
-								break;
-							}
-							if (i==0 && g.length==og.length+1){
-								bc.placeMove(oli[0].x,oli[0].y);
-								stonechange=og.length;
-								break;
 							}
 						}
 						if (cantconnectfatal) break;
@@ -1205,7 +1211,7 @@ Trigo.AI.MCTSNode.prototype.select=function(){
 		if (child.visited==0){
 			n=5;
 		} else if (child.terminating){
-			if (child.wins>0){
+			if (child.winner==child.player){
 				this.terminating=true;
 				this.winner=child.player;
 				child.bp(child.player);
@@ -1214,7 +1220,7 @@ Trigo.AI.MCTSNode.prototype.select=function(){
 				n=0;
 			}
 		} else {
-			n=child.wins*3+1;
+			n=child.wins*5+1;
 		}
 		for (let ni=0;ni<n;ni++){
 			cis.push(ci);
@@ -1233,9 +1239,9 @@ Trigo.AI.MCTSNode.prototype.next=function(){
 	var wins=[];
 	for (let ci=0;ci<this.children.length;ci++){
 		child=this.children[ci];
-		/*if (child.terminating && child.winner==child.player){
+		if (child.terminating && child.winner==child.player){
 			return child;
-		}*/
+		}
 		wins.push(child.wins);
 	}
 	var c=(new Trigo.AI).indexOfMax(wins);
@@ -1268,35 +1274,33 @@ Trigo.AI.prototype.MCTSLadder=function(group,maxit){
 		var child=root.select();
 		if (!child) return [root.winner!=root.player,root];
 		for (let j=0;j<maxit;j++){
-			if (!child.move) console.log(group);
 			var pm=bc.placeMove(child.move.x,child.move.y);
 			if (!pm){
 				child.terminating=true;
-				child.bp(bc.otherPlayer());
+				child.winner=child.parent.player;
+				child.bp(child.winner);
 				break;
 			}
-			var g=bc.tg.getGroup(child.move.x,child.move.y);
+			var g=bc.tg.getGroup(group[0].x,group[0].y); //should only be required after gp has played
 			var li=bc.tg.libertiesInds(g);
-			if (li.length<2){
-				child.terminating=true;
-				child.bp(bc.player);
-				break;
-			}
-			if (bc.player==gp){
-				g=bc.tg.getGroup(group[0].x,group[0].y);
-				li=bc.tg.libertiesInds(g);
-			} else {
-				a=bc.ataris(g); 
-				if (li.length>2 || a.length>1){
+			if (bc.player!=gp){
+				if (li.length>2){
 					child.terminating=true;
-					child.bp(bc.otherPlayer());
+					child.winner=child.player;
+					child.bp(child.winner);
+					break;
+				} else if (li.length<2){
+					child.terminating=true;
+					child.winner=child.parent.player;
+					child.bp(child.winner);
 					break;
 				}
 			}
 			if (!child.alternatives){
 				child.alternatives=li;
-				if (bc.player!=gp && a.length==1){
-					child.alternatives.push(bc.tg.libertiesInds(a[0])[0]);
+				a=bc.ataris(g); 
+				for (let i=0;i<a.length;i++){
+					child.alternatives.push(bc.tg.libertiesInds(a[i])[0]);
 				}
 				this.makeChildren(child);
 			}
@@ -1304,7 +1308,7 @@ Trigo.AI.prototype.MCTSLadder=function(group,maxit){
 			if (!child) break;
 		}
 	}
-	console.log(root.wins+", "+root.visited);
+	//console.log(root.wins+", "+root.visited);
 	if (root.wins/root.visited>0.5) return [false,root];
 	return [true,root];
 };
@@ -1315,10 +1319,10 @@ Trigo.AI.prototype.canBeCaptured=function(x,y){						//this will be useful
 	if (group.length==0){
 		bc=this.board.copy();
 		var captures=bc.placeMoveCountCaptures(x,y);
-		group=bc.tg.getGroup(x,y);
 		if (captures<0) return true; //suicide/invalid
+		group=bc.tg.getGroup(x,y);
 	}
-	if (captures==0){
+	if (captures==0 || (captures==1 && group.length>1)){
 		let libs=bc.tg.liberties(group);
 		if (libs==1) return true;
 		if (libs==2){
@@ -1400,7 +1404,7 @@ Trigo.AI.prototype.evaluateMove=function(x,y){
 		if (igs[player-1].length<this.igs[player-1].length) locvalue+=10;
 		if (igs[bc.otherPlayer(player)-1].length>this.igs[bc.otherPlayer(player)-1].length) locvalue+=5;
 		var it=this.board.influence[tri.y][tri.x];
-		if (captures>0 && it.border==0) locvalue+=10;
+		if (captures>0 && it.border<1) locvalue+=10;
 		bc=this.board.copy();
 		bc.placeMove(-1,-1);
 		var captures2=bc.placeMoveCountCaptures(tri);
@@ -1410,7 +1414,7 @@ Trigo.AI.prototype.evaluateMove=function(x,y){
 			locvalue+=se3[this.board.otherPlayer(player)-1]-this.se[this.board.otherPlayer(player)-1]+this.se[player-1]-se3[player-1];
 			if (igs[player-1].length>this.igs[player-1].length) locvalue+=10;
 			if (igs[bc.otherPlayer(player)-1].length<this.igs[bc.otherPlayer(player)-1].length) locvalue+=5;
-			if (captures2>0 && it.border==0) locvalue+=10;
+			if (captures2>0 && it.border<1) locvalue+=10;
 		}
 		if (it.border==1) locvalue=locvalue/2;
 		if (captures==0 && captures2==0 && (it.green==0 != it.blue==0)) locvalue=locvalue/2;
@@ -1426,7 +1430,6 @@ Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong){
 			if (this.board.placeMove(rx,ry)) return;
 		}
 	}
-	this.board.spreadInfluence();
 	var board=this.board;
 	if (this.board.moves[this.board.moves.length-1].isPass()){
 		this.board=this.board.copy();
@@ -1436,20 +1439,22 @@ Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong){
 		this.board=this.board.copy();
 		this.markDeadByPlaying();
 	}
+	this.board.spreadInfluence();
 	var shortf=this.findLibertyShortages();
 	var short=shortf[0];
 	var moves2consider=[];
 	var locvalues=[];
 	var bonuses=[];
-	for (let si=0;si<shortf[1][1].length;si++){
-		let g=shortf[1][1][si];
-		if (g[0].player==this.board.player) continue;
-		let l=this.MCTSLadder(g);
-		if (l[0]){
-			let m=l[1].next().move;
-			if (m.x==16 && m.y==3){ console.log(g.length*10+10);console.log(l[1]); }
-			moves2consider.push(m);
-			bonuses.push(g.length*10+10);
+	if (!dontmarkdead){
+		for (let si=0;si<shortf[1][1].length;si++){
+			let g=shortf[1][1][si];
+			let l=this.MCTSLadder(g);
+			if (l[0]){
+				let m=l[1].next().move;
+				if (g[0].player==this.board.player && this.canBeCaptured(m.x,m.y)) continue;
+				moves2consider.push(m);
+				bonuses.push(g.length*10+10);
+			}
 		}
 	}
 	var inflm=this.findFromInfluence();
