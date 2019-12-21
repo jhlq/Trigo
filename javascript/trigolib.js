@@ -1404,7 +1404,7 @@ Trigo.AI.prototype.evaluateMove=function(x,y){
 		if (igs[player-1].length<this.igs[player-1].length) locvalue+=10;
 		if (igs[bc.otherPlayer(player)-1].length>this.igs[bc.otherPlayer(player)-1].length) locvalue+=5;
 		var it=this.board.influence[tri.y][tri.x];
-		if (captures>0 && it.border<1) locvalue+=10;
+		if (captures>0) locvalue+=5*captures;
 		bc=this.board.copy();
 		bc.placeMove(-1,-1);
 		var captures2=bc.placeMoveCountCaptures(tri);
@@ -1414,7 +1414,7 @@ Trigo.AI.prototype.evaluateMove=function(x,y){
 			locvalue+=se3[this.board.otherPlayer(player)-1]-this.se[this.board.otherPlayer(player)-1]+this.se[player-1]-se3[player-1];
 			if (igs[player-1].length>this.igs[player-1].length) locvalue+=10;
 			if (igs[bc.otherPlayer(player)-1].length<this.igs[bc.otherPlayer(player)-1].length) locvalue+=5;
-			if (captures2>0 && it.border<1) locvalue+=10;
+			if (captures2>0) locvalue+=5*captures2;
 		}
 		if (it.border==1) locvalue=locvalue/2;
 		if (captures==0 && captures2==0 && (it.green==0 != it.blue==0)) locvalue=locvalue/2;

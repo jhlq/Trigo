@@ -81,9 +81,9 @@ Trigo.ScreenBoard.prototype.handleClick=function(x,y){
 			this.board.placeMove(tri.x,tri.y);
 			this.placeMoves();
 			if (document.getElementById("autoAI").checked){
-				this.letAIPlay(); //this doesn't draw the clicked move until after the AI is done...
-				//var _this=this;
-				//setTimeout(_this.letAIPlay,150); //this has wierd board undefined error and then the AI move gets placed but isn't visible...
+				//this.letAIPlay(); //this doesn't draw the clicked move until after the AI is done...
+				var _this=this;
+				setTimeout(function(){ _this.letAIPlay(); },50);
 			}
 		}
 	} else if (imt==1){
