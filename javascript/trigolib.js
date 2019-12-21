@@ -803,7 +803,7 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connec
 					if (oli.length==1){
 						var cantconnectfatal=false;
 						if (this.surrounds(og)==0){
-							if (g.length>4){
+							if (og.length>4){
 								cantconnectfatal=true;
 							}
 						} else {
@@ -1431,7 +1431,7 @@ Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong){
 		}
 	}
 	var board=this.board;
-	if (this.board.moves[this.board.moves.length-1].isPass()){
+	if (!dontmarkdead && this.board.moves[this.board.moves.length-1].isPass()){
 		this.board=this.board.copy();
 		this.board.autoMarkDeadStones();
 	}
