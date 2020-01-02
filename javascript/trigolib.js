@@ -1392,7 +1392,7 @@ Trigo.AI.prototype.evaluateMove=function(x,y){
 	player=this.board.player;
 	var captures=bc.placeMoveCountCaptures(tri);
 	if (captures<0){
-		return -1;
+		return -1000;
 	} else {
 		var igs=bc.getIGs();
 		var se2=bc.estimateScore(false);
