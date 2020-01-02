@@ -676,8 +676,9 @@ Trigo.Board.prototype.surrounds=function(cluster){						//efficient
 				checked.push(c[ci]);
 			}
 			var adj=this.tg.adjacent(c);
+			if (adj.length==0) continue;
 			var p=adj[0].player;
-			if (!(adj.length==0) && p>0){
+			if (p>0){
 				var oneplayer=true;
 				for (let adji=0;adji<adj.length;adji++){
 					if (adj[adji].player!=p){
@@ -695,26 +696,30 @@ Trigo.Board.prototype.surrounds=function(cluster){						//efficient
 	}
 	return surrounded;
 };
-Trigo.Board.prototype.connectDanglers=function(){
-	var bc=this.copy();
-	bc.spreadInfluence();
+Trigo.Board.prototype.fillDame=function(spreaded){
+	if (!spreaded) this.spreadInfluence();
 	for (let y=0;y<this.tg.triangles.length;y++){
 		for (let x=0;x<this.tg.triangles[y].length;x++){
-			var itri=bc.influence[y][x];
+			var itri=this.influence[y][x];
 			if (itri.green>0 && itri.blue>0){
 				if (itri.green>itri.blue){
-					bc.placeCustomMove(x,y,1);
+					this.placeCustomMove(x,y,1);
 				} else {
-					bc.placeCustomMove(x,y,2);
+					this.placeCustomMove(x,y,2);
 				}
 			}
 		}
 	}
+};
+Trigo.Board.prototype.connectDanglers=function(){
+	var bc=this.copy();
+	bc.fillDame();
 	var ai=new Trigo.AI(bc);
-	var ataris=ai.findLibertyShortages()[0][0];
+	var sh=ai.findLibertyShortages();
+	var ataris=sh[0][0];
 	for (let a=0;a<ataris.length;a++){
 		let at=ataris[a];
-		let p=bc.tg.adjacent(at)[0].player;
+		let p=sh[1][0][a][0].player;
 		for (let i=0;i<300;i++){
 			let pm=bc.placeCustomMove(at.x,at.y,p);
 			if (pm){
@@ -736,6 +741,12 @@ Trigo.Board.prototype.tryCaptureCluster=function(cluster,maxit){ //how to connec
 	if (maxit===undefined) maxit=10;
 	var space=this.tg.getConnectedSpace(cluster);
 	if (space.length>15) return false;
+	var atarid=this.ataris(cluster);
+	var ataridi=0;
+	for (let ati=0;ati<atarid.length;ati++){
+		ataridi+=atarid[ati].length;
+	}
+	if (ataridi>5) return false;
 	var c0=cluster[0];
 	var mb=this.copy();
 	mb.connectDanglers();
@@ -1028,10 +1039,14 @@ Trigo.Board.prototype.loadGame=function(movesstring){
 Trigo.Board.prototype.ataris=function(group){
 	var arr=this.tg.adjacent(group);
 	var a=[];
+	var checked=[];
 	for (let arri=0;arri<arr.length;arri++){
-		if (arr[arri].alive()){
+		if (arr[arri].alive() && !checked.includes(arr[arri])){
 			let g=this.tg.getGroup_tri(arr[arri]);
 			if (this.tg.liberties(g)==1) a.push(g);
+			for (let i=0;i<g.length;i++){
+				checked.push(g[i]);
+			}
 		}
 	}
 	return a;
@@ -1042,6 +1057,10 @@ Trigo.InfluenceGroup=function(){
 	this.monopoly=[];
 	this.majority=[];
 	this.minority=[];
+};
+Trigo.InfluenceGroup.prototype.safe=function(){
+	if (this.monopoly.length>5 || this.majority.length>15) return true;
+	return false;
 };
 Trigo.Board.prototype.getIG=function(x,y){
 	if (y===undefined){
