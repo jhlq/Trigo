@@ -1421,6 +1421,10 @@ Trigo.AI.prototype.evaluateMove=function(x,y){
 		return locvalue;
 	}
 };
+Trigo.AI.prototype.refresh=function(){
+	this.igs=this.board.getIGs();
+	this.se=this.board.estimateScore(false);
+};
 Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong){
 	if (this.board.moves.length<1){
 		for (let i=0;i<30;i++){
@@ -1430,16 +1434,6 @@ Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong){
 			if (this.board.placeMove(rx,ry)) return;
 		}
 	}
-	var board=this.board;
-	if (!dontmarkdead && this.board.moves[this.board.moves.length-1].isPass()){
-		this.board=this.board.copy();
-		this.board.autoMarkDeadStones();
-	}
-	if (markdead){
-		this.board=this.board.copy();
-		this.markDeadByPlaying();
-	}
-	this.board.spreadInfluence();
 	var shortf=this.findLibertyShortages();
 	var short=shortf[0];
 	var moves2consider=[];
@@ -1457,7 +1451,20 @@ Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong){
 			}
 		}
 	}
+	var board=this.board;
+	if (!dontmarkdead && this.board.moves[this.board.moves.length-1].isPass()){
+		this.board=this.board.copy();
+		this.board.autoMarkDeadStones();
+	}
+	if (markdead){
+		this.board=this.board.copy();
+		this.markDeadByPlaying();
+	}
+	this.igs=this.board.getIGs();
+	this.se=this.board.estimateScore(false);
 	var inflm=this.findFromInfluence();
+	shortf=this.findLibertyShortages();
+	var short=shortf[0];
 	var moves2consider0=inflm.concat(short[0]);
 	for (let si=0;si<short[1].length;si++){
 		let sm=short[1][si];
@@ -1481,8 +1488,6 @@ Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong){
 		}
 		return;
 	}
-	this.igs=this.board.getIGs();
-	this.se=this.board.estimateScore(false);
 	this.estimates.push([this.board.moves.length-1,this.se[0]-this.se[1]]);
 	var player=this.board.player;
 	if (thinklong){
@@ -1510,7 +1515,6 @@ Trigo.AI.prototype.placeSmartMove=function(markdead,dontmarkdead,thinklong){
 			let lv=this.evaluateMove(moves2consider[m2ci]);
 			if (bonuses.length>m2ci) lv+=bonuses[m2ci];
 			locvalues.push(lv);
-			if (moves2consider[m2ci].x==16 && moves2consider[m2ci].y==3){ console.log(lv);console.log(m2ci,bonuses.length); }
 		}
 	}
 	if (markdead){
