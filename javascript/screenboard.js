@@ -81,7 +81,9 @@ Trigo.ScreenBoard.prototype.handleClick=function(x,y){
 			this.board.placeMove(tri.x,tri.y);
 			this.placeMoves();
 			if (document.getElementById("autoAI").checked){
-				this.letAIPlay();
+				//this.letAIPlay(); //this doesn't draw the clicked move until after the AI is done...
+				var _this=this;
+				setTimeout(function(){ _this.letAIPlay(); },50);
 			}
 		}
 	} else if (imt==1){
