@@ -1097,15 +1097,17 @@ Trigo.Board.prototype.ataris=function(group){
 	return a;
 };
 
-Trigo.InfluenceGroup=function(){
+Trigo.InfluenceGroup=function(board){
 	this.stones=[];
 	this.monopoly=[];
 	this.majority=[];
 	this.minority=[];
 	this.security=0;
+	this.board=board;
 };
 Trigo.InfluenceGroup.prototype.safe=function(){
-	if (this.monopoly.length>5 || this.majority.length>15) return true;
+	if (this.stones.length==0) return false;
+	if (this.monopoly.length>5 || this.majority.length>15 || this.board.hasTwoSolidEyes(this.monopoly)) return true;
 	return false;
 };
 Trigo.InfluenceGroup.prototype.com=function(){ //center of mass
@@ -1123,7 +1125,7 @@ Trigo.Board.prototype.getIG=function(x,y){
 		y=x.y;
 		x=x.x;
 	}
-	var ig=new Trigo.InfluenceGroup();
+	var ig=new Trigo.InfluenceGroup(this);
 	ig.stones=this.tg.getGroup(x,y);
 	if (ig.stones.length==0) return ig;
 	var p=ig.stones[0].player;
@@ -1166,11 +1168,14 @@ Trigo.Board.prototype.getIG=function(x,y){
 };
 Trigo.Board.prototype.refreshIG=function(ig){
 	this.spreadInfluence();
+	var p=ig.stones[0].player;
 	for (let si=0;si<ig.stones.length;si++){
+		let t=ig.stones[si];
+		if (this.tg.get(t.x,t.y).player!=p) continue;
 		let nig=this.getIG(ig.stones[si]);
 		if (nig.stones.length>ig.stones.length/2) return nig;
 	}
-	return new Trigo.InfluenceGroup();
+	return false;
 };
 Trigo.Board.prototype.getIGs=function(){
 	var checked=[];
@@ -1466,7 +1471,13 @@ Trigo.AI.prototype.MCTSTryCaptureIG=function(ig,maxit){
 			}
 			if (!child.alternatives){
 				rig=bc.refreshIG(rig);
-				if (child.player==defp && bc.hasTwoSolidEyes(rig.monopoly)){
+				if (!rig){
+					child.terminating=true;
+					child.winner=bc.otherPlayer(defp);
+					child.bp(child.winner);
+					break;
+				}
+				if (child.player==defp && rig.safe()){
 					child.terminating=true;
 					child.winner=child.player;
 					child.bp(child.winner);
