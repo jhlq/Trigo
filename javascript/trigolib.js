@@ -461,6 +461,29 @@ Trigo.Board.prototype.isValidMove_tri=function(t){
 	}
 	return true;
 };
+Trigo.Board.prototype.isSolidEye=function(x,y){
+	if (y===undefined){
+		y=x.y;
+		x=x.x;
+	}
+	var adj=this.tg.adjacent(x,y);
+	if (adj[0].player==0) return false;
+	var g=this.tg.getGroup(adj[0]);
+	for (let a=1;a<adj.length;a++){
+		if (!g.includes(adj[a])) return false;
+	}
+	return true;
+};
+Trigo.Board.prototype.hasTwoSolidEyes=function(arr){
+	var found=false;
+	for (let n=0;n<arr.length;n++){
+		if (this.isSolidEye(arr[n])){
+			if (found) return true;
+			found=true;
+		}
+	}
+	return false;
+};
 Trigo.Board.prototype.otherPlayer=function(p){
 	if (p===undefined) p=this.player;
 	if (p==1){
@@ -707,6 +730,28 @@ Trigo.Board.prototype.fillDame=function(spreaded){
 				} else {
 					this.placeCustomMove(x,y,2);
 				}
+			}
+		}
+	}
+};
+Trigo.Board.prototype.connectAtaris=function(){
+	var ai=new Trigo.AI(this);
+	var sh=ai.findLibertyShortages();
+	var ataris=sh[0][0];
+	for (let a=0;a<ataris.length;a++){
+		let at=ataris[a];
+		let p=sh[1][0][a][0].player;
+		for (let i=0;i<300;i++){
+			let pm=this.placeCustomMove(at.x,at.y,p);
+			if (pm){
+				let li=this.tg.libertiesInds(this.tg.getGroup(at.x,at.y));
+				if (li.length==1){
+					at=li[0];
+				} else {
+					break;
+				}
+			} else {
+				break;
 			}
 		}
 	}
@@ -1057,10 +1102,21 @@ Trigo.InfluenceGroup=function(){
 	this.monopoly=[];
 	this.majority=[];
 	this.minority=[];
+	this.security=0;
 };
 Trigo.InfluenceGroup.prototype.safe=function(){
 	if (this.monopoly.length>5 || this.majority.length>15) return true;
 	return false;
+};
+Trigo.InfluenceGroup.prototype.com=function(){ //center of mass
+	var xt=0;
+	var yt=0;
+	var nstones=this.stones.length;
+	for (let n=0;n<nstones;n++){
+		xt+=this.stones[n].x;
+		yt+=this.stones[n].y;
+	}
+	return [xt/nstones,yt/nstones];
 };
 Trigo.Board.prototype.getIG=function(x,y){
 	if (y===undefined){
@@ -1107,6 +1163,14 @@ Trigo.Board.prototype.getIG=function(x,y){
 		fringe=this.tg.adjacent(tfringe);
 	}
 	return ig;
+};
+Trigo.Board.prototype.refreshIG=function(ig){
+	this.spreadInfluence();
+	for (let si=0;si<ig.stones.length;si++){
+		let nig=this.getIG(ig.stones[si]);
+		if (nig.stones.length>ig.stones.length/2) return nig;
+	}
+	return new Trigo.InfluenceGroup();
 };
 Trigo.Board.prototype.getIGs=function(){
 	var checked=[];
@@ -1328,6 +1392,100 @@ Trigo.AI.prototype.MCTSLadder=function(group,maxit){
 		}
 	}
 	//console.log(root.wins+", "+root.visited);
+	if (root.wins/root.visited>0.5) return [false,root];
+	return [true,root];
+};
+Trigo.AI.prototype.MCTSIGAlternatives=function(ig){
+	var alternatives=ig.monopoly.concat(ig.majority).concat(ig.minority);
+	var adj=this.board.tg.adjacent(alternatives.concat(ig.stones));
+	var checked=[];
+	for (let a=0;a<adj.length;a++){
+		if (checked.includes(adj[a])) continue;
+		let g=this.board.tg.getGroup(adj[a]);
+		for (let gi=0;gi<g.length;gi++){
+			checked.push(g[gi]);
+		}
+		let li=this.board.tg.libertiesInds(g);
+		if (li.length==2){
+			if (!alternatives.includes(li[0])){
+				alternatives.push(li[0]);
+			}
+			if (!alternatives.includes(li[1])){
+				alternatives.push(li[1]);
+			}
+		} else if (li.length==1){
+			if (!alternatives.includes(li[0])){
+				alternatives.push(li[0]);
+			}
+		}
+	}
+	alternatives.push(new Trigo.Triangle(-1,-1));
+	return alternatives;
+};
+Trigo.AI.prototype.MCTSTryCaptureIG=function(ig,maxit){
+	if (this.board.hasTwoSolidEyes(ig.monopoly)){
+		ig.security=5;
+		return [false,new Trigo.AI.MCTSNode()];
+	}
+	var defp=ig.stones[0].player;
+	var root=new Trigo.AI.MCTSNode(defp,false,false,this.MCTSIGAlternatives(ig));
+	this.makeChildren(root);
+	if (maxit===undefined) maxit=100;
+	for (let i=0;i<maxit;i++){
+		var bc=this.board.copy();
+		bc.player=bc.otherPlayer(defp);
+		var bcai=new Trigo.AI(bc);
+		var child=root.select();
+		if (!child) return [root.winner!=root.player,root];
+		var tcaps=0;
+		var rig=ig;
+		for (let j=0;j<maxit;j++){
+			if (child.move.isPass() && child.parent.move && child.parent.move.isPass()){
+				child.terminating=true;
+				child.winner=defp;
+				child.bp(child.winner);
+				break;
+			}
+			var caps=bc.placeMoveCountCaptures(child.move.x,child.move.y);
+			if (caps<0){
+				child.terminating=true;
+				child.winner=child.parent.player;
+				child.bp(child.winner);
+				break;
+			}
+			if (bc.player==defp){
+				if (caps>0){
+					tcaps+=caps;
+					if (tcaps>ig.stones.length/2){
+						child.terminating=true;
+						child.winner=child.player;
+						child.bp(child.winner);
+						break;
+					}
+				}
+			}
+			if (!child.alternatives){
+				rig=bc.refreshIG(rig);
+				if (child.player==defp && bc.hasTwoSolidEyes(rig.monopoly)){
+					child.terminating=true;
+					child.winner=child.player;
+					child.bp(child.winner);
+					break;
+				}
+				child.alternatives=bcai.MCTSIGAlternatives(rig);
+				if (child.alternatives.length==1 && child.parent.children.length==1){
+					child.terminating=true;
+					child.winner=defp;
+					child.bp(child.winner);
+					break;
+				}
+				this.makeChildren(child);
+			}
+			child=child.select();
+			if (!child) break;
+		}
+	}
+	console.log(root.wins+", "+root.visited);
 	if (root.wins/root.visited>0.5) return [false,root];
 	return [true,root];
 };
