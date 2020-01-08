@@ -1107,7 +1107,7 @@ Trigo.InfluenceGroup=function(board){
 };
 Trigo.InfluenceGroup.prototype.safe=function(){
 	if (this.stones.length==0) return false;
-	if (this.monopoly.length>5 || this.majority.length>15 || this.board.hasTwoSolidEyes(this.monopoly)) return true;
+	if (this.monopoly.length>10 || this.majority.length>15 || this.board.hasTwoSolidEyes(this.monopoly)) return true;
 	return false;
 };
 Trigo.InfluenceGroup.prototype.com=function(){ //center of mass
@@ -1164,6 +1164,17 @@ Trigo.Board.prototype.getIG=function(x,y){
 		}
 		fringe=this.tg.adjacent(tfringe);
 	}
+	fringe=this.tg.adjacent(ig.minority);
+	for (let i=0;i<fringe.length;i++){
+		let t=fringe[i];
+		if (!t.alive()){
+			let it=this.influence[t.y][t.x];
+			let inf=[it.green,it.blue];
+			if (inf[p-1]>0 && inf[p-1]<inf[this.otherPlayer(p)-1]){
+				ig.minority.push(t);
+			}
+		}
+	}		
 	return ig;
 };
 Trigo.Board.prototype.refreshIG=function(ig){
@@ -1324,6 +1335,7 @@ Trigo.AI.MCTSNode.prototype.select=function(){
 	return this.children[c];
 };
 Trigo.AI.MCTSNode.prototype.next=function(){
+	if (this.children.length==0) return false;
 	var wins=[];
 	for (let ci=0;ci<this.children.length;ci++){
 		child=this.children[ci];
@@ -1333,6 +1345,7 @@ Trigo.AI.MCTSNode.prototype.next=function(){
 		wins.push(child.wins);
 	}
 	var c=(new Trigo.AI).indexOfMax(wins);
+	if (this.children[c].wins==0) return this.children[this.children.length-1];
 	return this.children[c];
 };
 Trigo.AI.MCTSNode.prototype.bp=function(winner){
@@ -1411,16 +1424,15 @@ Trigo.AI.prototype.MCTSIGAlternatives=function(ig){
 			checked.push(g[gi]);
 		}
 		let li=this.board.tg.libertiesInds(g);
-		if (li.length==2){
-			if (!alternatives.includes(li[0])){
-				alternatives.push(li[0]);
+		if (li.length<3){
+			let ag=this.board.ataris(g);
+			for (let agi=0;agi<ag.length;agi++){
+				li.push(this.board.tg.libertiesInds(ag[agi])[0]);
 			}
-			if (!alternatives.includes(li[1])){
-				alternatives.push(li[1]);
-			}
-		} else if (li.length==1){
-			if (!alternatives.includes(li[0])){
-				alternatives.push(li[0]);
+			for (let lii=0;lii<li.length;lii++){
+				if (!alternatives.includes(li[lii])){
+					alternatives.push(li[lii]);
+				}
 			}
 		}
 	}
@@ -1428,15 +1440,17 @@ Trigo.AI.prototype.MCTSIGAlternatives=function(ig){
 	return alternatives;
 };
 Trigo.AI.prototype.MCTSTryCaptureIG=function(ig,maxit){
-	if (this.board.hasTwoSolidEyes(ig.monopoly)){
-		ig.security=5;
+	if (ig.safe()){
 		return [false,new Trigo.AI.MCTSNode()];
 	}
 	var defp=ig.stones[0].player;
 	var root=new Trigo.AI.MCTSNode(defp,false,false,this.MCTSIGAlternatives(ig));
 	this.makeChildren(root);
 	if (maxit===undefined) maxit=100;
+	var evalit=Math.round(maxit-maxit/10);
+	var winsateval=0;
 	for (let i=0;i<maxit;i++){
+		if (i==evalit) winsateval=root.wins;
 		var bc=this.board.copy();
 		bc.player=bc.otherPlayer(defp);
 		var bcai=new Trigo.AI(bc);
@@ -1493,12 +1507,45 @@ Trigo.AI.prototype.MCTSTryCaptureIG=function(ig,maxit){
 				this.makeChildren(child);
 			}
 			child=child.select();
-			if (!child) break;
+			if (!child){ 
+				console.log("Couldn't find child.");
+				break;
+			}
 		}
 	}
 	console.log(root.wins+", "+root.visited);
+	console.log("Evalwins: "+(root.wins-winsateval));
 	if (root.wins/root.visited>0.5) return [false,root];
 	return [true,root];
+};
+Trigo.AI.MCTSW=function(root,board){
+	this.root=root;
+	this.os=board.state();
+	this.board=board;
+	this.cursor=root.next();
+	this.fin=false;
+};
+Trigo.AI.MCTSW.prototype.play=function(){
+	if (this.fin) return false;
+	if (this.board.player!=this.cursor.player){
+		this.cursor=this.cursor.children[this.cursor.children.length-1];
+	}
+	var pm=this.board.placeMove(this.cursor.move.x,this.cursor.move.y);
+	var n=this.cursor.next();
+	if (!n){
+		this.fin=true;
+	} else {
+		this.cursor=n;
+	}
+	return pm;
+};
+Trigo.AI.MCTSW.prototype.reset=function(){
+	this.board.loadGame(this.os);
+	this.cursor=root.next();
+};
+Trigo.AI.MCTSW.prototype.undo=function(){
+	this.board.undo();
+	this.cursor=this.cursor.parent;
 };
 Trigo.AI.prototype.canBeCaptured=function(x,y){						//this will be useful
 	var group=this.board.tg.getGroup(x,y);
