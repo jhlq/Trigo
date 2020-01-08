@@ -197,22 +197,22 @@ Trigo.ScreenBoard.prototype.plotInfluence=function(player,range,tunneling){
 	if (player==undefined) player=0;
 	if (range==undefined) range=3;
 	if (tunneling==undefined) tunneling=false;
-	this.board.resetInfluence();
 	this.board.spreadInfluence(range,tunneling);
 	for (let y=0;y<this.board.influence.length;y++){
 		for (let x=0;x<this.board.influence[y].length;x++){
-			var it=this.board.influence[y][x];
+			if (this.board.tg.triangles[y][x].alive()) continue;
 			var st=this.triangles[y][x];
-			if (player==1){
-				this.drawer.circle(st.pixX,st.pixY,"#0f0",this.unitSize*it.green/2);
-			} else if (player==2){
-				this.drawer.circle(st.pixX,st.pixY,"#00f",this.unitSize*it.blue/2);
+			var it=this.board.influence[y][x];
+			if (player==1 && it.green>0){
+				this.drawer.circle(st.pixX,st.pixY,"#0f0",this.unitSize*it.green/3);
+			} else if (player==2 && it.blue>0){
+				this.drawer.circle(st.pixX,st.pixY,"#00f",this.unitSize*it.blue/3);
 			} else if (player==0){
 				var infl=it.green-it.blue;
 				if (infl>0){
-					this.drawer.circle(st.pixX,st.pixY,"#0f0",this.unitSize*infl/2);
+					this.drawer.circle(st.pixX,st.pixY,"#0f0",this.unitSize*infl/3);
 				} else if (infl<0){
-					this.drawer.circle(st.pixX,st.pixY,"#00f",this.unitSize*Math.abs(infl)/2);
+					this.drawer.circle(st.pixX,st.pixY,"#00f",this.unitSize*Math.abs(infl)/3);
 				}
 			}
 		}
