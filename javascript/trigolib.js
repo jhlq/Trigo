@@ -1508,10 +1508,23 @@ Trigo.AI.prototype.MCTSTryCaptureIG=function(ig,maxit){
 			}
 			child=child.select();
 			if (!child){ 
-				console.log("Couldn't find child.");
 				break;
 			}
 		}
+	}
+	var nt=root;
+	var n=root.next();
+	for (let i=0;i<maxit;i++){
+		if (!n){
+			if (nt.wins>0){
+				root.winner=nt.player;
+			} else {
+				root.winner=this.board.otherPlayer(nt.player);
+			}
+			break;
+		}
+		nt=n;
+		n=nt.next();
 	}
 	console.log(root.wins+", "+root.visited);
 	console.log("Evalwins: "+(root.wins-winsateval));
@@ -1542,10 +1555,12 @@ Trigo.AI.MCTSW.prototype.play=function(){
 Trigo.AI.MCTSW.prototype.reset=function(){
 	this.board.loadGame(this.os);
 	this.cursor=root.next();
+	this.fin=false;
 };
 Trigo.AI.MCTSW.prototype.undo=function(){
 	this.board.undo();
 	this.cursor=this.cursor.parent;
+	this.fin=false;
 };
 Trigo.AI.prototype.canBeCaptured=function(x,y){						//this will be useful
 	var group=this.board.tg.getGroup(x,y);
