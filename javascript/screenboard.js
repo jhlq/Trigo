@@ -251,6 +251,32 @@ Trigo.ScreenBoard.prototype.updateScore=function(){
 	ssa+=result;
 	alert(ssa);
 };
+Trigo.ScreenBoard.prototype.estimateScore=function(){
+	this.plotInfluence();
+	var s=this.board.estimateScore(false);
+	var sum=s[0]-s[1];
+	var result=this.board.ruleset+" ruleset. ";
+	if (sum>0){
+		result+="Green by "+sum+" points.";
+	} else if (sum<0){
+		result+="Blue by "+Math.abs(sum)+" points.";
+	} else {
+		result+="Draw!";
+	}
+	var ss="<b>Last score estimate</b><br>";
+	ss+="Green: "+s[0]+". "+this.board.stones[0]+" stones and "+this.board.captures[0]+" captures.<br>";
+	ss+="Blue: "+s[1]+". "+this.board.stones[1]+" stones and "+this.board.captures[1]+" captures.<br>";
+	ss+="Komi for blue is set at "+this.board.komi+".<br>";
+	ss+=result;
+	document.getElementById("scores").innerHTML=ss;
+	
+	var ssa="Score estimate\n";
+	ssa+="Green: "+s[0]+". "+this.board.stones[0]+" stones and "+this.board.captures[0]+" captures.\n";
+	ssa+="Blue: "+s[1]+". "+this.board.stones[1]+" stones and "+this.board.captures[1]+" captures.\n";
+	ssa+="Komi for blue is set at "+this.board.komi+".\n";
+	ssa+=result;
+	alert(ssa);
+};
 Trigo.ScreenBoard.prototype.loadGame=function(){
 	if (this.ws){
 		this.send("loadGame "+document.getElementById("board_moves").value);

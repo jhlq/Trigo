@@ -3,7 +3,8 @@
 	<p id="winner"></p>
 	{{template "localchat"}}
 	<button onclick="sb.pass()">Pass.</button> &nbsp;&nbsp;&nbsp;
-	<button onclick="sb.resign()">Resign.</button>
+	<button onclick="sb.resign()">Resign.</button> &nbsp;&nbsp;&nbsp;
+	<button onclick="sb.estimateScore()">Estimate score.</button>
 	<div id="atEnd"></div>
 	<canvas id="TriCanvas" width="600" height="540"></canvas>
 	<p>Coordinate locator: <input type="number" id="x" onchange="crosshair()" value=1>

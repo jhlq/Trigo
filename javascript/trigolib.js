@@ -1039,8 +1039,12 @@ Trigo.Board.prototype.estimateScore=function(reset,range,tunneling){
 	if (reset===undefined) reset=true;
 	if (range===undefined) range=3;
 	if (tunneling===undefined) tunneling=false;
-	var green=this.captures[0];//+this.stones[0];	//hybrid rules, both stones and captures give points
-	var blue=this.captures[1]+this.komi;//+this.stones[1]; //stones are counted from influence
+	var green=0;
+	var blue=this.komi;
+	if (this.ruleset!="Area"){
+		green+=this.captures[0];
+		blue+=this.captures[1];
+	}
 	if (reset){
 		this.spreadInfluence(range,tunneling);
 	}
@@ -1062,6 +1066,10 @@ Trigo.Board.prototype.estimateScore=function(reset,range,tunneling){
 				}
 			}
 		}
+	}
+	if (this.ruleset=="Territory"){
+		green-=this.stones[0];
+		blue-=this.stones[1];
 	}
 	return [green,blue];
 };
