@@ -1438,7 +1438,7 @@ Trigo.AI.prototype.MCTSIGAlternatives=function(ig){
 				li.push(this.board.tg.libertiesInds(ag[agi])[0]);
 			}
 			for (let lii=0;lii<li.length;lii++){
-				if (!alternatives.includes(li[lii])){
+				if (!alternatives.includes(li[lii]) && !this.canBeCaptured(li[lii].x,li[lii].y,true)){ //snapbacks removed to simplify
 					alternatives.push(li[lii]);
 				}
 			}
@@ -1570,7 +1570,7 @@ Trigo.AI.MCTSW.prototype.undo=function(){
 	this.cursor=this.cursor.parent;
 	this.fin=false;
 };
-Trigo.AI.prototype.canBeCaptured=function(x,y){						//this will be useful
+Trigo.AI.prototype.canBeCaptured=function(x,y,noMCTS){						//this will be useful
 	var group=this.board.tg.getGroup(x,y);
 	var captures=0;
 	var bc=this.board;
@@ -1583,7 +1583,7 @@ Trigo.AI.prototype.canBeCaptured=function(x,y){						//this will be useful
 	if (captures==0 || (captures==1 && group.length>1)){
 		let libs=bc.tg.liberties(group);
 		if (libs==1) return true;
-		if (libs==2){
+		if (!noMCTS && libs==2){
 			var aibc=new Trigo.AI(bc);
 			return aibc.MCTSLadder(group)[0];
 		}
