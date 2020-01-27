@@ -11,8 +11,8 @@ include(${SHARK_USE_FILE}) #run cmake with "-DShark_DIR=/home/quin/Shark/newbuil
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-#enable_testing ()
-#add_subdirectory (../tests)
+enable_testing ()
+add_subdirectory (../tests tests)
 add_subdirectory (src) 
 add_subdirectory (../trigolib lib) 
 

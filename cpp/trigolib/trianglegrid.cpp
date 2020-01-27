@@ -204,13 +204,13 @@ std::vector<Triangle> TriangleGrid::getCluster(const std::vector<Triangle> &grou
     }
     std::vector<Triangle> checked;
     int player=group[0].player;
-    for (int gi=0;gi<group.size();gi++){
+    for (size_t gi=0;gi<group.size();gi++){
         cluster.push_back(group[gi]);
         checked.push_back(group[gi]);
     }
     std::vector<Triangle> adj=adjacent(group);
     std::vector<Triangle> adjempty;
-    for (int ai=0;ai<adj.size();ai++){
+    for (size_t ai=0;ai<adj.size();ai++){
         if (adj[ai].player==0){
             adjempty.push_back(adj[ai]);
         }

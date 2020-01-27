@@ -250,6 +250,10 @@ void MainWindow::trainOnExamples(){
     st.trainModel(st.examplesdataset,iterations,learningrate);
 }
 void MainWindow::trainOnSimulations(){
+	if (st.simulationsdataset.empty()){
+		std::cout<<"Simulations dataset is empty."<<std::endl;
+		return;
+	}
     int iterations=ui->iterationsSpinBox->value();
     double learningrate=ui->learningrateSpinBox->value();
     st.trainModel(st.simulationsdataset,iterations,learningrate);

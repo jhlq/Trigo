@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE(teststate)
     Board board=Board(7);
     board.placeMove(1,0);
     std::string s=board.state();
-    BOOST_CHECK_EQUAL(s,"7;1,0,1;");
+    BOOST_CHECK_EQUAL(s,"7;1,0:1;");
 }
 BOOST_AUTO_TEST_CASE(testcluster)
 {

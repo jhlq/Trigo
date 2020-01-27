@@ -3,11 +3,7 @@
 #include <string>
 #include <memory>
 
-//#include <shark/Data/Csv.h>
-//#include <shark/Algorithms/GradientDescent/CG.h>
 #include <shark/Models/ConcatenatedModel.h>
-//#include <shark/ObjectiveFunctions/ErrorFunction.h>
-//#include <shark/ObjectiveFunctions/Loss/SquaredLoss.h>
 #include <shark/Models/LinearModel.h>
 #include <shark/Models/NeuronLayers.h>
 using namespace shark;
@@ -24,7 +20,7 @@ public:
     RealVector makeEvalVector(Board board,Triangle move);
     Board loadGame(std::string movesstring);
     void makeData(std::string inputfile);
-    void makeSimulationsData(std::string inputfile);
+    bool makeSimulationsData(std::string inputfile);
     RegressionDataset loadData(const std::string& dataFile,const std::string& labelFile);
     RegressionDataset examplesdataset;
     RegressionDataset simulationsdataset;

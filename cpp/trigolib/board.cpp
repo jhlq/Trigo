@@ -9,7 +9,6 @@
 
 Board::Board(int sideLength) : tg(sideLength)
 {
-    //tg=TriangleGrid(sideLength);
     player=1;
     stones[0]=0;
     stones[1]=0;
@@ -24,7 +23,7 @@ void Board::reset(){
     player=1;
     history.clear();
     moves.clear();
-    influence.clear();
+    resetInfluence();
     stones[0]=0;
     stones[1]=0;
     captures[0]=0;
@@ -33,9 +32,8 @@ void Board::reset(){
     territory[1]=0;
 }
 void Board::removeCapturedBy(const Triangle tri){
-    //Triangle tri=tg.get(x,y);
     std::vector<Triangle> adj=tg.adjacent(tri);
-    for (int a=0;a<adj.size();a++){
+    for (size_t a=0;a<adj.size();a++){
         int ap=adj[a].player;
         if (adj[a].alive()&&ap!=tri.player){
             std::vector<Triangle> g=tg.getGroup(adj[a]);
@@ -58,12 +56,12 @@ int Board::invalidMoveType(const Triangle &t){
     if (tg.get(t.x,t.y).player!=0){
         return 1;
     }
-    Board bc=Board(*this);
+    Board bc=*this;
     bc.tg.set(t.x,t.y,t.player);
     Triangle tri=bc.tg.get(t.x,t.y);
     //bc.removeCapturedBy(tri);
     std::vector<Triangle> adj=bc.tg.adjacent(tri);
-    for (int a=0;a<adj.size();a++){
+    for (size_t a=0;a<adj.size();a++){
             if (adj[a].alive()&&adj[a].player!=tri.player){
             std::vector<Triangle> g=bc.tg.getGroup(adj[a]);
             if (bc.tg.liberties(g)==0){
@@ -126,18 +124,7 @@ bool Board::placeMove(int x,int y,int p){
     tg.set(x,y,p);
     Triangle tri=tg.get(x,y);
     removeCapturedBy(tri);
-    /*std::vector<Triangle> adj=tg.adjacent(tri);
-    for (int a=0;a<adj.size();a++){
-            if (adj[a].alive()&&adj[a].player!=tri.player){
-            std::vector<Triangle> g=tg.getGroup(adj[a]); //put this in a function?
-            if (tg.liberties(g)==0){
-                captures[p-1]+=g.size();
-                tg.removeGroup(g,tri);
-            }
-        }
-    }*/
     history.push_back(tg.historyString());
-    //moves.push_back(tri);
     moves.push_back(Triangle(x,y,p));
     stones[p-1]+=1;
     return true;
@@ -176,19 +163,19 @@ void Board::pass(){
 void Board::score(){
     std::vector<Triangle> checked;
     int scores[2]={0,0};
-    for (int y=0;y<tg.triangles.size();y++){
-        for (int x=0;x<tg.triangles[y].size();x++){
+    for (size_t y=0;y<tg.triangles.size();y++){
+        for (size_t x=0;x<tg.triangles[y].size();x++){
             Triangle tri=tg.triangles[y][x];
             if ((tri.player==0||tri.markedDead) && !contains(checked,tri)){
                 std::vector<Triangle> c=tg.getConnected(tri);
-                for (int ci=0;ci<c.size();ci++){
+                for (size_t ci=0;ci<c.size();ci++){
                     checked.push_back(c[ci]);
                 }
                 std::vector<Triangle> adj=tg.adjacent(c);
                 int p=adj[0].player;
                 if (!adj.empty() && p>0){
                     bool oneplayer=true;
-                    for (int adji=0;adji<adj.size();adji++){
+                    for (size_t adji=0;adji<adj.size();adji++){
                         if (adj[adji].player!=p){
                             oneplayer=false;
                             break;
@@ -221,7 +208,7 @@ void Board::markDeadStones(std::vector<Triangle> c){
     if (flipto){
         a=1;
     }
-    for (int i=0;i<c.size();i++){
+    for (size_t i=0;i<c.size();i++){
         Triangle t=c[i];
         if (t.player==tri.player && t.markedDead!=flipto){
             tg.triangles[t.y][t.x].markedDead=flipto;
@@ -230,10 +217,9 @@ void Board::markDeadStones(std::vector<Triangle> c){
         }
     }
 }
-//#include <iostream>
 bool Board::tryCaptureCluster(std::vector<Triangle> cluster, int maxit){
     std::vector<Triangle> space=tg.getConnectedSpace(cluster);
-    if (space.size()>tg.sideLength*tg.sideLength/5) return false;
+    if (space.size()>(double)tg.sideLength*tg.sideLength/5) return false;
     Triangle c0=cluster[0];
     int totalstones=stones[c0.player-1];
     int clusterstones=cluster.size();
@@ -284,7 +270,6 @@ void Board::autoMarkDeadStones(){
             std::vector<Triangle> c=tg.getCluster(m);
             bool success=tryCaptureCluster(c);
             if (success){
-                //markDeadStones(c);
                 tobemarked.push_back(c);
             }
             for (Triangle ct:c){
@@ -297,11 +282,10 @@ void Board::autoMarkDeadStones(){
     }
 }
 
-
 void Board::initInfluence(){
-    for (int y=0;y<this->tg.triangles.size();y++){
+	for (size_t y=0;y<this->tg.triangles.size();y++){
         std::vector<InfluenceTriangle> v;
-        for (int x=0;x<this->tg.triangles[y].size();x++){
+        for (size_t x=0;x<this->tg.triangles[y].size();x++){
             InfluenceTriangle vt;
             if (y==0 || x<2 || x>(this->tg.triangles[y].size()-3)) vt.border=1;	//add decreasing border influence
             v.push_back(vt);
@@ -313,8 +297,8 @@ void Board::resetInfluence(){
     if (this->influence.empty()){										//interesting topic, what are the performance gains of forcing the caller to keep track of initialization?
         this->initInfluence();
     } else {
-        for (int y=0;y<this->influence.size();y++){
-            for (int x=0;x<this->influence[y].size();x++){
+        for (size_t y=0;y<this->influence.size();y++){
+            for (size_t x=0;x<this->influence[y].size();x++){
                 this->influence[y][x].green=0;
                 this->influence[y][x].blue=0;
             }
@@ -322,8 +306,8 @@ void Board::resetInfluence(){
     }
 }
 void Board::normalizeInfluence(){
-    for (int y=0;y<this->influence.size();y++){
-        for (int x=0;x<this->influence[y].size();x++){
+    for (size_t y=0;y<this->influence.size();y++){
+        for (size_t x=0;x<this->influence[y].size();x++){
             this->influence[y][x].green=tanh(this->influence[y][x].green);
             this->influence[y][x].blue=tanh(this->influence[y][x].blue);
         }
@@ -337,7 +321,7 @@ void Board::spreadInfluence(Triangle tri,int range){
     int _player=tri.player;
     for (int r=0;r<=range;r++){
         std::vector<Triangle> newfringe;
-        for (int fi=0;fi<fringe.size();fi++){
+        for (size_t fi=0;fi<fringe.size();fi++){
             Triangle t=fringe[fi];
             if (_player==1){
                 this->influence[t.y][t.x].green+=(double)1/(r+1);
@@ -345,7 +329,7 @@ void Board::spreadInfluence(Triangle tri,int range){
                 this->influence[t.y][t.x].blue+=(double)1/(r+1);
             }
             auto adj=this->tg.adjacent(t);
-            for (int adji=0;adji<adj.size();adji++){
+            for (size_t adji=0;adji<adj.size();adji++){
                 Triangle at=adj[adji];
                 if (!contains(visited,at)){
                     if (at.alive() && at.player!=_player){
@@ -362,8 +346,8 @@ void Board::spreadInfluence(Triangle tri,int range){
 }
 void Board::spreadInfluence(int range){
     this->resetInfluence();
-    for (int y=0;y<this->tg.triangles.size();y++){
-        for (int x=0;x<this->tg.triangles[y].size();x++){
+    for (size_t y=0;y<this->tg.triangles.size();y++){
+        for (size_t x=0;x<this->tg.triangles[y].size();x++){
             Triangle t=this->tg.triangles[y][x];
             if (t.alive()){
                 this->spreadInfluence(t,range);
@@ -378,8 +362,8 @@ std::array<double,2> Board::estimateScore(bool reset,int range){
     if (reset){
         this->spreadInfluence(range);
     }
-    for (int y=0;y<this->influence.size();y++){
-        for (int x=0;x<this->influence[y].size();x++){
+    for (size_t y=0;y<this->influence.size();y++){
+        for (size_t x=0;x<this->influence[y].size();x++){
             auto it=this->influence[y][x];
             double infl=it.green-it.blue;
             if (infl>0){
@@ -442,7 +426,7 @@ bool Board::isEye(Triangle loc){
     if (adjallsame){
         auto adjg=tg.getGroup(adj[0]);
         bool adjconnected=true;
-        for (int adji=1;adji<adj.size();adji++){
+        for (size_t adji=1;adji<adj.size();adji++){
             if (!contains(adjg,adj[adji])){
                 adjconnected=false;
                 break;
@@ -454,8 +438,8 @@ bool Board::isEye(Triangle loc){
 }
 bool Board::placeRandomMove(){
     std::vector<Triangle> m2c;
-    for (int yi=0;yi<tg.triangles.size();yi++){
-        for (int xi=0;xi<tg.triangles[yi].size();xi++){
+    for (size_t yi=0;yi<tg.triangles.size();yi++){
+        for (size_t xi=0;xi<tg.triangles[yi].size();xi++){
             Triangle m(xi,yi,player);
             if (isValidMove(m) && !isEye(m)){
                 m2c.push_back(m);
