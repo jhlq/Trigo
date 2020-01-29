@@ -93,6 +93,7 @@ func serveAccount(w http.ResponseWriter, r *http.Request) {
 				Name:	"user",
 				Value:   nu,
 				Path: "/",
+				MaxAge: 315360000,
 			}
 			http.SetCookie(w, &cookie)
 			msg="Updated cookie."
@@ -110,6 +111,7 @@ func serveLobby(w http.ResponseWriter, r *http.Request) {
 			Name:	"user",
 			Value:   ip,
 			Path: "/",
+			MaxAge: 315360000,
 		}
 		http.SetCookie(w, &cookie)
 	}
