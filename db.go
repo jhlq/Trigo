@@ -213,8 +213,8 @@ func addGame(client *mongo.Client,le lobbyEntry,green string,h *GameHub){
 	count:=<-c
 	key:=strconv.Itoa(count)
 	day:=86400
-	timelimit:=5*day
-	tt:=day
+	timelimit:=30*day
+	tt:=7*day
 	deadline:=int(time.Now().Unix())+timelimit
 	_, err := collection.InsertOne(ctx, bson.M{"key": key,"size":le.Size,"green":green,"blue":le.User,"deadline":deadline,"remainingTime":timelimit,"maxTime":timelimit,"turnTime":tt,"currentUser":green,"currentColor":"green","passed":false,"markDead":false,"done":false,"ruleset":le.Ruleset,"score":0,"winner":"","metalStake":le.MetalStake})
 	if (err!=nil){

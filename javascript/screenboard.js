@@ -98,6 +98,7 @@ Trigo.ScreenBoard.prototype.handleClick=function(x,y){
 Trigo.ScreenBoard.prototype.clickEvent = function (e) {
 	var mouseX = e.pageX;
 	var mouseY = e.pageY;
+	this.drawer.updateParams();
 	var localX = mouseX - this.drawer.canvasOriginX;
 	var localY = mouseY - this.drawer.canvasOriginY;
 	var leny=this.triangles.length;
